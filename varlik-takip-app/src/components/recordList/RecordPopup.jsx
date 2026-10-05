@@ -15,7 +15,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
     <div style={styles.modalOverlay} onClick={onClose}>
       <div style={{ ...styles.modalCard, width: "min(580px, 100%)", fontSize: 15.5 }} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
-          <p style={{ ...styles.modalTitle, fontFamily: "monospace" }}>{row.serial}</p>
+          <p style={{ ...styles.modalTitle, fontFamily: "var(--font-mono)" }}>{row.serial}</p>
           <span style={styles.modalClose} onClick={onClose}>✕</span>
         </div>
         <p style={styles.modalSub}>{row.sub}</p>
@@ -87,7 +87,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
                       }}
                     >
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontFamily: "monospace", fontWeight: 600 }}>{m.serial}{m.label ? ` · ${m.label}` : ""}</div>
+                        <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>{m.serial}{m.label ? ` · ${m.label}` : ""}</div>
                         <div style={{ color: pal.inkSoft, marginTop: 1 }}>
                           Zimmetli: {m.assignedTo || "—"} · Kullanan: {m.usedBy}
                         </div>
@@ -143,7 +143,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
               <div style={styles.detailFieldRow}>
                 <span style={{ color: pal.inkSoft }}>Hostname / Son Giriş</span>
                 <span style={{ textAlign: "right" }}>
-                  <div style={{ fontFamily: "monospace" }}>{row.hostname}</div>
+                  <div style={{ fontFamily: "var(--font-mono)" }}>{row.hostname}</div>
                   {row.actualUser && <div style={{ color: pal.inkSoft, fontSize: 12.5 }}>{row.actualUser}</div>}
                 </span>
               </div>

@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import LoginScreen from './components/LoginScreen.jsx'
 import MasterSetupScreen from './components/MasterSetupScreen.jsx'
 import { backendClient, getSessionToken, setSessionToken } from './services/backendClient.js'
@@ -85,6 +86,8 @@ function AuthGate() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthGate />
+    <ErrorBoundary>
+      <AuthGate />
+    </ErrorBoundary>
   </StrictMode>,
 )

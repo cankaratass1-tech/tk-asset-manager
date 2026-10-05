@@ -720,7 +720,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
             type="text"
             value={excelPath}
             onChange={(e) => setExcelPath(e.target.value)}
-            style={{ ...inp, flex: "1 1 340px", fontFamily: "monospace", fontSize: 12 }}
+            style={{ ...inp, flex: "1 1 340px", fontFamily: "var(--font-mono)", fontSize: 12 }}
             placeholder="Excel dosya yolu"
           />
           <button style={styles.btnPrimary} onClick={syncExcel} disabled={syncing || records.length === 0}>

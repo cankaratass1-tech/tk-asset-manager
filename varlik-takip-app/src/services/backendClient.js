@@ -54,9 +54,16 @@ async function request(path, options) {
       ...options,
     });
   } catch {
-    throw new Error("Backend'e ulaşılamadı — çalıştığından emin ol (bkz. backend/README ya da `npm run dev` backend klasöründe)");
+    throw new Error("Backend'e ulaşılamadı — çalıştığından emin ol (bkz. backend/README ya da `npm run dev` backend klasöründe) [NET-000]");
   }
   const body = await res.json().catch(() => ({}));
+  // Backend hata yanıtlarına eklenen kod/ID, ekranda gösterilen her mesajın sonuna eklenir ki
+  // kullanıcı kodu söyleyince sorunun nerede olduğu doğrudan bulunabilsin.
+  if (!res.ok && body.code) {
+    const tag = ` [${body.code}${body.errorId ? ` · #${body.errorId}` : ""}]`;
+    if (typeof body.message === "string") body.message += tag;
+    if (typeof body.error === "string") body.error += tag;
+  }
   if (res.status === 401) {
     if (!isSettingsPath && !isAuthPublicPath) setSessionToken(null); // oturum geçersiz — tekrar login gerekecek
     throw new Error(body.error || body.message || "Yetkisiz — tekrar giriş yapmalısın");

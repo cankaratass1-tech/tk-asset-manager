@@ -3,7 +3,7 @@ export function buildStyles(p) {
     body: {
       minHeight: "100vh",
       background: `${p.bgGradient}, ${p.bg}`,
-      fontFamily: "-apple-system, BlinkMacSystemFont, Inter, 'Helvetica Neue', sans-serif",
+      fontFamily: "var(--font-sans)",
       color: p.ink,
       padding: "16px",
       position: "relative",
@@ -35,7 +35,7 @@ export function buildStyles(p) {
     deptLeft: { display: "flex", alignItems: "center", gap: 10 },
     deptDot: { width: 6, height: 6, borderRadius: "50%", background: p.neutralDot, display: "inline-block" },
     deptDotActive: { background: p.accent },
-    deptCount: { fontSize: 12.5, color: p.inkSoft, fontFamily: "monospace" },
+    deptCount: { fontSize: 12.5, color: p.inkSoft, fontFamily: "var(--font-mono)" },
     deptCountActive: { color: p.accent },
     main: { display: "flex", flexDirection: "column", gap: 16 },
     // Global footer (madde 1) — shell grid'inin her iki sütununu kapsar, altta durur.
@@ -50,7 +50,7 @@ export function buildStyles(p) {
     pageSub: { fontSize: 14, color: p.inkSoft, margin: 0 },
     statStrip: { display: "flex", gap: 26, marginTop: 18, paddingTop: 18, borderTop: `1px solid ${p.line}` },
     stat: { display: "flex", flexDirection: "column", gap: 3 },
-    statNum: { fontSize: 22, fontWeight: 600, fontFamily: "monospace", letterSpacing: "-0.02em" },
+    statNum: { fontSize: 22, fontWeight: 600, fontFamily: "var(--font-mono)", letterSpacing: "-0.02em" },
     statLabel: { fontSize: 12.5, color: p.inkSoft },
     toolbar: { display: "flex", flexDirection: "column", gap: 11, padding: "16px 24px" },
     toolbarFiltersRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
@@ -81,7 +81,7 @@ export function buildStyles(p) {
     cellSub: { color: p.inkSoft, fontSize: 12.5, marginTop: 2 },
     // Seri no birincil/tanımlayıcı bilgi olduğu için tam kontrastlı (p.ink) — önceden inkSoft
     // (soluk gri) kullanıyordu, okunurluğu düşüyordu (bkz. konuşma)
-    serial: { fontFamily: "monospace", fontSize: 13.5, fontWeight: 600, color: p.ink },
+    serial: { fontFamily: "var(--font-mono)", fontSize: 13.5, fontWeight: 600, color: p.ink },
     badge: { display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 20, fontSize: 12, fontWeight: 600 },
     badgeDot: { width: 6, height: 6, borderRadius: "50%", display: "inline-block" },
     badgeOk: { background: p.okBg, color: p.ok },
@@ -105,7 +105,7 @@ export function buildStyles(p) {
     modalSub: { fontSize: 13.5, color: p.inkSoft, margin: "4px 0 18px" },
     dashRowHead: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 },
     dashDeptName: { fontSize: 15.5, fontWeight: 600 },
-    dashDeptTotal: { fontSize: 12.5, color: p.inkSoft, fontFamily: "monospace" },
+    dashDeptTotal: { fontSize: 12.5, color: p.inkSoft, fontFamily: "var(--font-mono)" },
     dashBar: { display: "flex", height: 15, borderRadius: 7, overflow: "hidden", background: p.fieldBg },
     dashBarSeg: { height: "100%" },
     dashLegendRow: { display: "flex", gap: 18, marginTop: 7 },
@@ -113,7 +113,7 @@ export function buildStyles(p) {
     dashDot: { width: 7, height: 7, borderRadius: "50%", display: "inline-block" },
     kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 },
     kpiCard: { background: p.fieldBg, borderRadius: 12, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 6 },
-    kpiValue: { fontSize: 26, fontWeight: 700, fontFamily: "monospace", letterSpacing: "-0.02em", lineHeight: 1 },
+    kpiValue: { fontSize: 26, fontWeight: 700, fontFamily: "var(--font-mono)", letterSpacing: "-0.02em", lineHeight: 1 },
     kpiLabel: { fontSize: 12.5, color: p.inkSoft },
     kpiSub: { fontSize: 11.5, fontWeight: 600 },
     dashboardTwoCol: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 },
@@ -123,7 +123,7 @@ export function buildStyles(p) {
     legendItemRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 13.5 },
     legendItemLeft: { display: "flex", alignItems: "center", gap: 8 },
     legendDot: { width: 8, height: 8, borderRadius: "50%", display: "inline-block", flexShrink: 0 },
-    legendCount: { fontFamily: "monospace", fontWeight: 600, fontSize: 13.5 },
+    legendCount: { fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 13.5 },
     groupedBarBlock: { display: "flex", flexDirection: "column", gap: 8 },
     groupedBarHead: { display: "flex", justifyContent: "space-between", fontSize: 13.5 },
     groupedBarDeptName: { fontWeight: 600 },
@@ -137,7 +137,7 @@ export function buildStyles(p) {
     formFieldWide: { display: "flex", flexDirection: "column", gap: 7, gridColumn: "1 / -1" },
     formLabel: { fontSize: 13, fontWeight: 600, color: p.ink },
     formInput: { fontSize: 14.5, border: p.fieldBorder, borderRadius: 8, padding: "10px 13px", fontFamily: "inherit", background: p.white, color: p.ink, width: "100%" },
-    formTextarea: { fontSize: 13.5, border: p.fieldBorder, borderRadius: 8, padding: "10px 13px", fontFamily: "monospace", background: p.white, color: p.ink, width: "100%", minHeight: 160, resize: "vertical" },
+    formTextarea: { fontSize: 13.5, border: p.fieldBorder, borderRadius: 8, padding: "10px 13px", fontFamily: "var(--font-mono)", background: p.white, color: p.ink, width: "100%", minHeight: 160, resize: "vertical" },
     formCheckRow: { display: "flex", alignItems: "center", gap: 8, fontSize: 14 },
     formHelper: { fontSize: 12.5, color: p.inkSoft, margin: "11px 0 0" },
     formActions: { display: "flex", alignItems: "center", gap: 10, marginTop: 18 },
@@ -166,14 +166,14 @@ export function buildStyles(p) {
     denseTd: { padding: "0 11px", fontSize: 13.5, height: 40, display: "flex", alignItems: "center" },
     denseRow: { display: "grid", alignItems: "stretch", borderBottom: `1px solid ${p.line}` },
     denseStripe: { width: 3, alignSelf: "stretch" },
-    denseSerial: { fontFamily: "monospace", fontSize: 13, color: p.ink },
+    denseSerial: { fontFamily: "var(--font-mono)", fontSize: 13, color: p.ink },
 
     // --- Kart + Detay (1c) ---
     detailLayoutRow: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) 460px", gap: 18, alignItems: "start" },
     cardList: { display: "flex", flexDirection: "column", gap: 7, padding: "14px 16px" },
     cardListHeader: { display: "grid", gridTemplateColumns: "20px 120px 2fr 1fr 120px 16px", alignItems: "center", gap: 12, padding: "0 12px 9px", fontSize: 13.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.035em", color: p.ink, borderBottom: `2px solid ${p.line}`, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
     cardRow: { display: "grid", gridTemplateColumns: "20px 120px 2fr 1fr 120px 16px", alignItems: "center", gap: 12, padding: "12px 12px", borderRadius: 10, background: p.fieldBg, border: "1px solid transparent", cursor: "pointer" },
-    cardRowSerial: { fontFamily: "monospace", fontSize: 14.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+    cardRowSerial: { fontFamily: "var(--font-mono)", fontSize: 14.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
     cardRowName: { fontSize: 14, fontWeight: 600, color: p.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
     cardRowLocation: { fontSize: 13.5, color: p.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
     cardRowSelected: { border: `1px solid ${p.accent}`, background: p.accentSoftStrong },
@@ -181,7 +181,7 @@ export function buildStyles(p) {
     cardChevron: { textAlign: "right", color: p.inkSoft, fontSize: 16 },
     detailAside: { background: p.panel, backdropFilter: "blur(18px)", border: `1px solid ${p.line}`, borderRadius: 16, boxShadow: p.shadow, padding: 32, display: "flex", flexDirection: "column", gap: 22, position: "sticky", top: 20, fontSize: 16, minWidth: 0, maxWidth: "100%", overflowWrap: "break-word" },
     detailEmpty: { fontSize: 14.5, color: p.inkSoft, textAlign: "center", padding: "44px 12px" },
-    detailAvatar: { width: 60, height: 60, borderRadius: 14, background: p.accentSoft, color: p.accent, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 19, fontFamily: "monospace", flexShrink: 0 },
+    detailAvatar: { width: 60, height: 60, borderRadius: 14, background: p.accentSoft, color: p.accent, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 19, fontFamily: "var(--font-mono)", flexShrink: 0 },
     // gap eklendi: değer kısa olduğunda (ör. "SUBE-C") space-between zaten geniş boşluk
     // bırakıyordu, ama uzun bir cümle (ör. Kullanılmayan Cihazlar'daki inaktif açıklama metni)
     // satırı doldurup "boşta kalan alanı" sıfırlayınca etiket ve değer bitişik/boşluksuz

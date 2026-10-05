@@ -135,8 +135,8 @@ export default function TableView({
               {!isZimmet && splitModel && <td style={styles.td}>{r.model}</td>}
               {showHostname && (
                 <td style={{ ...styles.td, fontSize: 13 }}>
-                  <div style={{ fontFamily: "monospace" }}>
-                    {r.hostname || <span style={{ fontFamily: "-apple-system, BlinkMacSystemFont, Inter, sans-serif", color: pal.inkSoft, fontStyle: "italic" }}>SCCM verisiyle eşleşmedi</span>}
+                  <div style={{ fontFamily: "var(--font-mono)" }}>
+                    {r.hostname || <span style={{ fontFamily: "var(--font-sans)", color: pal.inkSoft, fontStyle: "italic" }}>SCCM verisiyle eşleşmedi</span>}
                   </div>
                   {/* İnaktif Cihazlar'da hostname'in altında kimin fiilen kullandığı da gösterilsin
                       istendi (bkz. konuşma: "hem hostname hem kimin kullandığını gösterelim") —

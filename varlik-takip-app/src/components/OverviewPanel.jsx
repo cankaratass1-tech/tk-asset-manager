@@ -165,12 +165,12 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
             <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minWidth: 0 }}>
               <div>
                 <div style={{ fontSize: 11, color: pal.inkSoft, fontWeight: 600 }}>Toplam Cihaz</div>
-                <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "monospace", color: C.blue }}>{fmt(live.toplamCihaz)}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-mono)", color: C.blue }}>{fmt(live.toplamCihaz)}</div>
               </div>
               <div>
                 <div style={{ fontSize: 11, color: pal.inkSoft, fontWeight: 600 }}>Açık Bulgu</div>
                 <div style={{ display: "flex", alignItems: "baseline" }}>
-                  <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "monospace", color: C.coral }}>{fmt(latest ? latest.acikBulgu : acikBulguLive)}</span>
+                  <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-mono)", color: C.coral }}>{fmt(latest ? latest.acikBulgu : acikBulguLive)}</span>
                   <DeltaTag value={latest && prev ? pctChange(latest.acikBulgu, prev.acikBulgu) : null} unit="%" pal={pal} />
                 </div>
                 <Spark values={series.map((s) => s.acikBulgu)} color={C.coral} width={150} />
@@ -235,7 +235,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
                       <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: c.color, marginRight: 7 }} />
                       {c.key}
                     </td>
-                    <td style={{ textAlign: "right", padding: "6px 6px", fontWeight: 700, fontFamily: "monospace" }}>{fmt(c.value)}</td>
+                    <td style={{ textAlign: "right", padding: "6px 6px", fontWeight: 700, fontFamily: "var(--font-mono)" }}>{fmt(c.value)}</td>
                     <td style={{ textAlign: "right", padding: "6px 6px", color: pal.inkSoft }}>%{Math.round((c.value / catTotal) * 100)}</td>
                     <td style={{ padding: "6px 6px" }}>
                       <div style={{ height: 7, borderRadius: 4, background: pal.fieldBg }}>
@@ -282,7 +282,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
                 <tr key={r.key} style={{ borderTop: i === 0 ? "none" : `1px solid ${pal.line}`, background: r.bold ? pal.fieldBg : "transparent" }}>
                   <td style={{ padding: "8px 8px", width: 26, textAlign: "center", color: r.color, fontWeight: 800 }}>{r.sign}</td>
                   <td style={{ padding: "8px 8px", fontWeight: r.bold ? 800 : 500 }}>{r.key}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "monospace", fontWeight: r.bold ? 800 : 600, color: r.bold ? r.color : pal.ink }}>
+                  <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "var(--font-mono)", fontWeight: r.bold ? 800 : 600, color: r.bold ? r.color : pal.ink }}>
                     {fmt(r.value)}
                   </td>
                   <td style={{ padding: "8px 8px", textAlign: "right", color: pal.inkSoft, width: 60 }}>
@@ -344,12 +344,12 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
                     {trendRows.map((p) => (
                       <tr key={p.label} style={{ borderTop: `1px solid ${pal.line}` }}>
                         <td style={{ padding: "8px 8px", fontWeight: 700 }}>{p.label}</td>
-                        <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "monospace" }}>{fmt(p.acikBulgu)}</td>
-                        <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "monospace", color: C.emerald, fontWeight: 700 }}>{fmt(p.cozulen)}</td>
-                        <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "monospace" }}>{fmt(p.devam)}</td>
-                        <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "monospace", color: C.coral, fontWeight: 700 }}>{fmt(p.yeni)}</td>
+                        <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "var(--font-mono)" }}>{fmt(p.acikBulgu)}</td>
+                        <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "var(--font-mono)", color: C.emerald, fontWeight: 700 }}>{fmt(p.cozulen)}</td>
+                        <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "var(--font-mono)" }}>{fmt(p.devam)}</td>
+                        <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "var(--font-mono)", color: C.coral, fontWeight: 700 }}>{fmt(p.yeni)}</td>
                         <td style={{ padding: "8px 8px", textAlign: "right" }}>
-                          <span style={{ fontFamily: "monospace", fontWeight: 800, color: okColor(p.cozumOrani) }}>{p.cozumOrani != null ? `%${p.cozumOrani}` : "—"}</span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, color: okColor(p.cozumOrani) }}>{p.cozumOrani != null ? `%${p.cozumOrani}` : "—"}</span>
                         </td>
                       </tr>
                     ))}

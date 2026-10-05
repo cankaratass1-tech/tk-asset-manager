@@ -46,7 +46,7 @@ export default function Donut({ segments, size = 128, thickness = 16, centerLabe
           gap: 1,
         }}
       >
-        <span style={{ fontSize: size * 0.19, fontWeight: 700, fontFamily: "monospace", lineHeight: 1 }}>{centerLabel}</span>
+        <span style={{ fontSize: size * 0.19, fontWeight: 700, fontFamily: "var(--font-mono)", lineHeight: 1 }}>{centerLabel}</span>
         {centerSub && <span style={{ fontSize: size * 0.08, opacity: 0.6 }}>{centerSub}</span>}
       </div>
     </div>

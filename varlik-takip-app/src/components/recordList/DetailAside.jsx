@@ -184,7 +184,7 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
       <div>
         <div style={styles.detailFieldRow}>
           <span style={{ color: pal.inkSoft }}>{serialLabel || "Seri No"}</span>
-          <span style={{ fontFamily: "monospace" }}>{row.serial}</span>
+          <span style={{ fontFamily: "var(--font-mono)" }}>{row.serial}</span>
         </div>
         <div style={styles.detailFieldRow}>
           <span style={{ color: pal.inkSoft }}>{isZimmet ? "Cihaz Türü" : modelLabel || "Model"}</span>
@@ -235,7 +235,7 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ fontFamily: "monospace", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {m.serial}
                     </span>
                     <span style={{ ...styles.badge, ...badgeStyle, flexShrink: 0 }} title={m.status}>

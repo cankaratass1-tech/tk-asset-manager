@@ -3156,7 +3156,7 @@ IT Support`;
                 const rollingMiniSummary = (s) =>
                   !s ? null : (
                     <div
-                      style={{ display: "flex", gap: 8, fontSize: 10.5, fontFamily: "monospace", color: pal.inkSoft, marginBottom: 2 }}
+                      style={{ display: "flex", gap: 8, fontSize: 10.5, fontFamily: "var(--font-mono)", color: pal.inkSoft, marginBottom: 2 }}
                       title={`${s.prevLabel} → ${s.periodLabel}`}
                     >
                       <span style={{ color: pal.ok }}>çöz {s.cozulen}</span>
@@ -3829,7 +3829,7 @@ IT Support`;
                   value={ustYonetimText}
                   onChange={(e) => setUstYonetimText(e.target.value)}
                   placeholder={"genel.mudur@mhy.com.tr\nbaskan@mhy.com.tr"}
-                  style={{ ...styles.formInput, width: "100%", minHeight: 120, fontFamily: "monospace", fontSize: 12.5, marginTop: 8 }}
+                  style={{ ...styles.formInput, width: "100%", minHeight: 120, fontFamily: "var(--font-mono)", fontSize: 12.5, marginTop: 8 }}
                 />
                 <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
                   <button style={styles.btnPrimary} onClick={saveUstYonetimList} disabled={savingUstYonetim}>
@@ -4875,7 +4875,7 @@ IT Support`;
                     {pageSize !== Infinity && totalPages > 1 ? ` · Sayfa ${safePage} / ${totalPages}` : ""}
                   </span>
                   <Pagination page={safePage} totalPages={pageSize === Infinity ? 1 : totalPages} onChange={setCurrentPage} styles={styles} pal={pal} />
-                  <span style={{ fontFamily: "monospace" }}>
+                  <span style={{ fontFamily: "var(--font-mono)" }}>
                     {isZimmet
                       ? realSccmMeta
                         ? `Gerçek veri: ${realSccmMeta.fileName}`

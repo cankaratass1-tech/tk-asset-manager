@@ -24,6 +24,7 @@ const anomalyScheduler = require("./src/anomalyScheduler");
 const { verifyCredentials, requireSettingsAuth } = require("./src/auth");
 const { requireAuth, requireMasterAuth } = require("./src/authMiddleware");
 const { readSection } = require("./src/store");
+const { errorCodeMiddleware } = require("./src/errorCodes");
 
 function createApp() {
   const app = express();
@@ -55,6 +56,8 @@ function createApp() {
       },
     })(req, res, next);
   });
+
+  app.use(errorCodeMiddleware);
 
   app.get("/api/health", (req, res) => res.json({ ok: true }));
 

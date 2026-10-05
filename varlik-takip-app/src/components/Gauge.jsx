@@ -65,7 +65,7 @@ export default function Gauge({
         <circle cx={cx} cy={cy} r="5" fill={pal ? pal.ink : "#333"} />
       </svg>
       {centerLabel != null && (
-        <span style={{ fontSize: 19, fontWeight: 800, fontFamily: "monospace", marginTop: -4, color: pal ? pal.ink : "#222" }}>{centerLabel}</span>
+        <span style={{ fontSize: 19, fontWeight: 800, fontFamily: "var(--font-mono)", marginTop: -4, color: pal ? pal.ink : "#222" }}>{centerLabel}</span>
       )}
       {centerSub && <span style={{ fontSize: 11, color: pal ? pal.inkSoft : "#888" }}>{centerSub}</span>}
     </div>
