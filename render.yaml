@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: varlik-takip-demo
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: cd varlik-takip-app && npm install && npm run build && cd ../backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: BACKEND_SECRET_KEY
+        sync: false
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false

@@ -1,0 +1,28 @@
+{
+  "name": "varlik-takip-backend",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Varlık Takip için veri kaynağı (NTLM/Basic/API Key) ve SMTP entegrasyon backend'i",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.0",
+    "express": "^4.21.2",
+    "httpntlm": "^1.8.13",
+    "ldapts": "^9.0.0",
+    "nodemailer": "^9.0.5",
+    "radius": "^1.1.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "smtp-server": "^3.13.4"
+  },
+  "overrides": {
+    "underscore": "^1.13.7"
+  }
+}
