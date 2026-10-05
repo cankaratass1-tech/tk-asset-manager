@@ -3,19 +3,19 @@ import companyLogo from "./assets/company-logo.svg";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { DEPARTMENTS, REPORT_TYPES, REPORT_CATEGORIES, NETWORK_ITEMS, REPORTS_WITHOUT_MODEL_FILTER, STATUS_FLOW } from "./data/constants";
+import { DEPARTMENTS, REPORT_TYPES, REPORT_CATEGORIES, NETWORK_ITEMS, REPORTS_WITHOUT_MODEL_FILTER, REPORTS_WITH_REAL_DATA, STATUS_FLOW } from "./data/constants";
 import MultiSelectFilter from "./components/MultiSelectFilter";
 import Pagination from "./components/Pagination";
 import { getZimmetRows, computeOverallZimmetStats, getAllMismatchRows, computeZimmetChains, isZimmetUnverified } from "./services/zimmetService";
 import { computeComparisonRows } from "./services/comparisonService";
 import { computeInaktifComparisonRows, needsInaktifAction } from "./services/inaktifComparisonService";
-import { getReportRows, getDeptAssetCount } from "./services/reportService";
+import { getReportRows, getDeptAssetCount, USE_MOCK_DATA } from "./services/reportService";
 import { fetchInaktifRowsFromFile, mapInaktifRow } from "./services/inaktifFileService";
 import { fetchDiskRowsFromFile, mapDiskRow } from "./services/diskFileService";
 import { fetchSccmRowsFromFile, mapSccmRow } from "./services/sccmFileService";
 import { mapThRows, fetchThRowsFromFile } from "./services/thFileService";
 import { mapMonitorRows, fetchMonitorRowsFromFile } from "./services/monitorFileService";
-import { fetchLokasyonMailRowsFromFile, resolveMailForLocationName } from "./services/lokasyonMailService";
+import { fetchLokasyonMailRowsFromFile, mapLokasyonMailRows, resolveMailForLocationName } from "./services/lokasyonMailService";
 import { computeLocationIpRows, buildLocationIpMailHtml, locationIpMailSubject } from "./services/locationIpService";
 import { mapBsodRows, fetchBsodRowsFromFile } from "./services/bsodFileService";
 import { fetchBantRowsFromFile, uploadBantFile } from "./services/bantGenisligiService";
@@ -657,6 +657,8 @@ export default function App({ user, onLogout } = {}) {
     ? "Tüm Cihazlar"
     : isZimmet
     ? "SCCM Envanteri"
+    : !USE_MOCK_DATA
+    ? "Tüm Şirketler"
     : DEPARTMENTS.find((d) => d.id === activeDept).name;
   // Disk Alanı'nda genel "Cihaz Sahibi/Seri No-Model/Lokasyon" sütunları yerine
   // Hostname / Volume Name / Size / Free Space gösterilir (bkz. konuşma)
@@ -2452,6 +2454,7 @@ IT Support`;
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    persistImport("inaktif", file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
@@ -2475,6 +2478,7 @@ IT Support`;
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    persistImport("disk", file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
@@ -2498,6 +2502,7 @@ IT Support`;
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    persistImport("sccm", file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
@@ -2523,6 +2528,7 @@ IT Support`;
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    persistImport("th", file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
@@ -2540,12 +2546,44 @@ IT Support`;
     reader.readAsArrayBuffer(file);
   };
 
+  // Elle seçilen dosyayı backend'e de kaydet: uygulama kapanıp açılsa ya da sayfa yenilense bile rapor
+  // ekranları veriyi otomatik geri yükler (bkz. backend/src/importStore.js). Başarısız olursa (ör. yetki)
+  // bu oturumdaki veri yine de kullanılır, kullanıcıya uyarı gösterilir.
+  const persistImport = (kind, file) => {
+    backendClient.importFile(kind, file).catch((err) => showToast(`Dosya bu oturumda yüklendi ama kalıcı kaydedilemedi: ${err.message}`));
+  };
+
+  // Lokasyon Mail Listesi — başlık satırı ilk satırda (Lokasyon Kodu, Açık Lokasyon Adı, Mail Adresi, IP_Address);
+  // klasör senkronu olmayan ortamlarda (ör. tek exe) elle yüklenebilsin diye.
+  const handleManualLokasyonMailFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    persistImport("lokasyon", file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 0 });
+        const rows = mapLokasyonMailRows(raw);
+        setRealLokasyonMailAll(rows);
+        setRealLokasyonMailMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
+        showToast(`${file.name} içinden ${rows.length} lokasyon kaydı yüklendi${rows.length === 0 ? " (dosya boş)" : ""}`);
+      } catch (err) {
+        showToast(`Dosya okunamadı: ${err.message}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   // Monitor Raporu — gerçek örnek dosyadan doğrulandı: "Attached Monitors Report", başlık satırı
   // 2. satırda (range: 1).
   const handleManualMonitorFile = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    persistImport("monitor", file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
@@ -2606,6 +2644,7 @@ IT Support`;
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    persistImport("bsod", file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
@@ -2903,7 +2942,7 @@ IT Support`;
             </div>
           </div>
 
-          <div style={styles.navLabel}>{hasRealCompanies ? "Şirketler (Sahibi Firma)" : "Bölümler"}</div>
+          <div style={styles.navLabel}>{hasRealCompanies || !USE_MOCK_DATA ? "Şirketler (Sahibi Firma)" : "Bölümler"}</div>
           <div style={styles.deptList}>
             {hasRealCompanies
               ? (() => {
@@ -2960,6 +2999,12 @@ IT Support`;
                     </>
                   );
                 })()
+              : !USE_MOCK_DATA
+              ? (
+                  <p style={{ fontSize: 12.5, color: pal.inkSoft, margin: "6px 4px", lineHeight: 1.5 }}>
+                    Henüz veri yüklenmedi. Ayarlar &gt; Veri Input bölümünden dosyaları seçin.
+                  </p>
+                )
               : DEPARTMENTS.map((d) => {
                   const count = getDeptAssetCount(d.id);
                   const active = d.id === activeDept && !showHistory;
@@ -4061,6 +4106,7 @@ IT Support`;
                   <p style={styles.formHelper}>
                     TuruncuHat, İnaktif Cihazlar ile aynı sistemden gelir (Seri No, Sahibi, LBS, Sahibi Firma).
                     Monitor Raporu ayrı bir dosyadır (Hostname, Username, Monitor Serial Number, Monitor Model).
+                    Lokasyon Mail Listesi: Lokasyon Kodu, Açık Lokasyon Adı, Mail Adresi, IP_Address (Lokasyon Hostname/IP raporu ve İnaktif mailleri için).
                   </p>
                   <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
                     <label style={{ ...styles.btnGhost, cursor: "pointer" }}>
@@ -4071,12 +4117,17 @@ IT Support`;
                       Monitor Raporu Seç…
                       <input type="file" accept=".xlsx,.csv" onChange={handleManualMonitorFile} style={{ display: "none" }} />
                     </label>
+                    <label style={{ ...styles.btnGhost, cursor: "pointer" }}>
+                      Lokasyon Mail Listesi Seç…
+                      <input type="file" accept=".xlsx,.csv" onChange={handleManualLokasyonMailFile} style={{ display: "none" }} />
+                    </label>
                   </div>
-                  {(realThMeta || realMonitorMeta) && (
+                  {(realThMeta || realMonitorMeta || realLokasyonMailMeta) && (
                     <p style={{ ...styles.formHelper, marginTop: 10 }}>
                       {realThMeta && <>TuruncuHat: <strong>{realThMeta.fileName}</strong> ({realThAll.length} kayıt)</>}
                       {realThMeta && realMonitorMeta && " · "}
                       {realMonitorMeta && <>Monitor: <strong>{realMonitorMeta.fileName}</strong> ({realMonitorAll.length} kayıt)</>}
+                      {realLokasyonMailMeta && <> · Lokasyon Mail Listesi: <strong>{realLokasyonMailMeta.fileName}</strong> ({realLokasyonMailAll.length} kayıt)</>}
                     </p>
                   )}
                 </div>
@@ -4413,7 +4464,9 @@ IT Support`;
                       : "Henüz Battery Health Excel'i yüklenmedi — aşağıdan seçin"
                     : usingRealFileData && (usingRealInaktif ? realInaktifMeta : realDiskMeta)
                     ? `Gerçek veri — ${(usingRealInaktif ? realInaktifMeta : realDiskMeta).fileName} (${new Date((usingRealInaktif ? realInaktifMeta : realDiskMeta).modifiedAt).toLocaleString("tr-TR")})`
-                    : "Sahte veri ile demo · gerçek API bağlandığında burası canlı veriyle güncellenecek"}
+                    : REPORTS_WITH_REAL_DATA.has(activeReport)
+                    ? "Henüz veri yüklenmedi — Ayarlar > Veri Input bölümünden dosyayı seçin"
+                    : "Bu rapor için henüz bir veri kaynağı tanımlı değil"}
                 </p>
                 {reportPageSummary(
                   activeReport,
@@ -4914,11 +4967,11 @@ IT Support`;
                     {isZimmet
                       ? realSccmMeta
                         ? `Gerçek veri: ${realSccmMeta.fileName}`
-                        : "Sahte veri (demo)"
+                        : "Veri yüklenmedi"
                       : isUnused
                       ? realThMeta
                         ? `Gerçek veri: ${realThMeta.fileName}${realSccmMeta ? ` + ${realSccmMeta.fileName}` : ""}`
-                        : "Sahte veri (demo)"
+                        : "Veri yüklenmedi"
                       : isBsod
                       ? realBsodMeta
                         ? `Gerçek veri: ${realBsodMeta.fileName}`
@@ -4929,7 +4982,7 @@ IT Support`;
                         : "Dosya seçilmedi"
                       : usingRealFileData && (usingRealInaktif ? realInaktifMeta : realDiskMeta)
                       ? `Gerçek veri: ${(usingRealInaktif ? realInaktifMeta : realDiskMeta).fileName}`
-                      : "Sahte veri (demo)"}
+                      : "Veri yüklenmedi"}
                   </span>
                 </div>
               </div>

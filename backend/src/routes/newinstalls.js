@@ -7,6 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const XLSX = require("xlsx");
 const { readSection, writeSection } = require("../store");
+const { getDataDir } = require("../crypto");
 
 const router = express.Router();
 const SECTION = "yeniKurulumlar"; // { records: [...], excelPath: "..." }
@@ -30,7 +31,9 @@ const COLUMNS = [
 // Türetilmiş Excel sütunu — mail gönderildiyse 1, gönderilmediyse 0.
 const MAIL_COL = "Mail Gönderildi";
 
-const DEFAULT_EXCEL = "C:/Users/Lenovo/varlik-test-data-3month/YeniKurulumlar-DEMO.xlsx";
+// Varsayılan Excel yolu uygulamanın kendi veri klasöründedir (hiçbir bilgisayara özel sabit yol yok);
+// Ayarlar'dan değiştirilebilir.
+const DEFAULT_EXCEL = path.join(getDataDir(), "YeniKurulumlar.xlsx").replace(/\\/g, "/");
 
 // İnaktif/Disk/SCCM/TH gibi diğer raporlar repo'yla giden bir "bundled demo veri" klasörüne
 // düşüyor, bu yüzden Render'da (kalıcı olmayan disk) elle bir şey yapmadan çalışıyorlar. Yeni

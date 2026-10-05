@@ -178,4 +178,18 @@ export const backendClient = {
   getLokasyonMailReport: () => request("/reports/lokasyon-mail"),
   getMonitorReport: () => request("/reports/monitor-raporu"),
   getBsodReport: () => request("/reports/bsod"),
+
+  // Elle seçilen rapor dosyasını backend'e kalıcı kaydeder (uygulama yeniden açılınca rapor ekranları
+  // veriyi buradan otomatik yükler). Ham bayt gönderilir (JSON değil); yalnızca Master User.
+  async importFile(kind, file) {
+    const token = getSessionToken();
+    const res = await fetch(`${BASE_URL}/settings/import-file?kind=${encodeURIComponent(kind)}&name=${encodeURIComponent(file.name)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: file,
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.message || body.error || `Dosya sunucuya kaydedilemedi (${res.status})`);
+    return body;
+  },
 };

@@ -14,6 +14,7 @@ const fs = require("fs");
 const path = require("path");
 const nodemailer = require("nodemailer");
 const { readSection, writeSection } = require("./store");
+const { getFileSourceConfig } = require("./importStore");
 const { loadLatestReport } = require("./excelSource");
 const { buildTransport } = require("./mailTransport");
 
@@ -170,7 +171,7 @@ async function sendDigestMail(cfg, newAnomalies) {
 
 async function runScan({ force = false } = {}) {
   const cfg = currentConfig();
-  const fileSourceCfg = readSection("fileSource") || {};
+  const fileSourceCfg = getFileSourceConfig();
   if (!fileSourceCfg.folderPath) throw new Error("Dosya kaynağı klasörü tanımlı değil");
 
   const th = loadLatestReport(fileSourceCfg.folderPath, "TH", { sheetIndex: 0, headerRow: 0 }).rows;

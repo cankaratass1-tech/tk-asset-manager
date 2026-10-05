@@ -1,5 +1,5 @@
 const express = require("express");
-const { readSection } = require("../store");
+const { getFileSourceConfig } = require("../importStore");
 const { loadLatestReport } = require("../excelSource");
 const bantStore = require("../bantGenisligiStore");
 const batteryStore = require("../batteryHealthStore");
@@ -27,7 +27,7 @@ router.get("/battery-health", (req, res) => {
 // dosyalarının en güncelini okuyup ham satırları döner. Kullanılacak veri dosyanın 2. sheet'inde
 // (1. sheet değil) — bkz. konuşma. Sütun -> rapor alanı eşlemesi frontend'de yapılır.
 router.get("/inaktif-cihazlar", (req, res) => {
-  const cfg = readSection("fileSource") || {};
+  const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
@@ -43,7 +43,7 @@ router.get("/inaktif-cihazlar", (req, res) => {
 // SCCM "Computers with low free disk space" raporu — gerçek sütun başlıkları 1. satırda değil,
 // üstte rapor adı/açıklama satırları olduğu için 6. satırda (headerRow: 5, 0-tabanlı).
 router.get("/disk-alani", (req, res) => {
-  const cfg = readSection("fileSource") || {};
+  const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
@@ -61,7 +61,7 @@ router.get("/disk-alani", (req, res) => {
 // sütun başlıkları 1. satırda değil, 4. satırda (headerRow: 3, 0-tabanlı) — üstte rapor
 // başlığı/boş satırlar var.
 router.get("/sccm", (req, res) => {
-  const cfg = readSection("fileSource") || {};
+  const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
@@ -77,7 +77,7 @@ router.get("/sccm", (req, res) => {
 // Hostname/IP Uyuşmazlığı raporu için TEK kaynak — Lokasyon Kodu, Açık Lokasyon Adı, Mail
 // Adresi, Node_CP_ContactMail2, IP_Address sütunları (bkz. konuşma). Başlıklar 1. satırda.
 router.get("/lokasyon-mail", (req, res) => {
-  const cfg = readSection("fileSource") || {};
+  const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
@@ -96,7 +96,7 @@ router.get("/lokasyon-mail", (req, res) => {
 // önceden sadece tarayıcıda manuel dosya seçimiyle geliyordu, sayfa yenilenince kayboluyordu
 // (bkz. konuşma: "diğerleri gibi görünmüyor").
 router.get("/th-envanteri", (req, res) => {
-  const cfg = readSection("fileSource") || {};
+  const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
@@ -114,7 +114,7 @@ router.get("/th-envanteri", (req, res) => {
 // Önceden sadece tarayıcıda elle dosya seçimiyle geliyordu, sayfa yenilenince kayboluyordu
 // (bkz. konuşma) — diğer raporlar gibi backend'den otomatik yüklensin diye eklendi.
 router.get("/bsod", (req, res) => {
-  const cfg = readSection("fileSource") || {};
+  const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
@@ -129,7 +129,7 @@ router.get("/bsod", (req, res) => {
 // Monitor Raporu: aynı klasördeki "Attached Monitors Report*.xlsx" dosyalarının en güncelini
 // okur. Başlıklar 2. satırda (headerRow: 1) — üstte tek bir rapor başlığı satırı var.
 router.get("/monitor-raporu", (req, res) => {
-  const cfg = readSection("fileSource") || {};
+  const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }

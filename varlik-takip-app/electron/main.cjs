@@ -1,5 +1,11 @@
 const { app, BrowserWindow, shell, dialog, ipcMain } = require("electron");
 const path = require("path");
+const fs = require("fs");
+
+// Tek kopya: ikinci kez açılırsa yeni süreç başlatmak yerine mevcut pencere öne gelir
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
 
 // Paketlenmiş exe'de resources/backend altına kopyalanır (bkz. package.json > build.extraResources)
 function resolveBackendDir() {
@@ -8,24 +14,68 @@ function resolveBackendDir() {
 }
 
 let backendServer = null;
+let backendPort = null;
+let mainWindow = null;
 
-// Backend ayrı bir süreç başlatılmadan, Electron'un Node çalışma zamanı içinde require edilir.
-// Sır şifreleme anahtarı/verisi %APPDATA%\varlik-takip-app\backend-data altına yazılır.
+// Arayüz (varlik-takip-app/dist) ve API aynı backend sürecinden, aynı origin'den (http://127.0.0.1:PORT)
+// sunulur: CORS/file:// sorunu olmaz, oturum bilgisi (localStorage) her açılışta aynı origin'de kalır.
+// Veri (şifreli ayarlar, anahtarlar, yüklenen dosyalar) %APPDATA%\varlik-takip-app\backend-data altında tutulur;
+// başka bir bilgisayarda ilk açılışta boş başlar.
 async function startBackend() {
-  process.env.DATA_DIR = path.join(app.getPath("userData"), "backend-data");
-  const backendDir = resolveBackendDir();
-  const { startServer } = require(path.join(backendDir, "server.js"));
-  backendServer = await startServer({ port: 5000 });
+  const dataDir = path.join(app.getPath("userData"), "backend-data");
+  process.env.DATA_DIR = dataDir;
+  process.env.HOST = "127.0.0.1";
+
+  // Ayarlar ekranı girişi: konsol olmayan exe'de rastgele üretilen şifre görülemeyeceği için, daha önce
+  // bir giriş dosyası oluşturulmadıysa bilinen demo girişi kullanılır (admin / can). Ortam değişkeni
+  // (ADMIN_USERNAME/ADMIN_PASSWORD) ya da dataDir altındaki admin-credentials.json bunun önüne geçer.
+  const credsFile = path.join(dataDir, "admin-credentials.json");
+  if (!fs.existsSync(credsFile)) {
+    process.env.ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+    process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "can";
+  }
+
+  const distIndex = path.join(resolveBackendDir(), "..", "varlik-takip-app", "dist", "index.html");
+  if (!fs.existsSync(distIndex)) throw new Error(`Arayüz dosyaları bulunamadı: ${distIndex}`);
+
+  const { startServer } = require(path.join(resolveBackendDir(), "server.js"));
+
+  // Port seçimi: tarayıcı deposu (oturum bilgisi dahil) origin'e, yani port'a bağlı olduğu için her açılışta
+  // AYNI portun kullanılması gerekir. Sırayla: en son kullanılan port, 5000, 5001-5020; hiçbiri boş değilse rastgele.
+  const portFile = path.join(app.getPath("userData"), "backend-port.txt");
+  let lastPort = null;
+  try {
+    lastPort = Number(fs.readFileSync(portFile, "utf8").trim());
+  } catch {
+    // ilk açılış
+  }
+  const candidates = [lastPort, 5000, ...Array.from({ length: 20 }, (_, i) => 5001 + i)].filter((p, i, a) => Number.isInteger(p) && p > 0 && a.indexOf(p) === i);
+  for (const port of candidates) {
+    try {
+      backendServer = await startServer({ port, host: "127.0.0.1" });
+      break;
+    } catch (err) {
+      if (!err || err.code !== "EADDRINUSE") throw err;
+    }
+  }
+  if (!backendServer) backendServer = await startServer({ port: 0, host: "127.0.0.1" });
+  backendPort = backendServer.address().port;
+  try {
+    fs.writeFileSync(portFile, String(backendPort));
+  } catch {
+    // yazılamazsa bir sonraki açılışta yine aday listesi denenir
+  }
 }
 
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 840,
-    minWidth: 900,
-    minHeight: 600,
-    title: "Varlık Takip",
+  mainWindow = new BrowserWindow({
+    width: 1366,
+    height: 860,
+    minWidth: 960,
+    minHeight: 620,
+    title: "TK Asset Manager",
     autoHideMenuBar: true,
+    icon: fs.existsSync(path.join(__dirname, "..", "build", "icon.png")) ? path.join(__dirname, "..", "build", "icon.png") : undefined,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -34,7 +84,10 @@ function createWindow() {
     },
   });
 
-  win.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+  mainWindow.loadURL(`http://127.0.0.1:${backendPort}/`);
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
 // Dosya Kaynağı ayarındaki "Gözat" butonu — tarayıcı sandbox'ı gerçek OS klasör yolunu
@@ -45,10 +98,10 @@ ipcMain.handle("pick-folder", async () => {
   return result.filePaths[0];
 });
 
-// Pencere içeriği dist/index.html dışına gezinemez; yeni pencere/sekme açma denemeleri sistem tarayıcısına yönlendirilir
+// Pencere içeriği kendi backend origin'i dışına gezinemez; yeni pencere/sekme açma denemeleri sistem tarayıcısına yönlendirilir
 app.on("web-contents-created", (_event, contents) => {
   contents.on("will-navigate", (navEvent, url) => {
-    if (!url.startsWith("file://")) navEvent.preventDefault();
+    if (!backendPort || !url.startsWith(`http://127.0.0.1:${backendPort}`)) navEvent.preventDefault();
   });
   contents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("http://") || url.startsWith("https://")) shell.openExternal(url);
@@ -56,14 +109,23 @@ app.on("web-contents-created", (_event, contents) => {
   });
 });
 
+app.on("second-instance", () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(async () => {
   try {
     await startBackend();
   } catch (err) {
     dialog.showErrorBox(
-      "Arka plan servisi başlatılamadı",
-      `Mail/API ayarları servisi başlatılamadı: ${err.message}\n\nUygulamanın geri kalanı (raporlar, panolar, dışa aktarma) normal çalışmaya devam edecek.`
+      "Uygulama başlatılamadı",
+      `Arka plan servisi başlatılamadı: ${err.message}\n\nUygulama kapatılacak. Sorun sürerse %APPDATA%\\varlik-takip-app klasörünü silip yeniden deneyin.`
     );
+    app.quit();
+    return;
   }
 
   createWindow();
