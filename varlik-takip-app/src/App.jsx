@@ -34,6 +34,7 @@ import NewInstallScreen from "./components/NewInstallScreen";
 import PendingClosureScreen from "./components/PendingClosureScreen";
 import SccmAjanScreen from "./components/SccmAjanScreen";
 import ThDepotSccmReportScreen from "./components/ThDepotSccmReportScreen";
+import AtilMonitorReportScreen from "./components/AtilMonitorReportScreen";
 import BantGenisligiScreen from "./components/BantGenisligiScreen";
 import AppFooter from "./components/AppFooter";
 import { LIGHT_PALETTE, DARK_PALETTE, AERO_PALETTE } from "./theme/palette";
@@ -2738,6 +2739,11 @@ IT Support`;
   // henüz yüklenmemiş olabilir (bkz. konuşma: "defaultta kullandığımız sccm listesinden al").
   useEffect(() => {
     if (activeReport === "sccm-ajan" && realSccmAll.length === 0) loadRealSccmData({ silent: true });
+    // Atıl Monitörler: yalnızca TuruncuHat + Monitor Raporu (bilgisayar/SCCM verisi gerekmez).
+    if (activeReport === "atil-monitor") {
+      loadRealThData({ silent: true });
+      loadRealMonitorData({ silent: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeReport]);
 
@@ -4333,6 +4339,16 @@ IT Support`;
             />
           ) : activeReport === "kapatma-onayi" ? (
             <PendingClosureScreen styles={styles} pal={pal} showToast={showToast} thRows={realThAll} />
+          ) : activeReport === "atil-monitor" ? (
+            <AtilMonitorReportScreen
+              styles={styles}
+              pal={pal}
+              thRows={realThAll}
+              monitorRows={realMonitorAll}
+              thMeta={realThMeta}
+              monitorMeta={realMonitorMeta}
+              loading={loadingRealTh || loadingRealMonitor}
+            />
           ) : activeReport === "sccm-ajan" ? (
             <SccmAjanScreen
               styles={styles}

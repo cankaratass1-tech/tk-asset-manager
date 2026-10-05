@@ -18,6 +18,7 @@ export const REPORT_CATEGORIES = [
       { id: "zimmet", name: "Zimmet Uyuşmazlığı" },
       { id: "lokasyon-ip", name: "Lokasyon Hostname ve IP Uyuşmazlığı" },
       { id: "kullanilmayan", name: "Kullanılmayan Cihazlar" },
+      { id: "atil-monitor", name: "Atıl Monitörler" },
       { id: "kapatma-onayi", name: "Kapatma Onayı Bekleyen Kayıtlar" },
       { id: "yeni-kurulum", name: "Yeni Kurulum Kaydı" },
       { id: "checkpoint", name: "Checkpoint" },
@@ -43,7 +44,7 @@ export const REPORT_TYPES = REPORT_CATEGORIES.flatMap((c) => c.reports);
 
 // Rapor kayıtlarında hangi raporların gerçek veriye sahip olduğu / Model filtresi gösterip
 // göstermeyeceği (gereksinim #3, #15) — bu üçü dışındakiler henüz veri kaynağı yok (F bloğu).
-export const REPORTS_WITH_REAL_DATA = new Set(["inaktif", "disk", "zimmet", "kullanilmayan", "bsod", "battery-health", "yeni-kurulum", "kapatma-onayi", "sccm-ajan"]);
+export const REPORTS_WITH_REAL_DATA = new Set(["inaktif", "disk", "zimmet", "kullanilmayan", "bsod", "battery-health", "yeni-kurulum", "kapatma-onayi", "sccm-ajan", "atil-monitor"]);
 export const REPORTS_WITHOUT_MODEL_FILTER = new Set(["disk", "bsod", "battery-health", "yeni-kurulum"]);
 
 // Sol menü — Network (gereksinim #1). Kaynak şu an manuel yükleme; ileride SharePoint/API'ye

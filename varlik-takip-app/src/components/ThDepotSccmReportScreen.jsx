@@ -90,6 +90,14 @@ export default function ThDepotSccmReportScreen({ styles, pal, thRows, sccmRows,
     setPage(1);
   };
 
+  // Aşama rozeti ve aramayı varsayılana (Rapordaki cihazlar) döndürür
+  const isFiltered = stage !== "final" || search !== "";
+  const resetFilters = () => {
+    setStage("final");
+    setSearch("");
+    setPage(1);
+  };
+
   return (
     <div style={{ ...styles.panel, padding: "20px 24px" }}>
       <p style={styles.settingsSectionTitle}>TuruncuHat Zimmet Depoda / SCCM Çalışıyor Raporu</p>
@@ -162,6 +170,11 @@ export default function ThDepotSccmReportScreen({ styles, pal, thRows, sccmRows,
                   </span>
                 )}
               </div>
+              {isFiltered && (
+                <button type="button" style={styles.btnGhost} onClick={resetFilters} title="Aşama ve aramayı varsayılana döndürür">
+                  Filtreleri Sıfırla
+                </button>
+              )}
               <button type="button" style={styles.btnGhost} onClick={exportCurrent} disabled={filtered.length === 0} title="Ekrandaki listeyi (seçili aşama ve arama) Excel'e aktarır">
                 Excel'e Aktar ({filtered.length})
               </button>
