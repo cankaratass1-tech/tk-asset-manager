@@ -33,6 +33,7 @@ import DeviceOverviewCard from "./components/DeviceOverviewCard";
 import NewInstallScreen from "./components/NewInstallScreen";
 import PendingClosureScreen from "./components/PendingClosureScreen";
 import SccmAjanScreen from "./components/SccmAjanScreen";
+import ThDepotSccmReportScreen from "./components/ThDepotSccmReportScreen";
 import BantGenisligiScreen from "./components/BantGenisligiScreen";
 import AppFooter from "./components/AppFooter";
 import { LIGHT_PALETTE, DARK_PALETTE, AERO_PALETTE } from "./theme/palette";
@@ -236,6 +237,11 @@ export default function App({ user, onLogout } = {}) {
     if (settingsTab === "veri" && !bantLoaded) loadRealBantData({ silent: true });
     if (settingsTab === "veri" && !batteryLoaded) loadRealBatteryData({ silent: true });
     if (settingsTab === "veri" && !ustYonetimLoaded) loadUstYonetimList();
+    // Gizli/Gelişmiş Raporlar: TuruncuHat + SCCM birlikte gerekir.
+    if (settingsTab === "gelismis") {
+      loadRealThData({ silent: true });
+      loadRealSccmData({ silent: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsTab]);
 
@@ -3519,13 +3525,26 @@ IT Support`;
                   <button style={styles.btnGhost} onClick={handleSettingsLogout}>Çıkış Yap</button>
                 </div>
                 <div style={{ ...styles.segmented, marginTop: 16 }}>
-                  {[["lokasyon", "Lokasyon Mailleri"], ["smtp", "SMTP"], ["veri", "Veri Input"]].map(([id, label]) => (
+                  {[["lokasyon", "Lokasyon Mailleri"], ["smtp", "SMTP"], ["veri", "Veri Input"], ["gelismis", "Gizli/Gelişmiş Raporlar"]].map(([id, label]) => (
                     <div key={id} onClick={() => setSettingsTab(id)} style={{ ...styles.seg, ...(settingsTab === id ? styles.segActive : {}) }}>
                       {label}
                     </div>
                   ))}
                 </div>
               </div>
+
+              {settingsTab === "gelismis" && (
+                <ThDepotSccmReportScreen
+                  styles={styles}
+                  pal={pal}
+                  thRows={realThAll}
+                  sccmRows={realSccmAll}
+                  thMeta={realThMeta}
+                  sccmMeta={realSccmMeta}
+                  loading={loadingRealTh || loadingRealSccm}
+                  staleDays={staleDays}
+                />
+              )}
 
               {settingsTab === "smtp" && (
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
