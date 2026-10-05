@@ -22,7 +22,16 @@ const toExportRow = (r) => ({
   [EXPORT_HEADERS[11]]: r.reason,
 });
 const sheetFrom = (rows) => XLSX.utils.json_to_sheet(rows.map(toExportRow), { header: EXPORT_HEADERS });
-const dateTag = () => new Date().toLocaleDateString("tr-TR").replace(/\./g, "-");
+// Dosya/sayfa adlarında "/" ve ":" kullanılamadığı için aşama başına sabit, okunur adlar
+const STAGE_EXPORT_NAMES = {
+  depot: "Zimmet Depoda",
+  sccmMatched: "SCCM Eşleşen",
+  sccmActive: "SCCM Çalışıyor",
+  excludedIp: "Çıkarılan - IP Bloğu",
+  excludedMaterialOrder: "Çıkarılan - Malzeme Emri",
+  final: "Rapor",
+};
+const dateTag =() => new Date().toLocaleDateString("tr-TR").replace(/\./g, "-");
 
 // Ayarlar > Gizli/Gelişmiş Raporlar: "TuruncuHat Zimmet Depoda / SCCM Çalışıyor Raporu".
 // Hesaplama thDepotSccmService.js'te; burası sadece gösterim. Üstteki aşama rozetleri tıklanabilir:
@@ -60,11 +69,10 @@ export default function ThDepotSccmReportScreen({ styles, pal, thRows, sccmRows,
 
   // Excel çıktısı: (1) ekrandaki liste (seçili aşama + arama), (2) tüm aşamaların sayfa sayfa dökümü
   const exportCurrent = () => {
-    const label = (funnel.find(([id]) => id === stage) || [])[1] || "Liste";
+    const label = STAGE_EXPORT_NAMES[stage] || "Liste";
     const wb = XLSX.utils.book_new();
-    const safeLabel = label.replace(/[\\/:*?"<>|[\]]/g, "");
-    XLSX.utils.book_append_sheet(wb, sheetFrom(filtered), safeLabel.slice(0, 31) || "Liste");
-    XLSX.writeFile(wb, `TuruncuHat Zimmet Depoda - SCCM Çalışıyor - ${safeLabel} - ${dateTag()}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, sheetFrom(filtered), label);
+    XLSX.writeFile(wb, `TuruncuHat Zimmet Depoda - SCCM Çalışıyor - ${label} - ${dateTag()}.xlsx`);
   };
   const exportAllStages = () => {
     const wb = XLSX.utils.book_new();
