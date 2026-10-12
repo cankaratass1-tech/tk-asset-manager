@@ -1,6 +1,63 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { backendClient } from "../services/backendClient";
 import Pagination from "./Pagination";
+
+// Formdaki tüm seçim alanları (Seri No, Lokasyon, Bitlocker, Durum, Nedeni) aynı görünüm ve davranışta
+// olsun diye tek açılır liste bileşeni (tarayıcının native select/datalist'i her biri farklı görünüyordu).
+// typeable: true → yazarak filtrelenir ve serbest metin kabul eder; false → sadece listeden seçilir.
+function ChoiceField({ value, onChange, options, inputStyle, pal, typeable = false, placeholder = "", emptyLabel = "— seçiniz —", autoFocusOnOpen }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  const q = String(value || "").toLocaleLowerCase("tr-TR");
+  const shown = typeable && q ? options.filter((o) => String(o).toLocaleLowerCase("tr-TR").includes(q)) : options;
+  const pick = (v) => { onChange(v); setOpen(false); };
+  const item = (selected) => ({
+    padding: "9px 14px", cursor: "pointer", fontSize: 14, fontWeight: selected ? 700 : 500,
+    color: pal.ink, background: selected ? pal.accentSoft : "transparent", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+  });
+  const arrow = <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: pal.inkSoft, pointerEvents: "none" }}>▾</span>;
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      {typeable ? (
+        <input
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          style={inputStyle}
+          placeholder={placeholder}
+          autoComplete="off"
+          autoFocus={autoFocusOnOpen}
+        />
+      ) : (
+        <div onClick={() => setOpen((v) => !v)} style={{ ...inputStyle, cursor: "pointer", display: "flex", alignItems: "center", userSelect: "none" }}>
+          <span style={{ color: value ? undefined : pal.inkSoft }}>{value || emptyLabel}</span>
+        </div>
+      )}
+      {arrow}
+      {open && (shown.length > 0 || !typeable) && (
+        <div
+          style={{
+            position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 30, maxHeight: 280, overflowY: "auto",
+            background: pal.panelSolid || pal.panel, border: `1px solid ${pal.line}`, borderRadius: 12, boxShadow: pal.shadow, padding: "6px 0",
+          }}
+        >
+          {!typeable && <div style={item(!value)} onClick={() => pick("")}>{emptyLabel}</div>}
+          {shown.map((o) => (
+            <div key={o} style={item(o === value)} onClick={() => pick(o)}>{o}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Diğer raporlarla aynı sayfalama seçenekleri (kullanıcı isteği — bkz. konuşma: "Yeni kurulum
 // kaydındaki kayıtlara da sayfa düzeni koyalım").
@@ -484,27 +541,24 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                 <label style={styles.formLabel}>{f.label}</label>
                 {isLoc ? (
                   <>
-                    <input
-                      list="ni-loc-list"
+                    <ChoiceField
+                      typeable
                       value={form[f.k]}
-                      onChange={(e) => setF(f.k, e.target.value)}
-                      style={inp}
+                      onChange={(v) => setF(f.k, v)}
+                      options={locationOptions}
+                      inputStyle={inp}
+                      pal={pal}
                       placeholder={locationOptions.length ? "yazarak ara veya listeden seç" : "lokasyon"}
                     />
-                    <datalist id="ni-loc-list">
-                      {locationOptions.map((o) => (
-                        <option key={o} value={o} />
-                      ))}
-                    </datalist>
                   </>
                 ) : fixedOpts ? (
-                  <select value={form[f.k]} onChange={(e) => setF(f.k, e.target.value)} style={{ ...inp }}>
-                    <option value="">— seçiniz —</option>
-                    {fixedOpts.map((o) => (
-                      <option key={o} value={o}>{o}</option>
-                    ))}
-                    {form[f.k] && !fixedOpts.includes(form[f.k]) && <option value={form[f.k]}>{form[f.k]}</option>}
-                  </select>
+                  <ChoiceField
+                    value={form[f.k]}
+                    onChange={(v) => setF(f.k, v)}
+                    options={form[f.k] && !fixedOpts.includes(form[f.k]) ? [...fixedOpts, form[f.k]] : fixedOpts}
+                    inputStyle={inp}
+                    pal={pal}
+                  />
                 ) : isReturns ? (
                   <div
                     style={{
@@ -552,19 +606,15 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                   </div>
                 ) : f.k === "serial" ? (
                   <>
-                    <input
-                      list="ni-serial-list"
+                    <ChoiceField
+                      typeable
                       value={form.serial}
-                      onChange={(e) => setF("serial", e.target.value)}
-                      style={inp}
+                      onChange={(v) => setF("serial", v)}
+                      options={serialSuggestions.map((t) => t.serial)}
+                      inputStyle={inp}
+                      pal={pal}
                       placeholder="SYNP… yazın, listeden seçin"
-                      autoComplete="off"
                     />
-                    <datalist id="ni-serial-list">
-                      {serialSuggestions.map((t) => (
-                        <option key={t.serial} value={t.serial} />
-                      ))}
-                    </datalist>
                     {!editingId && norm(form.serial).length >= 2 && (
                       <p style={{ margin: "3px 0 0", fontSize: 11.5, color: pal.inkSoft }}>
                         {thBySerial.has(norm(form.serial))

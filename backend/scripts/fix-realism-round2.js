@@ -206,6 +206,14 @@ function fixNewInstalls(thRows) {
   const STAFF = ["MASTER", "ASLİ", "KEREM", "DENİZ"];
   const REASONS = ["DEĞİŞİM", "YENİ İŞE GİRİŞ"];
   const BITLOCKER = ["ENABLE", "SÜREÇ DEVAM EDİYOR"];
+  const sccmBitlocker = new Map();
+  {
+    const sw = XLSX.readFile(SCCM_FILE);
+    const sa = XLSX.utils.sheet_to_json(sw.Sheets[sw.SheetNames[0]], { header: 1 });
+    const hi = sa.findIndex((r) => r.includes("Bitlocker Enabled"));
+    const si = sa[hi].indexOf("Serial Number"), bi = sa[hi].indexOf("Bitlocker Enabled");
+    sa.slice(hi + 1).forEach((r) => r[si] && sccmBitlocker.set(String(r[si]).toUpperCase(), String(r[bi])));
+  }
 
   // En az bir kaydı bilerek üst yönetimden birine bağla — özelliğin demoda görünür olması için.
   const ustYonetimCandidate = thRows.find((r) => r["Cihaz Sahibinin Unvan Kademesi"] && UST_YONETIM_TIERS.includes(r["Cihaz Sahibinin Unvan Kademesi"]) && (r["Model"] === "NOTEBOOK" || r["Model"] === "DESKTOP"));
@@ -236,7 +244,10 @@ function fixNewInstalls(thRows) {
       "KULLANICI BİLGİSİ": th["Sahibi"].toLocaleUpperCase("tr-TR"),
       "ATO NUMARASI": `ATO-00${atoSeq++}`,
       TARİH: dateStr,
-      "Bitlocker Kontrol": pick(BITLOCKER),
+      // Seri no SCCM'de varsa Bitlocker durumu oradakiyle aynı olmalı (Yes -> ENABLE, aksi -> süreç devam ediyor)
+      "Bitlocker Kontrol": sccmBitlocker.has(String(th["Seri No"]).toUpperCase())
+        ? (sccmBitlocker.get(String(th["Seri No"]).toUpperCase()) === "Yes" ? BITLOCKER[0] : BITLOCKER[1])
+        : pick(BITLOCKER),
       "İŞLEM YAPAN": pick(STAFF),
       DURUM: delivered ? "TESLİM EDİLDİ" : "HAZIRLANDI",
       "TESLİM TARİHİ": deliveryDate,
