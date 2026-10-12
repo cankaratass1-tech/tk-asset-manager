@@ -118,7 +118,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       const label = `${m.monitorManufacturer} ${m.monitorModel}`.trim();
       const monitorUser = m.username || "";
       // barkod/marka/asset: Zimmet Uyuşmazlığı mailindeki monitör tablosu için (TuruncuHat kaydından)
-      const base = { serial: m.monitorSerial, label, hostname: m.hostname, assignedTo: null, usedBy: monitorUser || "—", barkod: reg?.barkod || "", marka: reg?.marka || m.monitorManufacturer || "", asset: reg?.asset || reg?.model || m.monitorModel || "" };
+      const base = { serial: m.monitorSerial, label, hostname: m.hostname, assignedTo: null, usedBy: monitorUser || "—", assignedToFull: reg?.ownerFull || "", barkod: reg?.barkod || "", marka: reg?.marka || m.monitorManufacturer || "", asset: reg?.asset || reg?.model || m.monitorModel || "" };
       if (!reg) {
         monitorUnverified = true;
         return { ...base, status: "TuruncuHat'ta Kaydı Yok (doğrulanamadı)", ok: null };

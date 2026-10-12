@@ -10,3 +10,9 @@ export function ownerTitleOf(full) {
   if (rest.endsWith(")")) rest = rest.slice(0, -1).trim();
   return rest;
 }
+
+// Mail ve raporlarda kişiyi net belirtmek için tam ifade ("Ad Soyad (Takım/Unvan)"); yoksa kısa isim.
+export function ownerWithTitle(row) {
+  const full = String(row?.ownerFull ?? "").trim();
+  return full && full !== "—" ? full : row?.owner || "—";
+}

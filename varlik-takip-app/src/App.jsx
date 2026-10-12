@@ -41,6 +41,7 @@ import { LIGHT_PALETTE, DARK_PALETTE, AERO_PALETTE } from "./theme/palette";
 import { buildStyles } from "./theme/buildStyles";
 import Donut from "./components/Donut";
 import { backendClient, setSettingsAuth, clearSettingsAuth } from "./services/backendClient";
+import { ownerWithTitle } from "./services/ownerName";
 import TableView from "./components/recordList/TableView";
 import DenseGridView from "./components/recordList/DenseGridView";
 import CardDetailView from "./components/recordList/CardDetailView";
@@ -1407,7 +1408,7 @@ export default function App({ user, onLogout } = {}) {
         // Muhatap zaten bu kişi olsa da, birden fazla cihaz tek mailde listelenince hangi cihazda
         // hangi kullanıcı adıyla göründüğü net olsun diye ayrı sütun (bkz. konuşma).
         const lastLogon = [r.actualUser, r.lastLogonTime].filter(Boolean).join(" · ");
-        const cells = [r.serial, raw["Varlık Barkodu"], raw["Marka"], raw["Model"], raw["Asset"], r.owner, r.hostname, lastLogon];
+        const cells = [r.serial, raw["Varlık Barkodu"], raw["Marka"], raw["Model"], raw["Asset"], ownerWithTitle(r), r.hostname, lastLogon];
         return `<tr>${cells.map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(c)}</td>`).join("")}</tr>`;
       })
       .join("");
@@ -1439,7 +1440,7 @@ export default function App({ user, onLogout } = {}) {
   const zimmetMailTableRow = (r) => {
     const raw = r._raw || {};
     const lastLogon = [r.userFull || r.userLabel, r.lastLogonTime].filter(Boolean).join(" · ");
-    const cells = [r.serial, raw["Varlık Barkodu"], raw["Marka"], raw["Model"], raw["Asset"], r.owner, r.hostname, lastLogon];
+    const cells = [r.serial, raw["Varlık Barkodu"], raw["Marka"], raw["Model"], raw["Asset"], ownerWithTitle(r), r.hostname, lastLogon];
     return `<tr>${cells.map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(c)}</td>`).join("")}</tr>`;
   };
   const zimmetMailTableHead = (ownerColLabel) =>
@@ -1457,7 +1458,7 @@ export default function App({ user, onLogout } = {}) {
     // satırında Hostname = bağlı olduğu cihaz, Last Logon = monitörü kullanan kişi.
     const monitorEntries = monitorRows.flatMap((r) => (r.monitorDetails || []).filter((m) => m.ok === false));
     const monitorTableRow = (m) => {
-      const cells = [m.serial, m.barkod, m.marka, m.label, m.asset, m.assignedTo, m.hostname, m.usedBy];
+      const cells = [m.serial, m.barkod, m.marka, m.label, m.asset, m.assignedToFull || m.assignedTo, m.hostname, m.usedBy];
       return `<tr>${cells.map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(c)}</td>`).join("")}</tr>`;
     };
     if (mismatchRows.length || monitorEntries.length) {
@@ -1543,7 +1544,7 @@ export default function App({ user, onLogout } = {}) {
         const result = await backendClient.sendMail({
           to,
           subject,
-          text: `Aşağıdaki cihaz(lar) için aksiyon gereklidir:\n\n${mailRows.map((r) => `- ${r.serial} (${r.deviceModel || r.hostname}) — ${r.statusTag}${r.statusTag === "Zimmet Hatalı" ? `, kayıtlı eski sahibi: ${r.owner}` : ""}`).join("\n")}`,
+          text: `Aşağıdaki cihaz(lar) için aksiyon gereklidir:\n\n${mailRows.map((r) => `- ${r.serial} (${r.deviceModel || r.hostname}) — ${r.statusTag}${r.statusTag === "Zimmet Hatalı" ? `, kayıtlı eski sahibi: ${ownerWithTitle(r)}` : ""}`).join("\n")}`,
           html: buildZimmetCombinedMailHtml(rowsMismatch, rowsDuplicate, rowsMonitor),
         });
         if (result.ok) {
@@ -2072,7 +2073,7 @@ IT Support`;
         details.push({ location: loc, to: null, count: rows.length, ok: false, message: "Lokasyon Mail Listesi'nde bu lokasyon için mail adresi bulunamadı" });
         continue;
       }
-      const lines = rows.map((r) => `- ${r.owner} — ${r.serial} (${r.model})`).join("\n");
+      const lines = rows.map((r) => `- ${ownerWithTitle(r)} — ${r.serial} (${r.model})`).join("\n");
       try {
         const result = await backendClient.sendMail({
           to,
@@ -2102,7 +2103,7 @@ IT Support`;
         details.push({ location: label, to: null, count: rows.length, ok: false, message: "SCCM'de bu kullanıcı için mail adresi bulunamadı" });
         continue;
       }
-      const lines = rows.map((r) => `- ${r.serial} (${r.model}) — eski kayıtlı sahibi: ${r.owner}`).join("\n");
+      const lines = rows.map((r) => `- ${r.serial} (${r.model}) — eski kayıtlı sahibi: ${ownerWithTitle(r)}`).join("\n");
       try {
         const result = await backendClient.sendMail({
           to,

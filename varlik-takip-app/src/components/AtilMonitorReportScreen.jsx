@@ -3,17 +3,17 @@ import * as XLSX from "xlsx";
 import Pagination from "./Pagination";
 import { computeAtilMonitorRows, buildOtherUserMailPlan, REASON_ACTIVE, REASON_DEPOT_USED, REASON_NOT_ATTACHED, REASON_USED_BY_OTHER } from "../services/atilMonitorService";
 import { backendClient } from "../services/backendClient";
-import { ownerTitleOf } from "../services/ownerName";
+import { ownerTitleOf, ownerWithTitle } from "../services/ownerName";
 
 const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Metin, Zimmet Uyuşmazlığı mailiyle aynı şablon (App.jsx buildZimmetCombinedMailHtml): aynı giriş,
 // aynı sütunlar, aynı Turuncuhat kayıt talimatı — "cihaz" yerine "monitör".
 const MAIL_SUBJECT = "Zimmet Uyuşmazlığı — Kullandığınız Cihaz(lar) İçin Zimmet Transferi Gerekli";
 const MAIL_HEAD = ["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"];
-const mailCells = (r, username) => [r.monitorSerial, r.barkod, r.marka, r.model, r.asset, r.owner, r.hostnames, username];
+const mailCells = (r, username) => [r.monitorSerial, r.barkod, r.marka, r.model, r.asset, ownerWithTitle(r), r.hostnames, username];
 const buildMailText = (items, username) =>
   `Aşağıdaki cihaz(lar) için aksiyon gereklidir:\n\n${items
-    .map((r) => `- ${r.monitorSerial} (${r.model || "—"}) — kayıtlı eski sahibi: ${r.owner}`)
+    .map((r) => `- ${r.monitorSerial} (${r.model || "—"}) — kayıtlı eski sahibi: ${ownerWithTitle(r)}`)
     .join("\n")}\n\nTuruncuhat: turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → ilgili zimmet servisi.`;
 const buildMailHtml = (items, username) => `
   <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
