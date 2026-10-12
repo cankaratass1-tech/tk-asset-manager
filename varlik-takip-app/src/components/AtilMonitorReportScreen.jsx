@@ -1,7 +1,33 @@
 import { Fragment, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import Pagination from "./Pagination";
-import { computeAtilMonitorRows, REASON_ACTIVE, REASON_DEPOT_USED, REASON_NOT_ATTACHED, REASON_USED_BY_OTHER } from "../services/atilMonitorService";
+import { computeAtilMonitorRows, buildOtherUserMailPlan, REASON_ACTIVE, REASON_DEPOT_USED, REASON_NOT_ATTACHED, REASON_USED_BY_OTHER } from "../services/atilMonitorService";
+import { backendClient } from "../services/backendClient";
+
+const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// Metin, Zimmet Uyuşmazlığı mailiyle aynı şablon (App.jsx buildZimmetCombinedMailHtml): aynı giriş,
+// aynı sütunlar, aynı Turuncuhat kayıt talimatı — "cihaz" yerine "monitör".
+const MAIL_SUBJECT = "Zimmet Uyuşmazlığı — Kullandığınız Monitör(ler) İçin Zimmet Transferi Gerekli";
+const MAIL_HEAD = ["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"];
+const mailCells = (r, username) => [r.monitorSerial, r.barkod, r.marka, r.model, r.asset, r.owner, r.hostnames, username];
+const buildMailText = (items, username) =>
+  `Aşağıdaki monitör(ler) için aksiyon gereklidir:\n\n${items
+    .map((r) => `- ${r.monitorSerial} (${r.model || "—"}) — kayıtlı eski sahibi: ${r.owner}`)
+    .join("\n")}\n\nTuruncuhat: turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → ilgili zimmet servisi.`;
+const buildMailHtml = (items, username) => `
+  <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
+    <p>Merhabalar,</p>
+    <p>Sistem kayıtlarımıza göre, aşağıda listelenen monitör(ler)in kayıtlı sahibi farklı bir kişi görünüyor. Ancak monitör kullanım kayıtlarına göre bu monitör(ler)i fiilen <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, monitör(ler)in sizin adınıza zimmet transferinin yapılması gerekmektedir.</p>
+    <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
+      <thead><tr style="background:#f0f0f0;">${MAIL_HEAD.map((h) => `<th style="border:1px solid #ccc;padding:6px 8px;text-align:left;">${h}</th>`).join("")}</tr></thead>
+      <tbody>${items
+        .map((r) => `<tr>${mailCells(r, username).map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escHtml(c)}</td>`).join("")}</tr>`)
+        .join("")}</tbody>
+    </table>
+    <p style="margin-top:12px;">İşleminiz için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:</p>
+    <p>turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → açılan pencerede Servis kısmına tıklayıp arama bölümünden ilgili zimmet servisini seçin → gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz.</p>
+    <p style="margin-top:12px;">Kayıt açıklama kısmına yukarıdaki monitör bilgilerini (Seri No vb.) eklemeniz, işleminizin daha hızlı değerlendirilmesine yardımcı olacaktır.</p>
+  </div>`;
 
 const PAGE_SIZE = 50;
 const norm = (v) => String(v ?? "").trim().toLowerCase();
@@ -30,7 +56,9 @@ const STAGE_EXPORT_NAMES = {
 // Ayarlar'daki rapor ekranlarıyla aynı davranış (İnaktif Cihazlar tablosu gibi): satırlar onay
 // kutusuyla seçilebilir, sahibe tıklayınca kişinin tüm monitörleri açılır, seri numarasına
 // tıklayınca monitörün detayı açılır. Hesaplama atilMonitorService.js'te.
-export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRows, thMeta, monitorMeta, loading }) {
+export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRows, thMeta, monitorMeta, loading, showToast, recordMailHistory, deptLabel }) {
+  const [confirmMailOpen, setConfirmMailOpen] = useState(false);
+  const [mailBusy, setMailBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [stage, setStage] = useState("atil");
@@ -223,6 +251,55 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
     XLSX.writeFile(wb, `Atıl Monitörler - Tüm Aşamalar - ${dateTag()}.xlsx`);
   };
 
+  // Mail: monitörü fiilen kullanan (zimmetli olmayan) kişiye. Seçim varsa yalnızca seçililer, yoksa tüm
+  // "bilgi dışı kullanım" satırları (o durumda önce onay sorulur). Atıl/aktif monitörlere mail gitmez.
+  const mailTargets = selectedKeys.size > 0 ? stages.inScope.filter((r) => selectedKeys.has(r.rowKey)) : stages.outside;
+  const mailPlan = useMemo(() => buildOtherUserMailPlan(mailTargets, thRows), [mailTargets, thRows]);
+  const onMailClick = () => {
+    if (selectedKeys.size > 0) sendMails();
+    else setConfirmMailOpen(true);
+  };
+  const sendMails = async () => {
+    setConfirmMailOpen(false);
+    const { recipients, noMail } = mailPlan;
+    if (recipients.length === 0 && noMail.length === 0) {
+      showToast?.("Seçili kayıtlarda bilgi dışı kullanım yok — mail gönderilecek kayıt bulunamadı (atıl/aktif monitörlere mail gitmez)");
+      return;
+    }
+    setMailBusy(true);
+    let sent = 0, failed = 0;
+    const details = noMail.map((n) => ({ location: n.username, to: null, count: n.items.length, ok: false, message: "TuruncuHat'ta bu kullanıcı için mail adresi bulunamadı" }));
+    for (const r of recipients) {
+      try {
+        const res = await backendClient.sendMail({ to: r.mail, subject: MAIL_SUBJECT, text: buildMailText(r.items, r.username), html: buildMailHtml(r.items, r.username) });
+        if (res.ok) {
+          sent += r.items.length;
+          details.push({ location: r.username, to: r.mail, count: r.items.length, ok: true, message: "Gönderildi" });
+        } else {
+          failed += r.items.length;
+          details.push({ location: r.username, to: r.mail, count: r.items.length, ok: false, message: res.message || "Gönderilemedi" });
+        }
+      } catch (err) {
+        failed += r.items.length;
+        details.push({ location: r.username, to: r.mail, count: r.items.length, ok: false, message: err.message || "Gönderilemedi" });
+      }
+    }
+    setMailBusy(false);
+    const skipped = noMail.reduce((n, x) => n + x.items.length, 0);
+    recordMailHistory?.({
+      id: Date.now(),
+      date: new Date().toLocaleString("tr-TR"),
+      dept: deptLabel || "Tüm Şirketler",
+      report: "Atıl Monitörler — Bilgi Dışı Kullanım",
+      recipients: sent,
+      status: failed > 0 || skipped > 0 ? (sent > 0 ? "Kısmen Başarısız" : "Gönderilemedi") : "Başarılı",
+      details,
+    });
+    if (sent === 0) showToast?.(`❌ Gönderilemedi — ${failed + skipped} kayıt${skipped ? ` (${skipped} kayıt için mail adresi bulunamadı)` : ""}`);
+    else if (failed > 0 || skipped > 0) showToast?.(`⚠️ ${sent} kayıt, ${recipients.length} kullanıcıya gönderildi${skipped ? `, ${skipped} kayıt için mail adresi bulunamadı` : ""}${failed ? `, ${failed} kayıt başarısız` : ""}`);
+    else showToast?.(`✅ Başarılı — ${sent} kayıt, ${recipients.length} kullanıcıya mail gönderildi`);
+  };
+
   const selectStage = (id) => {
     setStage(id);
     setPage(1);
@@ -379,6 +456,15 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                 <button type="button" style={styles.btnGhost} onClick={exportAllStages} title="Atıl monitörler ve diğer aşamalar sayfa sayfa tek dosyada">
                   Tüm Aşamaları Aktar
                 </button>
+                <button
+                  type="button"
+                  style={styles.btnPrimary}
+                  onClick={onMailClick}
+                  disabled={mailBusy || stages.outside.length === 0}
+                  title="Monitörü kullanan (zimmetli olmayan) kişiye zimmet transferi maili gönderir. Seçim yoksa tüm bilgi dışı kullanımlara (onayla)"
+                >
+                  {mailBusy ? "Gönderiliyor…" : `Bilgi Dışı Kullanıma Mail Gönder${selectedKeys.size > 0 ? ` (${selectedKeys.size} seçili)` : ""}`}
+                </button>
               </div>
             </div>
 
@@ -504,6 +590,25 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
           </>
         )}
       </div>
+
+      {confirmMailOpen && (
+        <div style={styles.modalOverlay} onClick={() => setConfirmMailOpen(false)}>
+          <div style={{ ...styles.modalCard, width: "min(440px, 100%)" }} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <p style={styles.modalTitle}>Mail Gönderimini Onayla</p>
+              <span style={styles.modalClose} onClick={() => setConfirmMailOpen(false)}>✕</span>
+            </div>
+            <p style={styles.modalSub}>
+              Listede seçim yapılmadı — tüm bilgi dışı kullanımlar için mail gönderilecek: {stages.outside.length} monitör, {mailPlan.recipients.length} kullanıcı
+              {mailPlan.noMail.length > 0 ? ` (${mailPlan.noMail.length} kullanıcının mail adresi bulunamadığı için atlanacak)` : ""}.
+            </p>
+            <div style={styles.formActions}>
+              <button style={styles.btnGhost} onClick={() => setConfirmMailOpen(false)}>Vazgeç</button>
+              <button style={styles.btnPrimary} onClick={sendMails}>Onayla ve Gönder</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {detailRow && (
         <div style={styles.modalOverlay} onClick={() => setDetailRow(null)}>

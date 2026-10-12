@@ -43,6 +43,12 @@ function buildRow(th, attachments, reason, { depot = false } = {}) {
     rowKey: `atil-monitor|${th.serial}`,
     monitorSerial: th.serial,
     model: th.model || "",
+    // mail tablosu alanları (Zimmet Uyuşmazlığı mailiyle aynı sütunlar): Barkod / Marka / Varlık Adı +
+    // Monitor Raporu'ndaki hostname (monitörün bağlı göründüğü cihaz adı, yalnızca bilgi amaçlı)
+    barkod: th.barkod || "",
+    marka: th.marka || "",
+    asset: th.asset || th.model || "",
+    hostnames: Array.from(new Set(attachments.map((a) => String(a.hostname ?? "").trim()).filter(Boolean))).join(", "),
     assignmentType: th.assignmentType,
     owner: th.owner || "—",
     ownerUsername: th.ownerUsername || "",
@@ -119,4 +125,43 @@ export function computeAtilMonitorRows({ thRows = [], monitorRows = [] } = {}) {
     depotUsed: stages.depotUsed.length,
   };
   return { rows: stages.atil, stages, stats };
+}
+
+// "Bilgi dışı kullanım" maili: monitörü fiilen kullanan kişiye (Monitor Raporu'ndaki Username) gider.
+// Mail adresi, o kullanıcı adının TuruncuHat'taki kendi kaydından ("Owner Username" -> "Cihaz Sahibinin
+// Maili") bulunur. Yalnızca bilgi dışı kullanım satırları dikkate alınır; zimmetli kişinin kendisi
+// kullanan listesinden çıkarılır. Aynı kişi birden çok monitör kullanıyorsa tek mailde toplanır.
+// Dönen: { recipients: [{ username, mail, items: [row] }], noMail: [{ username, items }] }
+export function buildOtherUserMailPlan(rows = [], thRows = []) {
+  const mailByUser = new Map();
+  thRows.forEach((t) => {
+    const k = normKey(t.ownerUsername);
+    const m = String(t.ownerMail ?? "").trim();
+    if (k && m && !mailByUser.has(k)) mailByUser.set(k, m);
+  });
+
+  const byUser = new Map(); // normKey(username) -> { username, items }
+  rows
+    .filter((r) => r.usedByOther)
+    .forEach((r) => {
+      const ownerKey = normKey(r.ownerUsername);
+      r.usedBy
+        .split(",")
+        .map((u) => u.trim())
+        .filter((u) => u && u !== "—" && normKey(u) !== ownerKey)
+        .forEach((u) => {
+          const k = normKey(u);
+          if (!byUser.has(k)) byUser.set(k, { username: u, items: [] });
+          byUser.get(k).items.push(r);
+        });
+    });
+
+  const recipients = [];
+  const noMail = [];
+  byUser.forEach((entry, k) => {
+    const mail = mailByUser.get(k);
+    if (mail) recipients.push({ ...entry, mail });
+    else noMail.push(entry);
+  });
+  return { recipients, noMail };
 }

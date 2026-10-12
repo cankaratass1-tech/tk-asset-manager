@@ -4429,6 +4429,9 @@ IT Support`;
               thMeta={realThMeta}
               monitorMeta={realMonitorMeta}
               loading={loadingRealTh || loadingRealMonitor}
+              showToast={showToast}
+              recordMailHistory={recordMailHistory}
+              deptLabel={currentDeptLabel}
             />
           ) : activeReport === "sccm-ajan" ? (
             <SccmAjanScreen
@@ -4900,7 +4903,8 @@ IT Support`;
                     </svg>
                     PDF'e Aktar
                   </button>
-                  <button style={styles.btnPrimary} onClick={() => setConfirmMailOpen(true)}>
+                  {/* Seçim varsa doğrudan seçililere gönderilir; seçim yoksa "hepsine gidecek" onayı sorulur */}
+                  <button style={styles.btnPrimary} onClick={() => (selectedKeys.size > 0 ? handleMail() : setConfirmMailOpen(true))}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                       <path d="M22 2L11 13" />
                       <path d="M22 2l-7 20-4-9-9-4z" />
@@ -5104,9 +5108,7 @@ IT Support`;
               <span style={styles.modalClose} onClick={() => setConfirmMailOpen(false)}>✕</span>
             </div>
             <p style={styles.modalSub}>
-              {selectedKeys.size > 0
-                ? `Seçili ${resolveTargetRows().length} kayıt için mail gönderilecek. Seçili olmayan hiçbir kayda gönderilmeyecek.`
-                : `Listede seçim yapılmadı — filtrelenmiş ${resolveTargetRows().length} kaydın tamamı için mail gönderilecek.`}
+              {`Listede seçim yapılmadı — filtrelenmiş ${resolveTargetRows().length} kaydın tamamı için mail gönderilecek.`}
             </p>
             <div style={styles.formActions}>
               <button style={styles.btnGhost} onClick={() => setConfirmMailOpen(false)}>Vazgeç</button>

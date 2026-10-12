@@ -144,3 +144,20 @@ test("bilgi listeleri: tüm monitörler, kapsam dışı ve depodaki tüm monitö
   assert.equal(res.stats.excludedScope, 3);
   assert.equal(res.stats.thMonitorTotal, res.stages.all.length);
 });
+
+import { buildOtherUserMailPlan } from "./atilMonitorService.js";
+
+test("bilgi dışı mail planı: kullanan kişiye toplu, maili olmayan ayrı, zimmetli kişi hariç", () => {
+  const rows = [
+    { usedByOther: true, ownerUsername: "ali.veli", usedBy: "ayse.kaya", monitorSerial: "M1" },
+    { usedByOther: true, ownerUsername: "can.ak", usedBy: "ayse.kaya, can.ak", monitorSerial: "M2" },
+    { usedByOther: true, ownerUsername: "ali.veli", usedBy: "yok.mail", monitorSerial: "M3" },
+    { usedByOther: false, ownerUsername: "x", usedBy: "ayse.kaya", monitorSerial: "M4" },
+  ];
+  const thRows = [{ ownerUsername: "Ayse.Kaya", ownerMail: "ayse.kaya@mhy.com.tr" }];
+  const plan = buildOtherUserMailPlan(rows, thRows);
+  assert.equal(plan.recipients.length, 1);
+  assert.equal(plan.recipients[0].mail, "ayse.kaya@mhy.com.tr");
+  assert.deepEqual(plan.recipients[0].items.map((r) => r.monitorSerial), ["M1", "M2"]);
+  assert.deepEqual(plan.noMail.map((n) => n.username), ["yok.mail"]);
+});
