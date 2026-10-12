@@ -51,6 +51,8 @@ export default function MultiSelectFilter({ label, options, selected, onChange, 
         <div
           style={{
             ...styles.panel,
+            background: pal.panelSolid || pal.panel,
+            backdropFilter: "none",
             position: "absolute",
             top: "calc(100% + 6px)",
             left: 0,

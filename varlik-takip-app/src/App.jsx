@@ -3089,7 +3089,7 @@ IT Support`;
               </div>
               {mailHistory.length > 0 && <span style={{ ...styles.deptCount, ...(showHistory ? styles.deptCountActive : {}) }}>{mailHistory.length}</span>}
             </div>
-            {/* Ayarlar buradan kaldırıldı — tek erişim noktası artık sağ üstteki "⚙ Ayarlar"
+            {/* Ayarlar buradan kaldırıldı — tek erişim noktası artık sağ üstteki "Ayarlar" butonu
                 butonu (bkz. konuşma). */}
           </div>
         </aside>
@@ -3116,7 +3116,11 @@ IT Support`;
               style={{ ...styles.btnGhost, display: "flex", alignItems: "center", gap: 6, ...(showSettings ? styles.deptItemActive : {}) }}
               onClick={() => { closeAllViews(); setShowSettings(true); }}
             >
-              ⚙ Ayarlar
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              Ayarlar
             </button>
             {user && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px 6px 6px", borderRadius: 10, background: pal.fieldBg }}>
