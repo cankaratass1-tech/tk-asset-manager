@@ -813,14 +813,17 @@ export default function App({ user, onLogout } = {}) {
     : getReportRows(activeDept, activeReport);
 
   // Zimmet'te "sub" = "Monitör — Dell 24"" (tür " — " öncesi); diğer raporlarda "sub" = birim/departman
-  const deviceTypeOf = (r) => (isZimmet ? (r.sub || "").split(" — ")[0].trim() : (r.sub || "").trim());
-  const typeFilterLabel = isZimmet ? "Tür" : "Birim";
+  // Zimmet / Kullanılmayan / Lokasyon IP'de "sub" = "Tür — Model"; BSOD/Pil'de sub bir kategori değil
+  // (tarih/kullanıcı metni) olduğu için o raporlarda Tür filtresi hiç gösterilmez.
+  const subHasType = isZimmet || isUnused || isLokasyonIp;
+  const deviceTypeOf = (r) => (subHasType ? (r.sub || "").split(" — ")[0].trim() : isBsod || isBattery ? "" : (r.sub || "").trim());
+  const typeFilterLabel = subHasType ? "Tür" : "Birim";
   const deviceCategories = useMemo(() => {
     const set = new Set(rawRows.map(deviceTypeOf).filter(Boolean));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "tr"));
-  }, [isZimmet, rawRows]);
+  }, [subHasType, isBsod, isBattery, rawRows]);
 
-  const locationOf = (r) => (isZimmet ? r.office : r.location) || "—";
+  const locationOf = (r) => (isZimmet || isLokasyonIp ? r.office : r.location) || "—";
 
   // Model filtresi (gereksinim #3) — rapor bazlı doğru alanı okur: Zimmet'te "model" alanı
   // uyuşmazlık açıklama cümlesi taşıdığı için gerçek model "deviceModel"da (bkz.
@@ -829,13 +832,13 @@ export default function App({ user, onLogout } = {}) {
   // "deviceModel"da (bkz. konuşma: "Model kısmında cihazın bilgisi yerine farklı bir bilgi
   // geliyor ve filtre yapınca okunmuyorlar"). İnaktif/TH'de "model" doğrudan cihaz modeli;
   // Disk Alanı'nda model kavramı yok (REPORTS_WITHOUT_MODEL_FILTER) — model filtresi orada gizlenir.
-  const modelOf = (r) => ((isZimmet || isUnused ? r.deviceModel : r.model) || "").trim();
+  const modelOf = (r) => ((isZimmet || isUnused || isLokasyonIp ? r.deviceModel : r.model) || "").trim();
   const showModelFilter = !REPORTS_WITHOUT_MODEL_FILTER.has(activeReport);
   const modelCategories = useMemo(() => {
     if (!showModelFilter) return [];
     const set = new Set(rawRows.map(modelOf).filter(Boolean));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "tr"));
-  }, [isZimmet, isUnused, rawRows, showModelFilter]);
+  }, [isZimmet, isUnused, isLokasyonIp, rawRows, showModelFilter]);
 
   const statusCategories = useMemo(() => {
     const set = new Set(rawRows.map((r) => r.statusTag).filter(Boolean));
@@ -855,7 +858,7 @@ export default function App({ user, onLogout } = {}) {
     const pool = lbsParentFilter.length > 0 ? rawRows.filter((r) => lbsParentFilter.includes(r.lbsParent)) : rawRows;
     const set = new Set(pool.map(locationOf).filter((v) => v && v !== "—"));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "tr"));
-  }, [isZimmet, rawRows, lbsParentFilter]);
+  }, [isZimmet, isLokasyonIp, rawRows, lbsParentFilter]);
 
   const filteredRows = useMemo(() => {
     return rawRows.filter((r) => {
@@ -4718,7 +4721,7 @@ IT Support`;
 
                   {!isDiskReport && locationCategories.length > 1 && (
                     <MultiSelectFilter
-                      label="Lokasyon"
+                      label={isLokasyonIp ? "Beklenen Ofis" : isBattery ? "Pil Durumu" : "Lokasyon"}
                       options={locationCategories}
                       selected={locationFilter}
                       onChange={setLocationFilter}
