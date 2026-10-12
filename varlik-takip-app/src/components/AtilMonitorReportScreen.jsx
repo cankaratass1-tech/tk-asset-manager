@@ -7,17 +7,17 @@ import { backendClient } from "../services/backendClient";
 const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Metin, Zimmet Uyuşmazlığı mailiyle aynı şablon (App.jsx buildZimmetCombinedMailHtml): aynı giriş,
 // aynı sütunlar, aynı Turuncuhat kayıt talimatı — "cihaz" yerine "monitör".
-const MAIL_SUBJECT = "Zimmet Uyuşmazlığı — Kullandığınız Monitör(ler) İçin Zimmet Transferi Gerekli";
+const MAIL_SUBJECT = "Zimmet Uyuşmazlığı — Kullandığınız Cihaz(lar) İçin Zimmet Transferi Gerekli";
 const MAIL_HEAD = ["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"];
 const mailCells = (r, username) => [r.monitorSerial, r.barkod, r.marka, r.model, r.asset, r.owner, r.hostnames, username];
 const buildMailText = (items, username) =>
-  `Aşağıdaki monitör(ler) için aksiyon gereklidir:\n\n${items
+  `Aşağıdaki cihaz(lar) için aksiyon gereklidir:\n\n${items
     .map((r) => `- ${r.monitorSerial} (${r.model || "—"}) — kayıtlı eski sahibi: ${r.owner}`)
     .join("\n")}\n\nTuruncuhat: turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → ilgili zimmet servisi.`;
 const buildMailHtml = (items, username) => `
   <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
     <p>Merhabalar,</p>
-    <p>Sistem kayıtlarımıza göre, aşağıda listelenen monitör(ler)in kayıtlı sahibi farklı bir kişi görünüyor. Ancak monitör kullanım kayıtlarına göre bu monitör(ler)i fiilen <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, monitör(ler)in sizin adınıza zimmet transferinin yapılması gerekmektedir.</p>
+    <p>Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi farklı bir kişi görünüyor. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı fiilen <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.</p>
     <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
       <thead><tr style="background:#f0f0f0;">${MAIL_HEAD.map((h) => `<th style="border:1px solid #ccc;padding:6px 8px;text-align:left;">${h}</th>`).join("")}</tr></thead>
       <tbody>${items
@@ -26,7 +26,7 @@ const buildMailHtml = (items, username) => `
     </table>
     <p style="margin-top:12px;">İşleminiz için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:</p>
     <p>turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → açılan pencerede Servis kısmına tıklayıp arama bölümünden ilgili zimmet servisini seçin → gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz.</p>
-    <p style="margin-top:12px;">Kayıt açıklama kısmına yukarıdaki monitör bilgilerini (Seri No vb.) eklemeniz, işleminizin daha hızlı değerlendirilmesine yardımcı olacaktır.</p>
+    <p style="margin-top:12px;">Kayıt açıklama kısmına yukarıdaki cihaz bilgilerini (Seri No, Hostname vb.) eklemeniz, işleminizin daha hızlı değerlendirilmesine yardımcı olacaktır.</p>
   </div>`;
 
 const PAGE_SIZE = 50;
