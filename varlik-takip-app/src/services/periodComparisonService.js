@@ -144,11 +144,25 @@ export function periodTrendSeries(periods, filterFn = () => true) {
 //   yeni gelen            = önceki dönemde yoktu, bu dönem sorunlu listede
 // Yetersiz veri (2 dönemden az) durumunda null döner — çağıran taraf "veri bekleniyor" gösterir,
 // uygulama hata vermez (madde 14).
+// Haftalık/Aylık seçimi KAYAN PENCERE ile çalışır (takvim kovası değil): karşılaştırma tabanı, en son
+// kayıttan en az 7 (haftalık) / 30 (aylık) gün önceki en yeni kayıttır — böylece seçici, geçmiş
+// yeterliyse sonuçları gerçekten değiştirir. O kadar eski kayıt yoksa eldeki EN ESKİ kayıt (en az 1 gün
+// önceki) kullanılır; etiketler gerçek tarihleri gösterdiği için karşılaştırılan aralık yanıltmaz.
+const WINDOW_DAYS = { week: 7, month: 30 };
+const DAY_MS = 86400000;
 export function latestPeriodSummary(snapshots, mode = "week", filterFn = () => true) {
-  const periods = groupSnapshotsByPeriod(snapshots, mode);
-  if (periods.length < 2) return null;
-  const prevP = periods[periods.length - 2];
-  const currP = periods[periods.length - 1];
-  const { counts } = comparePeriods(prevP.snapshot, currP.snapshot, filterFn);
-  return { ...counts, periodLabel: currP.label, prevLabel: prevP.label };
+  const sorted = [...(snapshots || [])]
+    .filter((s) => !Number.isNaN(new Date(s.capturedAt).getTime()))
+    .sort((a, b) => new Date(a.capturedAt) - new Date(b.capturedAt));
+  if (sorted.length < 2) return null;
+  const curr = sorted[sorted.length - 1];
+  const currT = new Date(curr.capturedAt).getTime();
+  const older = sorted.slice(0, -1).filter((s) => currT - new Date(s.capturedAt).getTime() >= DAY_MS);
+  if (older.length === 0) return null;
+  const target = currT - (WINDOW_DAYS[mode] || 7) * DAY_MS;
+  const inWindow = older.filter((s) => new Date(s.capturedAt).getTime() <= target);
+  const prev = inWindow.length > 0 ? inWindow[inWindow.length - 1] : older[0];
+  const { counts, devamEden, cozulen, yeniTespit } = comparePeriods(prev, curr, filterFn);
+  // Cihaz listeleri de dönüyor: rapor sayfasındaki çözülen/yeni/bekleyen rozetleri tıklanınca gösterilir.
+  return { ...counts, lists: { cozulen, yeniTespit, devamEden }, periodLabel: shortDate(curr.capturedAt), prevLabel: shortDate(prev.capturedAt) };
 }

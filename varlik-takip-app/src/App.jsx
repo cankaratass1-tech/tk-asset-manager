@@ -178,6 +178,8 @@ export default function App({ user, onLogout } = {}) {
   // "haftalık/aylık filtrelenebilecek şekilde... bütün raporlarda gözükmeli". Tek bir paylaşılan
   // state: nerede gösterilirse gösterilsin AYNI dönem seçimini kullanır (senkronizasyon).
   const [summaryPeriod, setSummaryPeriod] = useState("week"); // week | month
+  const [summaryDetail, setSummaryDetail] = useState(null); // null | "cozulen" | "yeniTespit" | "devamEden" — rozete tıklanınca açılan cihaz listesi
+  useEffect(() => { setSummaryDetail(null); }, [activeReport]);
 
   // Üst seviyede tanımlı — hem Dashboard'un KPI kartları hem her rapor sayfasının üst kısmı
   // (activeReport === X iken render edilen generic başlık bloğu) aynı fonksiyonları çağırır,
@@ -191,14 +193,35 @@ export default function App({ user, onLogout } = {}) {
     const s = summaryFor(reportId);
     if (!s && !extra) return null;
     return (
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", flex: "0 0 auto" }}>
         {s && (
           <>
-            <span style={{ ...styles.badge, ...styles.badgeOk }}>çözülen {s.cozulen}</span>
-            <span style={{ ...styles.badge, background: `${pal.bad}1e`, color: pal.bad }}>yeni {s.yeniTespit}</span>
-            <span style={{ ...styles.badge, ...styles.badgeNeutral }}>bekleyen {s.devamEden}</span>
-            <span style={{ fontSize: 11, color: pal.inkSoft }}>{s.prevLabel} → {s.periodLabel}</span>
-            {summaryPeriodToggle}
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {[
+                ["cozulen", "çözülen", s.cozulen, styles.badgeOk, "Önceki dönemde sorunluydu, bu dönem listede yok"],
+                ["yeniTespit", "yeni", s.yeniTespit, { background: `${pal.bad}1e`, color: pal.bad }, "Önceki dönemde yoktu, bu dönem sorunlu listede"],
+                ["devamEden", "bekleyen", s.devamEden, styles.badgeNeutral, "Önceki dönemde de sorunluydu, hâlâ sorunlu"],
+              ].map(([k, label, n, tone, tip]) => (
+                <span
+                  key={k}
+                  onClick={() => setSummaryDetail((cur) => (cur === k ? null : k))}
+                  title={`${tip} — cihaz listesi için tıklayın`}
+                  style={{ ...styles.badge, ...tone, padding: "7px 14px", borderRadius: 10, fontSize: 13, gap: 6, cursor: "pointer", userSelect: "none", outline: summaryDetail === k ? `2px solid ${pal.accent}` : "none" }}
+                >
+                  <span style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>{n}</span> {label}
+                </span>
+              ))}
+              <span
+                style={{ ...styles.badge, padding: "7px 14px", borderRadius: 10, fontSize: 13, gap: 6, background: pal.accentSoft, color: pal.accent }}
+                title="Çözüm oranı = çözülen ÷ (çözülen + bekleyen): önceki dönemdeki sorunlu cihazların yüzde kaçı listeden çıktı"
+              >
+                <span style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>%{s.cozumOrani}</span> çözüm oranı
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "flex-end" }}>
+              <span style={{ fontSize: 12, color: pal.inkSoft }}>{s.prevLabel} → {s.periodLabel}</span>
+              {summaryPeriodToggle}
+            </div>
           </>
         )}
         {extra}
@@ -214,8 +237,8 @@ export default function App({ user, onLogout } = {}) {
           key={v}
           onClick={() => setSummaryPeriod(v)}
           style={{
-            padding: "4px 10px",
-            fontSize: 11.5,
+            padding: "5px 12px",
+            fontSize: 12,
             cursor: "pointer",
             background: summaryPeriod === v ? pal.accentSoft || pal.line : "transparent",
             color: summaryPeriod === v ? pal.accent || pal.ink : pal.inkSoft,
@@ -4445,6 +4468,8 @@ IT Support`;
           ) : (
             <>
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 420px", minWidth: 0 }}>
                 <p style={styles.pageTitle}>
                   {REPORT_TYPES.find((r) => r.id === activeReport).name} — {currentDeptLabel}
                 </p>
@@ -4475,46 +4500,55 @@ IT Support`;
                     ? "Henüz veri yüklenmedi — Ayarlar > Veri Input bölümünden dosyayı seçin"
                     : "Bu rapor için henüz bir veri kaynağı tanımlı değil"}
                 </p>
-                {reportPageSummary(
-                  activeReport,
-                  // Kullanıcı isteği: "admin dışında kimse manuel dosya yüklemesi yapamasın" —
-                  // bunlar dosya seçmese de kullanıcı tetikli manuel bir "yeniden yükleme"
-                  // aksiyonu, aynı kapsamda tutulup Supervisor dışına kapatıldı (bkz. konuşma).
-                  isMaster && (
-                  <>
-                    {activeReport === "inaktif" && (
-                      <div style={{ ...styles.chipToggle, display: "inline-block" }} onClick={loadingRealInaktif ? undefined : loadRealInaktifData}>
-                        {loadingRealInaktif ? "Yükleniyor..." : "📄 SharePoint Excel'inden Gerçek Veriyi Yükle"}
+                </div>
+                {reportPageSummary(activeReport)}
+                </div>
+                {(() => {
+                  const s = summaryDetail && summaryFor(activeReport);
+                  if (!s) return null;
+                  const meta = {
+                    cozulen: ["Çözülen", "Önceki dönemde sorunluydu, bu dönem listede yok", pal.ok],
+                    yeniTespit: ["Yeni tespit", "Önceki dönemde yoktu, bu dönem sorunlu listede", pal.bad],
+                    devamEden: ["Bekleyen", "Önceki dönemde de sorunluydu, hâlâ sorunlu", pal.inkSoft],
+                  }[summaryDetail];
+                  const list = s.lists[summaryDetail] || [];
+                  return (
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${pal.line}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 8 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: meta[2] }}>
+                          {meta[0]} — {list.length} cihaz <span style={{ fontWeight: 500, color: pal.inkSoft }}>({s.prevLabel} → {s.periodLabel}) · {meta[1]}</span>
+                        </span>
+                        <span style={{ cursor: "pointer", fontSize: 13, color: pal.inkSoft }} onClick={() => setSummaryDetail(null)} title="Kapat">✕</span>
                       </div>
-                    )}
-                    {activeReport === "disk" && (
-                      <div style={{ ...styles.chipToggle, display: "inline-block" }} onClick={loadingRealDisk ? undefined : loadRealDiskData}>
-                        {loadingRealDisk ? "Yükleniyor..." : "📄 SharePoint Excel'inden Gerçek Veriyi Yükle"}
-                      </div>
-                    )}
-                    {isZimmet && (
-                      <div style={{ ...styles.chipToggle, display: "inline-block" }} onClick={loadingRealSccm ? undefined : loadRealSccmData}>
-                        {loadingRealSccm ? "Yükleniyor..." : "📄 SharePoint'ten SCCM Envanterini Yükle"}
-                      </div>
-                    )}
-                    {isLokasyonIp && (
-                      <>
-                        <div style={{ ...styles.chipToggle, display: "inline-block" }} onClick={loadingRealSccm ? undefined : loadRealSccmData}>
-                          {loadingRealSccm ? "Yükleniyor..." : "📄 SharePoint'ten SCCM Envanterini Yükle"}
+                      {list.length === 0 ? (
+                        <div style={{ fontSize: 13, color: pal.inkSoft }}>Bu kategoride cihaz yok.</div>
+                      ) : (
+                        <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                            <thead>
+                              <tr>
+                                {["Hostname", "Seri No", "Lokasyon", "Üst Lokasyon"].map((h) => (
+                                  <th key={h} style={{ ...styles.th, position: "static" }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {list.slice(0, 300).map((d, i) => (
+                                <tr key={d.key || i} style={{ borderTop: `1px solid ${pal.line}` }}>
+                                  <td style={{ padding: "7px 10px" }}>{d.hostname || "—"}</td>
+                                  <td style={{ padding: "7px 10px" }}>{d.serial || "—"}</td>
+                                  <td style={{ padding: "7px 10px" }}>{d.location || "—"}</td>
+                                  <td style={{ padding: "7px 10px" }}>{d.lbsParent || "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {list.length > 300 && <div style={{ fontSize: 12, color: pal.inkSoft, padding: "6px 10px" }}>İlk 300 cihaz gösteriliyor.</div>}
                         </div>
-                        <div style={{ ...styles.chipToggle, display: "inline-block" }} onClick={loadingRealLokasyonMail ? undefined : loadRealLokasyonMailData}>
-                          {loadingRealLokasyonMail ? "Yükleniyor..." : "📄 SharePoint'ten Lokasyon Mail Listesini Yükle"}
-                        </div>
-                      </>
-                    )}
-                    {isUnused && (
-                      <div style={{ ...styles.chipToggle, display: "inline-block" }} onClick={loadingRealTh || loadingRealSccm ? undefined : () => { loadRealThData(); loadRealSccmData(); }}>
-                        {loadingRealTh || loadingRealSccm ? "Yükleniyor..." : "📄 SharePoint'ten TuruncuHat + SCCM Verisini Yükle"}
-                      </div>
-                    )}
-                  </>
-                  )
-                )}
+                      )}
+                    </div>
+                  );
+                })()}
                 {isBsod && (
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
                     {isMaster ? (
