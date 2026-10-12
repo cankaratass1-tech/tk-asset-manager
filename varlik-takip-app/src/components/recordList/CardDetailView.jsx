@@ -1,3 +1,4 @@
+import { ownerTitleOf } from "../../services/ownerName";
 // Detay görünümü kart listesi — kart tıklaması sağ panelde gösterir, checkbox toplu seçim içindir
 export default function CardDetailView({
   rows,
@@ -57,7 +58,10 @@ export default function CardDetailView({
               style={styles.checkbox}
             />
             <div style={styles.cardRowSerial}>{r.serial}</div>
-            <div style={styles.cardRowName} title={r.ownerFull || r.owner}>{r.owner}</div>
+            <div style={styles.cardRowName} title={r.ownerFull || r.owner}>
+              {r.owner}
+              {ownerTitleOf(r.ownerFull) && <div style={{ fontSize: 11.5, fontWeight: 400, opacity: 0.7 }}>{ownerTitleOf(r.ownerFull)}</div>}
+            </div>
             {splitModel && <div style={styles.cardRowLocation}>{r.model}</div>}
             <div style={styles.cardRowLocation}>{isZimmet ? r.office : r.location}</div>
             <div>

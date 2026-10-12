@@ -51,6 +51,7 @@ function buildRow(th, attachments, reason, { depot = false } = {}) {
     hostnames: Array.from(new Set(attachments.map((a) => String(a.hostname ?? "").trim()).filter(Boolean))).join(", "),
     assignmentType: th.assignmentType,
     owner: th.owner || "—",
+    ownerFull: th.ownerFull || th.owner || "",
     ownerUsername: th.ownerUsername || "",
     // aynı kişiye ait monitörleri gruplamak için (kullanıcı adı > sicil > isim — comparisonService ile aynı sıra)
     ownerKey: normKey(th.ownerUsername) || normKey(th.ownerSicil) || normKey(th.owner),

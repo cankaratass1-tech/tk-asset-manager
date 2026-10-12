@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import Pagination from "./Pagination";
 import { computeAtilMonitorRows, buildOtherUserMailPlan, REASON_ACTIVE, REASON_DEPOT_USED, REASON_NOT_ATTACHED, REASON_USED_BY_OTHER } from "../services/atilMonitorService";
 import { backendClient } from "../services/backendClient";
+import { ownerTitleOf } from "../services/ownerName";
 
 const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Metin, Zimmet Uyuşmazlığı mailiyle aynı şablon (App.jsx buildZimmetCombinedMailHtml): aynı giriş,
@@ -505,6 +506,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                             >
                               {r.owner}
                             </div>
+                            {ownerTitleOf(r.ownerFull) && <div style={styles.cellSub} title={r.ownerFull}>{ownerTitleOf(r.ownerFull)}</div>}
                           </td>
                           <td style={styles.td}>
                             {r.usedBy === "—"

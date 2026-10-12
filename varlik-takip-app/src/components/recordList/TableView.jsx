@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { isZimmetUnverified } from "../../services/zimmetService";
 import { isInaktifUnverified } from "../../services/inaktifComparisonService";
+import { ownerTitleOf } from "../../services/ownerName";
 
 // Klasik tablo görünümü — Zimmet'te durum/not/ertele kontrolleri artık tabloda değil,
 // satır seçilince sağda açılan DetailAside'da (bkz. konuşma)
@@ -94,6 +95,7 @@ export default function TableView({
                 >
                   {r.owner}
                 </div>
+                {ownerTitleOf(r.ownerFull) && <div style={styles.cellSub} title={r.ownerFull}>{ownerTitleOf(r.ownerFull)}</div>}
                 {!isZimmet && <div style={styles.cellSub}>{r.sub}</div>}
               </td>
               {isZimmet ? (
