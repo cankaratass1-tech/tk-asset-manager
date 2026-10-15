@@ -175,5 +175,5 @@ export async function uploadBatteryFile(file) {
   const base64 = arrayBufferToBase64(buffer);
   const result = await backendClient.uploadBatteryHealth(file.name, base64);
   if (!result.ok) throw new Error(result.message || "Dosya yüklenemedi");
-  return { fileName: result.fileName, modifiedAt: result.modifiedAt, rows: mapBatteryRows(result.rows || []) };
+  return { fileName: result.fileName, modifiedAt: result.modifiedAt, rows: mapBatteryRows(result.rows || []), check: result.check, checkSummary: result.checkSummary };
 }

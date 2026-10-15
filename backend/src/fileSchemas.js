@@ -68,6 +68,40 @@ const SCHEMAS = {
     ],
     recommended: [["BSOD Count", "BSODCount", "Count", "Adet"], ["Crash Date", "CrashDate", "Date", "Tarih"]],
   },
+  // Battery Health ve Bant Genişliği dosyaları sabit bir ad desenine uymaz; Ayarlar > Veri Input'tan ayrı yükleme
+  // yollarıyla (routes/batteryhealthupload.js, bantgenisligiupload.js) gelir. fromUpload: reports.js'te okunmaz.
+  // Alternatifler frontend/src/services/batteryFileService.js ve bantGenisligiService.js ile birebir aynıdır.
+  battery: {
+    label: "Battery Health (LakeSide)",
+    fromUpload: true,
+    sheetIndex: 0,
+    headerRow: [0, 1], // başlık 1. satırda değilse 2. satırdan denenir (batteryHealthStore.parseFile ile aynı)
+    required: [["Machine Name", "MachineName", "Device Name", "DeviceName", "Computer Name", "ComputerName", "Hostname", "Host", "Cihaz", "Cihaz Adı", "System"]],
+    // Sağlık yüzdesi ya doğrudan bir sütundan ya da Design + Full Charge Capacity'den hesaplanır
+    requiredAny: {
+      label: "Pil sağlığı (Battery Health / Health …) ya da Design Capacity + Full Charge Capacity",
+      options: [
+        [["Battery Health", "BatteryHealth", "Health", "Health (%)", "Battery Health (%)", "SoH", "State of Health", "Sağlık", "Pil Sağlığı"]],
+        [["Design Capacity", "DesignCapacity", "Design Capacity (mWh)", "Tasarım Kapasitesi"], ["Full Charge Capacity", "FullChargeCapacity", "Full Charge Capacity (mWh)", "Tam Şarj Kapasitesi", "Current Capacity"]],
+      ],
+    },
+    recommended: [
+      ["Username", "User Name", "User", "Kullanıcı", "Kullanıcı Adı"],
+      ["Cycle Count", "CycleCount", "Cycles", "Şarj Döngüsü", "Döngü Sayısı"],
+      ["Battery Status", "Status", "Condition", "Durum", "Pil Durumu"],
+      ["Manufacturer", "Battery Manufacturer", "Üretici", "Marka"],
+      ["Battery Serial", "Serial Number", "SerialNumber", "Seri No"],
+      ["Model", "Device Model", "Battery Name", "Name"],
+    ],
+  },
+  bant: {
+    label: "Ofis Bant Genişliği",
+    fromUpload: true,
+    sheetIndex: 0,
+    headerRow: 0,
+    required: ["Lokasyon", "Hat", "Bant Genişliği", "Uyarı Durumu"],
+    recommended: ["Averaj Bant Genişliği", "Seviye", "Tarih"],
+  },
 };
 
 // Okuyucular başlığı birebir karşılaştırır; sadece uç boşlukları (SCCM'de "Last LogonSicil " gibi) açıkça tolere eder.
@@ -108,6 +142,11 @@ function checkHeaders(kind, headers) {
       if (r.near) result.nearMisses.push({ expected: r.expected, found: r.near });
     });
   run(schema.required, "missingRequired");
+  // requiredAny: seçeneklerden en az biri tamamen mevcut olmalı (ör. sağlık sütunu YA DA tasarım+tam şarj kapasitesi)
+  if (schema.requiredAny) {
+    const okAny = schema.requiredAny.options.some((groups) => groups.every((g) => checkGroup(g, headers).found));
+    if (!okAny) result.missingRequired.push(schema.requiredAny.label);
+  }
   run(schema.recommended, "missingRecommended");
   result.ok = result.missingRequired.length === 0;
   return result;
@@ -125,14 +164,24 @@ function checkWorkbook(kind, workbook) {
   }
   const sheet = workbook.Sheets[workbook.SheetNames[schema.sheetIndex]];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: true });
-  const headers = (rows[schema.headerRow] || []).filter((h) => String(h).trim() !== "");
-  const result = checkHeaders(kind, headers);
-  result.headerRow = schema.headerRow + 1;
-  result.dataRows = Math.max(0, rows.length - schema.headerRow - 1);
+  // headerRow bir dizi ise adaylar denenir ve en az eksiği olan satır kullanılır
+  const candidates = Array.isArray(schema.headerRow) ? schema.headerRow : [schema.headerRow];
+  let best = null;
+  for (const hr of candidates) {
+    const hs = (rows[hr] || []).filter((h) => String(h).trim() !== "");
+    const r = checkHeaders(kind, hs);
+    const score = r.missingRequired.length * 100 + r.missingRecommended.length;
+    if (!best || (hs.length > 0 && score < best.score) || (best.headers.length === 0 && hs.length > 0)) best = { hr, hs, r, score, headers: hs };
+  }
+  const headers = best.hs;
+  const hrIdx = best.hr;
+  const result = best.r;
+  result.headerRow = hrIdx + 1;
+  result.dataRows = Math.max(0, rows.length - hrIdx - 1);
   if (headers.length === 0) {
     result.ok = false;
     result.missingRequired = SCHEMAS[kind].required.map(groupName);
-    result.headerProblem = `${schema.headerRow + 1}. satırda başlık bulunamadı`;
+    result.headerProblem = `${hrIdx + 1}. satırda başlık bulunamadı`;
   } else if (result.dataRows === 0) {
     result.ok = false;
     result.emptyProblem = "başlıktan sonra hiç veri satırı yok";

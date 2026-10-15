@@ -195,6 +195,27 @@ try {
     check("import", "büyük/küçük harf farkı olan başlık 'benzer başlık' olarak bildirilir", typo.check?.nearMisses?.some((n) => n.expected === "Seri No" && n.found === "seri no"), typo.checkSummary);
     const ok = await upload([["S1", "Ali Veli", "ali.veli", "DESKTOP", "User"]], full);
     check("import", "zorunlu sütunlar tamsa ok=true (önerilen eksikler sadece uyarı)", ok.check?.ok === true && ok.check.missingRequired.length === 0, ok.checkSummary);
+
+    // Battery Health ve Bant Genişliği: ayrı yükleme yolları (base64 JSON)
+    const uploadB64 = async (route, header, rows) => {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header, ...rows]), "Sheet1");
+      const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      const res = await fetch(`${be.base}/api/settings/${route}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${be.token}` },
+        body: JSON.stringify({ fileName: "test.xlsx", contentBase64: buf.toString("base64") }),
+      });
+      return res.json();
+    };
+    const batBad = await uploadB64("battery-health-upload", ["Machine Name", "Username"], [["PC1", "a@b.com"]]);
+    check("import", "Battery: sağlık/kapasite sütunu yoksa uyarı döner, dosya yine kaydedilir", batBad.ok === true && batBad.check?.ok === false && /Pil sağlığı/.test(batBad.checkSummary || ""), batBad.checkSummary);
+    const batOk = await uploadB64("battery-health-upload", ["Machine Name", "Battery Health", "Username"], [["PC1", 85, "a@b.com"]]);
+    check("import", "Battery: Machine Name + Battery Health yeterli (ok=true)", batOk.check?.ok === true, batOk.checkSummary);
+    const bantBad = await uploadB64("bant-genisligi-upload", ["Lokasyon", "Hat", "Bant Genişliği"], [["Ofis", "Hat1", "10 Mb/s"]]);
+    check("import", "Bant: 'Uyarı Durumu' yoksa uyarı döner, dosya yine kaydedilir", bantBad.ok === true && bantBad.check?.ok === false && /Uyarı Durumu/.test(bantBad.checkSummary || ""), bantBad.checkSummary);
+    const bantOk = await uploadB64("bant-genisligi-upload", ["Lokasyon", "Hat", "Bant Genişliği", "Uyarı Durumu"], [["Ofis", "Hat1", "10 Mb/s", "Ortalama Dahilinde"]]);
+    check("import", "Bant: zorunlu sütunlar tamsa ok=true", bantOk.check?.ok === true, bantOk.checkSummary);
   }
 } finally {
   await browser.close();

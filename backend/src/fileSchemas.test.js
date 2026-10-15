@@ -9,10 +9,11 @@ const { findLatestFile } = require("./excelSource");
 const DEMO = path.join(__dirname, "..", "demo-data", "current");
 
 test("demo dosyaların hepsi şemadan geçer (zorunlu + önerilen sütunlar tam)", () => {
+  const UPLOADED = { battery: path.join(DEMO, "..", "battery-health.xlsx"), bant: path.join(DEMO, "..", "bant-genisligi.csv") };
   for (const [kind, schema] of Object.entries(SCHEMAS)) {
-    const file = findLatestFile(DEMO, schema.prefix);
-    assert.ok(file, `${kind}: demo dosya bulunamadı`);
-    const r = checkWorkbook(kind, XLSX.readFile(path.join(DEMO, file)));
+    const full = schema.fromUpload ? UPLOADED[kind] : path.join(DEMO, findLatestFile(DEMO, schema.prefix) || "yok");
+    assert.ok(fs.existsSync(full), `${kind}: demo dosya bulunamadı`);
+    const r = checkWorkbook(kind, XLSX.readFile(full));
     assert.ok(r.ok, `${kind}: ${summarize(r)}`);
     assert.deepEqual(r.missingRecommended, [], `${kind}: ${summarize(r)}`);
     assert.ok(r.dataRows > 0, `${kind}: veri satırı yok`);
@@ -21,7 +22,7 @@ test("demo dosyaların hepsi şemadan geçer (zorunlu + önerilen sütunlar tam)
 
 test("sayfa ve başlık satırı değerleri routes/reports.js ile aynı (kayma koruması)", () => {
   const src = fs.readFileSync(path.join(__dirname, "routes", "reports.js"), "utf8");
-  for (const [kind, s] of Object.entries(SCHEMAS)) {
+  for (const [kind, s] of Object.entries(SCHEMAS).filter(([, x]) => !x.fromUpload)) {
     const re = new RegExp(`loadLatestReport\\(cfg\\.folderPath, "${s.prefix}", \\{ sheetIndex: (\\d+)(?:, headerRow: (\\d+))? \\}\\)`);
     const m = src.match(re);
     assert.ok(m, `${kind}: reports.js'te "${s.prefix}" okuması bulunamadı`);
@@ -71,4 +72,29 @@ test("başlık satırı boşsa / veri yoksa uyarır", () => {
   const r = checkWorkbook("th", wb);
   assert.equal(r.ok, false);
   assert.ok(r.emptyProblem);
+});
+
+test("battery: sağlık sütunu yoksa tasarım+tam şarj kapasitesi yeterli; ikisi de yoksa zorunlu eksik", () => {
+  const base = ["Machine Name"];
+  assert.equal(checkHeaders("battery", [...base, "Battery Health"]).ok, true);
+  assert.equal(checkHeaders("battery", [...base, "Design Capacity", "Full Charge Capacity"]).ok, true);
+  const r = checkHeaders("battery", [...base, "Design Capacity"]);
+  assert.equal(r.ok, false);
+  assert.ok(r.missingRequired[0].includes("Pil sağlığı"));
+});
+
+test("battery: başlık 2. satırdaysa (ilk satır boş) doğru satır seçilir", () => {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([["Rapor"], ["Machine Name", "Battery Health", "Username"], ["PC1", 85, "a@b.com"]]);
+  XLSX.utils.book_append_sheet(wb, ws, "S");
+  const r = checkWorkbook("battery", wb);
+  assert.equal(r.ok, true);
+  assert.equal(r.headerRow, 2);
+});
+
+test("bant: zorunlu sütunlar (Lokasyon, Hat, Bant Genişliği, Uyarı Durumu)", () => {
+  const r = checkHeaders("bant", ["Lokasyon", "Hat", "Bant Genişliği"]);
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.missingRequired, ["Uyarı Durumu"]);
+  assert.equal(checkHeaders("bant", ["Lokasyon", "Hat", "Bant Genişliği", "Uyarı Durumu"]).ok, true);
 });

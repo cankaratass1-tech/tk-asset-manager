@@ -2372,12 +2372,17 @@ IT Support`;
     if (!file) return;
     setLoadingBattery(true);
     try {
-      const { fileName, modifiedAt, rows } = await uploadBatteryFile(file);
+      const up = await uploadBatteryFile(file);
+      const { fileName, modifiedAt, rows } = up;
+      // Sütun kontrolü: eksik/benzer-ama-tanınmayan başlık varsa kullanıcıya bildir (sessizce boş rapor olmasın)
+      const c = up.check;
+      const colWarn = c && (!c.ok || c.missingRecommended.length > 0 || c.nearMisses.length > 0) ? `
+${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       setBackendReachable(true);
       setRealBatteryAll(rows);
       setRealBatteryMeta({ fileName, modifiedAt });
       setBatteryLoaded(true);
-      showToast(`${fileName} içinden ${rows.length} batarya kaydı yüklendi ve kalıcı kaydedildi`);
+      showToast(`${fileName} içinden ${rows.length} batarya kaydı yüklendi ve kalıcı kaydedildi${colWarn}`);
     } catch (err) {
       showToast(`Dosya yüklenemedi: ${err.message}`);
     } finally {
@@ -2682,12 +2687,17 @@ IT Support`;
     if (!file) return;
     setLoadingBant(true);
     try {
-      const { fileName, modifiedAt, rows } = await uploadBantFile(file);
+      const up = await uploadBantFile(file);
+      const { fileName, modifiedAt, rows } = up;
+      // Sütun kontrolü: eksik/benzer-ama-tanınmayan başlık varsa kullanıcıya bildir (sessizce boş rapor olmasın)
+      const c = up.check;
+      const colWarn = c && (!c.ok || c.missingRecommended.length > 0 || c.nearMisses.length > 0) ? `
+${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       setBackendReachable(true);
       setRealBantAll(rows);
       setRealBantMeta({ fileName, modifiedAt });
       setBantLoaded(true);
-      showToast(`${fileName} içinden ${rows.length} bant genişliği kaydı yüklendi ve kalıcı kaydedildi`);
+      showToast(`${fileName} içinden ${rows.length} bant genişliği kaydı yüklendi ve kalıcı kaydedildi${colWarn}`);
     } catch (err) {
       showToast(`Dosya yüklenemedi: ${err.message}`);
     } finally {
