@@ -26,12 +26,21 @@ export async function startSmtpSink() {
   return { port, messages, stop: () => new Promise((r) => server.close(r)) };
 }
 
-const decodeWords = (v) =>
-  String(v || "").replace(/=\?([^?]+)\?([bBqQ])\?([^?]*)\?=/g, (_, cs, enc, data) =>
-    enc.toLowerCase() === "b"
-      ? Buffer.from(data, "base64").toString("utf8")
-      : Buffer.from(data.replace(/_/g, " ").replace(/=([0-9A-F]{2})/gi, (m, h) => String.fromCharCode(parseInt(h, 16))), "latin1").toString("utf8")
-  ).replace(/\?=\s+=\?[^?]+\?[bBqQ]\?/g, "");
+// RFC 2047: bitişik kodlanmış sözcükler arasındaki boşluk yok sayılır ve çok baytlı bir karakter iki sözcüğe
+// bölünmüş olabilir — bu yüzden ardışık sözcüklerin baytları önce birleştirilir, sonra UTF-8 çözülür.
+const decodeWords = (v) => {
+  const WORD = "=\\?[^?]+\\?[bBqQ]\\?[^?]*\\?=";
+  const group = new RegExp(`${WORD}(?:\\s+${WORD})*`, "g");
+  const one = new RegExp("=\\?([^?]+)\\?([bBqQ])\\?([^?]*)\\?=", "g");
+  return String(v || "").replace(group, (g) => {
+    const bytes = [];
+    for (const [, , enc, data] of g.matchAll(one)) {
+      if (enc.toLowerCase() === "b") bytes.push(...Buffer.from(data, "base64"));
+      else bytes.push(...Buffer.from(data.replace(/_/g, " ").replace(/=([0-9A-F]{2})/gi, (m, h) => String.fromCharCode(parseInt(h, 16))), "latin1"));
+    }
+    return Buffer.from(bytes).toString("utf8");
+  });
+};
 
 function decodeBody(body, encoding) {
   const enc = String(encoding || "").toLowerCase();
