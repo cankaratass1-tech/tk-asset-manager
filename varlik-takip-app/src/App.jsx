@@ -528,7 +528,8 @@ export default function App({ user, onLogout } = {}) {
       key: deviceKeyOf(r),
       hostname: r.hostname || "",
       serial: r.serial || "",
-      location: (r.location && r.location !== "—" ? r.location : r.office) || "",
+      // Disk Alanı'nda `location` alanı disk BOYUTUNU ("462.0 GB") taşır, gerçek bir lokasyon değildir — snapshot'a yazılmaz
+      location: reportId === "disk" ? "" : (r.location && r.location !== "—" ? r.location : r.office) || "",
       lbsParent: r.lbsParent || "",
       company: r.company || "",
     }));

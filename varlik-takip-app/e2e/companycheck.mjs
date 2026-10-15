@@ -173,6 +173,27 @@ try {
   } else {
     console.log("  – Disk snapshot'ı henüz yok (atlandı)");
   }
+
+  // ---- Disk snapshot'ında `location` disk boyutu ("462.0 GB") taşırdı; lokasyon kırılımı bunu lokasyon sanıp gösteriyordu ----
+  console.log("\nÇözüm / Müdahale — Disk Alanı lokasyon kırılımı");
+  const postDisk = (at, locs) =>
+    fetch(`${be.base}/api/snapshots`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${be.token}` },
+      body: JSON.stringify({ reportId: "disk", capturedAt: at, sourceFileModifiedAt: `diskfake-${at}`, devices: locs.map((l, i) => ({ key: `fake${i}:c`, hostname: `FAKE${i}`, location: l })) }),
+    });
+  // eski (hatalı) kayıtları taklit eder: location yerine disk boyutu yazılı
+  await postDisk("2026-07-15T10:00:00Z", ["462.0 GB", "283.0 GB"]);
+  await postDisk("2026-08-15T10:00:00Z", ["462.0 GB", "330.0 GB"]);
+  await page.reload();
+  await page.waitForTimeout(4000);
+  await page.locator('text="Tüm Şirketler"').first().click();
+  await page.waitForTimeout(1000);
+  await reportSelect.selectOption("disk");
+  await page.waitForTimeout(800);
+  const tDisk2 = await txt();
+  check("Çözüm/Müdahale [Disk]: lokasyon kırılımı yerine 'lokasyon bilgisi yok' notu", tDisk2.includes("Disk Alanı dosyasında lokasyon bilgisi yok — lokasyon kırılımı gösterilmez."));
+  check("Çözüm/Müdahale [Disk]: disk boyutları ('462.0 GB' …) lokasyon gibi listelenmiyor", !/\d+\.\d GB/.test(tDisk2.slice(tDisk2.indexOf("Lokasyon Bazlı Çözüm Oranı"))));
 } finally {
   await browser.close();
   await be.stop();

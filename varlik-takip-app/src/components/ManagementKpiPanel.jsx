@@ -232,7 +232,11 @@ export default function ManagementKpiPanel({
 
           <div style={{ marginTop: 18 }}>
             <p style={{ ...styles.groupedBarDeptName, marginBottom: 8 }}>Lokasyon Bazlı Çözüm Oranı (en düşükten)</p>
-            {locBreakdown.length === 0 ? (
+            {report === "disk" ? (
+              // Disk Alanı dosyasında lokasyon bilgisi yok (Site Code tüm kayıtlarda aynı); eski snapshot'larda `location` yerine disk
+              // boyutu ("462.0 GB") kayıtlı olabildiği için bu rapor için lokasyon kırılımı HİÇ gösterilmez.
+              <p style={{ ...styles.pageSub, margin: 0 }}>Disk Alanı dosyasında lokasyon bilgisi yok — lokasyon kırılımı gösterilmez.</p>
+            ) : locBreakdown.length === 0 ? (
               <p style={{ ...styles.pageSub, margin: 0 }}>Bu kapsamda kayıt yok</p>
             ) : (
               <div style={{ overflowX: "auto" }}>
