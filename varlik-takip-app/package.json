@@ -14,7 +14,8 @@
     "test:unit": "node --test src/services/*.test.js",
     "test:smoke": "node e2e/smoke.mjs",
     "test:mail": "node e2e/mailtest.mjs",
-    "test:dash": "node e2e/dashcheck.mjs"
+    "test:dash": "node e2e/dashcheck.mjs",
+    "test:company": "node e2e/companycheck.mjs"
   },
   "build": {
     "appId": "com.varliktakip.app",

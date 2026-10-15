@@ -50,9 +50,14 @@ function DeltaTag({ value, unit = "%", goodWhenNegative = true, pal }) {
   );
 }
 
-export default function OverviewPanel({ snapshots, period, setPeriod, live, styles, pal }) {
+// [ŞİRKET-FİLTRESİ — bkz. KRITIK-NOTLAR.md] companyScoped: şirket seçiliyken snapshot geçmişi şirket bazında tutulmadığı için
+// (trend, çözüm oranı, dönemsel açık bulgu) gösterilmez; sayılar yalnızca canlı (şirkete göre filtrelenmiş) değerlerden gelir.
+export default function OverviewPanel({ snapshots, period, setPeriod, live, styles, pal, companyScoped = false }) {
   const summary = useMemo(() => combinedPeriodSummary(snapshots, period), [snapshots, period]);
-  const { series, latest, prev, enough } = summary;
+  const { enough } = summary;
+  const series = companyScoped ? [] : summary.series;
+  const latest = companyScoped ? null : summary.latest;
+  const prev = companyScoped ? null : summary.prev;
 
   const wf = useMemo(
     () =>
@@ -137,6 +142,9 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
         <div>
           <p style={styles.settingsSectionTitle}>Genel Durum</p>
           <p style={{ ...styles.pageSub, margin: 0 }}>Cihaz envanteri sağlık özeti ve IT operasyon performansı — her ölçüt kendi grafiği ve renginde</p>
+          {companyScoped && (
+            <p style={{ ...styles.pageSub, margin: "6px 0 0", color: pal.warnFg }}>Şirket seçili: trend ve çözüm oranı şirket bazında tutulmadığı için gösterilmiyor (Tüm Şirketler'de görünür).</p>
+          )}
         </div>
         <div style={styles.segmented}>
           {Object.entries(PERIOD_LABELS).map(([id, l]) => (

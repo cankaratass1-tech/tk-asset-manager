@@ -644,6 +644,8 @@ export default function App({ user, onLogout } = {}) {
         sccmLbsParent: s ? s.lbsParent || "" : "",
         sccmUser: s ? s.userLabel || "" : "",
         sccmUserMail: s ? s.mail || "" : "",
+        // [ŞİRKET-FİLTRESİ] şirket bilgisi SCCM'deki İştirak sütunundan (hostname eşleşmesi) gelir
+        company: s ? s.company || "" : r.company || "",
       };
       // BSOD listesinde "Lokasyon" kolonu SCCM'den doldurulur (crash tarihi alt satırda kalır).
       if (setLocationColumn) {
@@ -820,14 +822,20 @@ export default function App({ user, onLogout } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realThMeta, realSccmMeta, unusedDeviceRows]);
 
+  // [ŞİRKET-FİLTRESİ — KRİTİK NOT, bkz. KRITIK-NOTLAR.md] Sol menüdeki şirket seçimi artık Zimmet, Lokasyon IP, BSOD,
+  // Battery, Atıl Monitör ekranlarına ve Dashboard kartlarına da uygulanır (önceden yalnızca İnaktif/Kullanılmayan'a
+  // uygulanıyordu). Geri almak için KRITIK-NOTLAR.md'deki adımları izleyin. zimmetRows/snapshot/mail hesapları HER ZAMAN
+  // filtresizdir; filtre yalnızca ekranda gösterilen satırlara ve dashboard sayılarına uygulanır.
+  const byCompany = (rows, co) => (co === "all" ? rows : rows.filter((r) => r.company === co));
+
   const rawRows = isZimmet
-    ? zimmetRows
+    ? byCompany(zimmetRows, activeCompany)
     : isLokasyonIp
-    ? lokasyonIpRows
+    ? byCompany(lokasyonIpRows, activeCompany)
     : isBsod
-    ? bsodRows
+    ? byCompany(bsodRows, activeCompany)
     : isBattery
-    ? batteryRows
+    ? byCompany(batteryRows, activeCompany)
     : isUnused
     ? (activeCompany === "all" ? unusedDeviceRows : unusedDeviceRows.filter((r) => r.company === activeCompany))
     : usingRealInaktif
@@ -3011,7 +3019,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
           <div style={styles.deptList}>
             {hasRealCompanies
               ? (() => {
-                  const countSource = activeReport === "disk" ? realDiskAll : realInaktifAll;
+                  // [ŞİRKET-FİLTRESİ] sayılar açık raporun kendi satırlarından; Disk dosyasında şirket bilgisi yok ("—")
+                  const thMonitors = realThAll.filter((r) => String(r.deviceType || "").toLowerCase() === "monitor");
+                  const countSource = showDashboard
+                    ? realInaktifAll
+                    : ({ inaktif: realInaktifAll, kullanilmayan: unusedDeviceRows, zimmet: zimmetRows, "lokasyon-ip": lokasyonIpRows, bsod: bsodRows, "battery-health": batteryRows, "atil-monitor": thMonitors }[activeReport] || realInaktifAll);
+                  const noCompanyData = !showDashboard && activeReport === "disk";
                   const allActive = showDashboard ? dashboardCompanyFilter === "all" : activeCompany === "all" && !showHistory;
                   return (
                     <>
@@ -3032,7 +3045,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                           <span style={{ ...styles.deptDot, ...(allActive ? styles.deptDotActive : {}) }} />
                           Tüm Şirketler
                         </div>
-                        <span style={{ ...styles.deptCount, ...(allActive ? styles.deptCountActive : {}) }}>{countSource.length}</span>
+                        <span style={{ ...styles.deptCount, ...(allActive ? styles.deptCountActive : {}) }}>{noCompanyData ? "—" : countSource.length}</span>
                       </div>
                       {inaktifCompanies.map((company) => {
                         const count = countSource.filter((r) => r.company === company).length;
@@ -3057,7 +3070,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                               <span style={{ ...styles.deptDot, ...(active ? styles.deptDotActive : {}) }} />
                               {companyShortLabel(company)}
                             </div>
-                            <span style={{ ...styles.deptCount, ...(active ? styles.deptCountActive : {}) }}>{count}</span>
+                            <span style={{ ...styles.deptCount, ...(active ? styles.deptCountActive : {}) }}>{noCompanyData ? "—" : count}</span>
                           </div>
                         );
                       })}
@@ -3226,9 +3239,14 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 // yüklendiğinde dashboard da rapor ekranıyla AYNI (monitör dahil) sonucu göstersin
                 // — önceden dashboard doğrudan ham SCCM'den hesaplıyordu, monitör karşılaştırmasından
                 // tamamen habersizdi (bkz. konuşma: "dashboard'da ayrımı olacak mı").
-                const overallZimmet = computeOverallZimmetStats(zimmetRows);
+                // [ŞİRKET-FİLTRESİ] dashboard kartları seçili şirkete göre; Disk dosyasında şirket bilgisi olmadığı için
+                // şirket seçiliyken disk sayıları toplamlara dahil edilmez (diskScoped=false)
+                const dc = dashboardCompanyFilter;
+                const diskScoped = dc === "all";
+                const zimmetScoped = byCompany(zimmetRows, dc);
+                const overallZimmet = computeOverallZimmetStats(zimmetScoped);
                 const mismatchTotal = overallZimmet.bad + overallZimmet.noRecord;
-                const zimmetMismatchRows = getAllMismatchRows(zimmetRows);
+                const zimmetMismatchRows = getAllMismatchRows(zimmetScoped);
                 const zimmetTopLocations = computeZimmetLocationBreakdown(zimmetMismatchRows, 10, { company: dashboardCompanyFilter });
                 // "Genel Trend" paneli — Sage Intelligence tarzı bar+line, bkz. konuşma. Zaman
                 // serisi veri olmadığı için eksen lokasyon; şirket filtresi diğer bölümlerle aynı
@@ -3250,7 +3268,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   { key: "inaktif", label: "İnaktif Cihazlar", value: inaktifStats.total, sub: "toplam inaktif cihaz", reportId: "inaktif" },
                   { key: "disk", label: "Disk Alanı", value: diskStats.critical, sub: "kritik disk", reportId: "disk" },
                   { key: "zimmet", label: "Zimmet Uyuşmazlığı", value: overallZimmet.bad, sub: "hatalı zimmet", reportId: "zimmet" },
-                ];
+                ].filter((it) => diskScoped || it.key !== "disk");
                 const rankedKeys = [...riskItems].sort((a, b) => b.value - a.value).map((r) => r.key);
                 const riskColor = (item) => {
                   if (!item.value) return pal.ok;
@@ -3363,9 +3381,9 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       </div>
                       <div style={{ ...styles.kpiCard, cursor: "pointer" }} onClick={() => goDashboardReport("disk")} title="Disk Alanı raporuna git">
                         {rollingMiniSummary(last2wDisk)}
-                        <span style={{ ...styles.kpiValue, color: diskStats.critical ? pal.bad : pal.ink }}>{diskStats.critical}</span>
+                        <span style={{ ...styles.kpiValue, color: diskScoped && diskStats.critical ? pal.bad : pal.ink }}>{diskScoped ? diskStats.critical : "—"}</span>
                         <span style={styles.kpiLabel}>kritik disk (≤{DISK_THRESHOLDS_GB.criticalMax} GB)</span>
-                        <span style={{ ...styles.kpiSub, color: pal.warnFg }}>{diskStats.warning} uyarı seviyesinde</span>
+                        <span style={{ ...styles.kpiSub, color: pal.warnFg }}>{diskScoped ? `${diskStats.warning} uyarı seviyesinde` : "şirket bazında ayrılamaz"}</span>
                       </div>
                       <div style={{ ...styles.kpiCard, cursor: "pointer" }} onClick={() => goDashboardReport("zimmet")} title="Zimmet Uyuşmazlığı raporuna git">
                         {/* Sadece KESİN uyuşmazlık (overallZimmet.bad) — doğrulanamayan (noRecord)
@@ -3388,13 +3406,14 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       snapshots={reportSnapshots}
                       period={overviewPeriod}
                       setPeriod={setOverviewPeriod}
+                      companyScoped={dc !== "all"}
                       live={{
-                        toplamCihaz: realSccmAll.length,
+                        toplamCihaz: byCompany(realSccmAll, dc).length,
                         inaktif: inaktifStats.total,
                         zimmetHatali: overallZimmet.bad,
                         zimmetDogru: overallZimmet.ok,
-                        kritikDisk: diskStats.critical,
-                        kullanilmayan: unusedDeviceRows.length,
+                        kritikDisk: diskScoped ? diskStats.critical : 0,
+                        kullanilmayan: byCompany(unusedDeviceRows, dc).length,
                       }}
                       styles={styles}
                       pal={pal}
@@ -3458,6 +3477,13 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     </div>
 
                     {/* Disk Alanı bölümü */}
+                    {!diskScoped && (
+                      <div style={{ ...styles.panel, padding: "14px 24px", color: pal.inkSoft, fontSize: 13.5 }}>
+                        {companyShortLabel(dc)} seçili: Disk Alanı dosyasında şirket bilgisi olmadığı için disk sayıları şirket görünümüne dahil edilmedi (Tüm Şirketler'de görünür).
+                      </div>
+                    )}
+                    {diskScoped && (
+                    <>
                     <div style={{ ...styles.panel, padding: "20px 24px", ...styles.dashboardTwoCol }}>
                       <div style={styles.dashboardCol}>
                         <p style={styles.settingsSectionTitle}>Disk Alanı</p>
@@ -3517,6 +3543,9 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         )}
                       </div>
                     </div>
+
+                    </>
+                    )}
 
                     {/* Zimmet Uyuşmazlığı bölümü — artık gerçek SCCM envanter verisiyle hesaplanıyor (bkz. konuşma) */}
                     <div style={{ ...styles.panel, padding: "20px 24px", ...styles.dashboardTwoCol }}>
@@ -4463,7 +4492,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             <AtilMonitorReportScreen
               styles={styles}
               pal={pal}
-              thRows={realThAll}
+              thRows={byCompany(realThAll, activeCompany)}
               monitorRows={realMonitorAll}
               thMeta={realThMeta}
               monitorMeta={realMonitorMeta}
