@@ -41,29 +41,32 @@ export default function TableView({
   // Madde 8 — "Cihaz Yaşı" sütunu (yalnızca Kullanılmayan Cihazlar). BIOS tarihinden hesaplanır;
   // yoksa "Veri Yok", >5 yıl kırmızı vurgulanır.
   const deviceAgeText = (r) => (r.deviceAge != null ? `${r.deviceAge} yıl` : "");
+  const thS = isZimmet ? { ...styles.th, padding: "13px 10px", fontSize: 13 } : styles.th;
+  const tdS = isZimmet ? { ...styles.td, padding: "14px 10px", fontSize: 14 } : styles.td;
   return (
     <table style={styles.table}>
+      {/* thS/tdS: Zimmet tablosunda sütun fazla — yatay boşluk daraltılır, tablo kaydırma gerektirmeden sığsın */}
       <thead>
         <tr>
-          <th style={{ ...styles.th, width: 32 }}>
+          <th style={{ ...thS, width: 32 }}>
             <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={styles.checkbox} />
           </th>
-          <th style={styles.th}>{isZimmet ? "Zimmetli Kişi" : ownerLabel || "Cihaz Sahibi"}</th>
+          <th style={thS}>{isZimmet ? "Zimmetli Kişi" : ownerLabel || "Cihaz Sahibi"}</th>
           {isZimmet ? (
             <>
-              <th style={styles.th}>Cihaz (Seri No)</th>
-              <th style={styles.th}>Kullanan Kişi</th>
-              <th style={styles.th}>Zimmet Türü</th>
+              <th style={thS}>Cihaz (Seri No)</th>
+              <th style={thS}>Kullanan Kişi</th>
+              <th style={thS}>Zimmet Türü</th>
             </>
           ) : (
-            <th style={styles.th}>{serialLabel || "Seri No / Model"}</th>
+            <th style={thS}>{serialLabel || "Seri No / Model"}</th>
           )}
-          {!isZimmet && splitModel && <th style={styles.th}>{modelLabel || "Model"}</th>}
-          {showHostname && <th style={styles.th}>{isZimmet ? "Hostname" : "Hostname / Son Giriş"}</th>}
-          {showLastLogon && <th style={styles.th}>Last Logon</th>}
-          {showDeviceAge && <th style={styles.th}>Cihaz Yaşı</th>}
-          <th style={styles.th}>{isZimmet ? "Açıklama" : locationLabel || "Lokasyon"}</th>
-          <th style={styles.th}>Durum</th>
+          {!isZimmet && splitModel && <th style={thS}>{modelLabel || "Model"}</th>}
+          {showHostname && <th style={thS}>{isZimmet ? "Hostname" : "Hostname / Son Giriş"}</th>}
+          {showLastLogon && <th style={thS}>Last Logon</th>}
+          {showDeviceAge && <th style={thS}>Cihaz Yaşı</th>}
+          <th style={thS}>{isZimmet ? "Açıklama" : locationLabel || "Lokasyon"}</th>
+          <th style={thS}>Durum</th>
         </tr>
       </thead>
       <tbody>
@@ -79,7 +82,7 @@ export default function TableView({
                 ...(selectedKeys.has(rk) || rk === detailRowKey ? styles.rowSelected : {}),
               }}
             >
-              <td style={styles.td} onClick={(e) => e.stopPropagation()}>
+              <td style={tdS} onClick={(e) => e.stopPropagation()}>
                 <input
                   type="checkbox"
                   checked={selectedKeys.has(rk)}
@@ -87,7 +90,7 @@ export default function TableView({
                   style={styles.checkbox}
                 />
               </td>
-              <td style={styles.td}>
+              <td style={tdS}>
                 <div
                   style={{ ...styles.cellName, ...(canExpandPerson && r.owner !== "—" ? styles.clickableName : {}) }}
                   onClick={canExpandPerson && r.owner !== "—" ? (e) => { e.stopPropagation(); togglePersonExpand(rk, r.owner); } : undefined}
@@ -100,13 +103,13 @@ export default function TableView({
               </td>
               {isZimmet ? (
                 <>
-                  <td style={styles.td}>
+                  <td style={tdS}>
                     <span style={{ ...styles.serial, ...styles.clickableName }} title="Detayını sağda göster">
                       {r.serial}
                     </span>
                     <div style={styles.cellSub}>{r.sub}</div>
                   </td>
-                  <td style={styles.td}>
+                  <td style={tdS}>
                     <span
                       style={r.userLabel !== "—" && r.userLabel !== "Tespit Edilemedi" ? styles.clickableName : undefined}
                       onClick={r.userLabel !== "—" && r.userLabel !== "Tespit Edilemedi" ? (e) => { e.stopPropagation(); togglePersonExpand(rk, r.userLabel); } : undefined}
@@ -115,7 +118,7 @@ export default function TableView({
                       {r.userLabel}
                     </span>
                   </td>
-                  <td style={styles.td}>
+                  <td style={tdS}>
                     {r.assignmentType ? (
                       <span style={{ ...styles.badge, ...(r.assignmentType === "OBS" ? styles.badgeNeutral : styles.badgeOk) }}>
                         <span style={{ ...styles.badgeDot, background: r.assignmentType === "OBS" ? pal.inkSoft : pal.ok }} />
@@ -127,22 +130,29 @@ export default function TableView({
                   </td>
                 </>
               ) : (
-                <td style={styles.td}>
+                <td style={tdS}>
                   <span style={{ ...styles.serial, ...styles.clickableName }} title="Detayını sağda göster">
                     {r.serial}
                   </span>
                   {!splitModel && <div style={styles.cellSub}>{r.model}</div>}
                 </td>
               )}
-              {!isZimmet && splitModel && <td style={styles.td}>{r.model}</td>}
+              {!isZimmet && splitModel && <td style={tdS}>{r.model}</td>}
               {showHostname && (
-                <td style={{ ...styles.td, fontSize: 13 }}>
+                <td style={{ ...tdS, fontSize: 13 }}>
                   <div style={{ fontFamily: "var(--font-mono)" }}>
                     {r.hostname || <span style={{ fontFamily: "var(--font-sans)", color: pal.inkSoft, fontStyle: "italic" }}>SCCM verisiyle eşleşmedi</span>}
                   </div>
                   {/* İnaktif Cihazlar'da hostname'in altında kimin fiilen kullandığı da gösterilsin
                       istendi (bkz. konuşma: "hem hostname hem kimin kullandığını gösterelim") —
                       Zimmet ekranında bu bilgi zaten ayrı "Kullanan Kişi" sütununda olduğu için tekrar edilmiyor. */}
+                  {/* Zimmet: Lokasyon filtresi ofis (r.office) üzerinden çalıştığı için değer tabloda da görünsün —
+                      ayrı sütun yerine hostname altında (tablo sıkışmasın diye) */}
+                  {isZimmet && r.office && r.office !== "—" && (
+                    <div style={{ color: pal.inkSoft, fontSize: 12, marginTop: 2, fontFamily: "var(--font-sans)" }} title="Lokasyon (ofis)">
+                      {r.office}
+                    </div>
+                  )}
                   {!isZimmet && r.actualUser && (
                     <div style={{ color: pal.inkSoft, fontSize: 12, marginTop: 2 }} title={r.actualUserMail || undefined}>
                       Son giriş: {r.actualUser}
@@ -151,22 +161,22 @@ export default function TableView({
                 </td>
               )}
               {showLastLogon && (
-                <td style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>
+                <td style={{ ...tdS, fontSize: 12.5, whiteSpace: "nowrap" }}>
                   {lastLogonText(r) || <span style={{ color: pal.inkSoft, fontStyle: "italic" }}>Veri Yok</span>}
                 </td>
               )}
               {showDeviceAge && (
                 <td
-                  style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap", ...(r.deviceAge != null && r.deviceAge > 5 ? { color: pal.bad, fontWeight: 600 } : {}) }}
+                  style={{ ...tdS, fontSize: 12.5, whiteSpace: "nowrap", ...(r.deviceAge != null && r.deviceAge > 5 ? { color: pal.bad, fontWeight: 600 } : {}) }}
                   title={r.deviceAgeSource ? `${r.deviceAgeSource}${r.deviceAgeDate ? ` (${r.deviceAgeDate})` : ""}` : undefined}
                 >
                   {deviceAgeText(r) || <span style={{ color: pal.inkSoft, fontStyle: "italic" }}>Veri Yok</span>}
                 </td>
               )}
-              <td style={styles.td}>
+              <td style={tdS}>
                 {isZimmet ? (
                   <span
-                    style={{ display: "block", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    style={{ display: "block", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                     title="Tamamını görmek için satıra tıkla"
                   >
                     {r.model}
@@ -175,7 +185,7 @@ export default function TableView({
                   r.location
                 )}
               </td>
-              <td style={styles.td}>
+              <td style={tdS}>
                 {isZimmet ? (
                   <span style={{ ...styles.badge, ...(r.statusTag === "Zimmet Doğru" || r.statusTag === "Müdürlük Zimmeti (OBS)" ? styles.badgeOk : isZimmetUnverified(r.statusTag) ? styles.badgeNeutral : styles.badgeBad) }}>
                     <span style={{ ...styles.badgeDot, background: r.statusTag === "Zimmet Doğru" || r.statusTag === "Müdürlük Zimmeti (OBS)" ? pal.ok : isZimmetUnverified(r.statusTag) ? pal.inkSoft : pal.bad }} />
@@ -214,7 +224,7 @@ export default function TableView({
             </tr>
             {isExpandedHere && (
               <tr>
-                <td style={{ ...styles.td, background: pal.fieldBg, padding: 0 }} colSpan={emptyColSpan}>
+                <td style={{ ...tdS, background: pal.fieldBg, padding: 0 }} colSpan={emptyColSpan}>
                   <div style={{ padding: "12px 20px" }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: pal.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.03em" }}>
                       {expandedPerson.person} — {isZimmet ? "tüm zimmet kayıtları" : `diğer ${ownerLabel === "Hostname" ? "cihazlar" : "kayıtlar"}`}
@@ -270,7 +280,7 @@ export default function TableView({
         })}
         {rows.length === 0 && (
           <tr>
-            <td style={{ ...styles.td, textAlign: "center", color: pal.inkSoft }} colSpan={emptyColSpan}>
+            <td style={{ ...tdS, textAlign: "center", color: pal.inkSoft }} colSpan={emptyColSpan}>
               Sonuç bulunamadı
             </td>
           </tr>

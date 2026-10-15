@@ -29,8 +29,8 @@ const REPORTS = [
 // Tabloda görünmeyen/özel alanlardan beslenen filtreler — "tabloda geçiyor mu" kontrolü uygulanmaz
 const SKIP_OPTION_CHECK = new Set(["Üst Lokasyon"]);
 // Bilinen, bilinçli bırakılmış uyumsuzluklar (başarısızlık sayılmaz, "⚠" ile raporlanır). Çözülünce listeden silin.
-//   zimmet|Lokasyon: Zimmet tablosunda Lokasyon sütunu yok (ofis yalnızca kart görünümü/detayda) — sütun eklenene dek.
-const KNOWN_ISSUES = new Set(["zimmet|Lokasyon"]);
+// (şu an yok — anahtar biçimi: "rapor-id|filtre etiketi", örn. "zimmet|Lokasyon")
+const KNOWN_ISSUES = new Set([]);
 
 const results = [];
 const check = (report, name, ok, detail = "", knownKey = "") => {
