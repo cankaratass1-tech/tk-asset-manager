@@ -1521,7 +1521,7 @@ export default function App({ user, onLogout } = {}) {
       byActualUser.get(r.mail).push(r);
     });
 
-    let sent = 0, failed = 0, duplicateSent = 0;
+    let sent = 0, failed = 0, duplicateSent = 0, extraIncluded = 0;
     const skipped = noMailRows.length;
     const details = noMailRows.map((r) => ({ location: r.userFull || r.userLabel || r.hostname, to: null, count: 1, ok: false, message: "SCCM'de bu kullanıcı için mail adresi bulunamadı" }));
 
@@ -1549,7 +1549,9 @@ export default function App({ user, onLogout } = {}) {
         });
         if (result.ok) {
           sent += rows.length;
-          duplicateSent += rowsDuplicate.length;
+          // sayaçlar yalnızca SEÇİLİ/hedef kayıtları sayar; aynı kişiye ait ek kayıtlar ayrıca "extraIncluded" olarak raporlanır
+          duplicateSent += rows.filter((r) => r.statusTag === "Mükerrer Çift Zimmet").length;
+          extraIncluded += mailRows.length - rows.length;
           details.push({ location: label, to, count: rows.length, ok: true, message: "Gönderildi" });
           rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `${r.statusTag === "Mükerrer Çift Zimmet" ? "Mükerrer çift zimmet" : r.monitorIssue && r.statusTag !== "Zimmet Hatalı" ? "Monitör uyuşmazlığı" : "Zimmet uyuşmazlığı"} maili gönderildi (${label})`, mailSubject: subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
@@ -1572,7 +1574,9 @@ export default function App({ user, onLogout } = {}) {
       details,
     });
 
-    const dupNote = duplicateSent > 0 ? ` (${duplicateSent} kaydı mükerrer çift zimmet bildirimiydi)` : "";
+    const dupNote =
+      (duplicateSent > 0 ? ` (${duplicateSent} kaydı mükerrer çift zimmet bildirimiydi)` : "") +
+      (extraIncluded > 0 ? ` (+${extraIncluded} ilgili kayıt, aynı kişiye ait olduğu için aynı maile eklendi)` : "");
     if (sent === 0 && failed === 0 && skipped > 0) {
       showToast(`❌ Gönderilemedi — ${skipped} kayıt için SCCM'de kullanıcı maili bulunamadı`);
     } else if (skipped > 0) {

@@ -79,6 +79,9 @@ try {
   check("Zimmet Hatalı: seçili kayda mail gidiyor (onaysız)", r.mails.length >= 1, r.toast);
   if (r.mails[0]) {
     const t = stripHtml(r.mails[0].html);
+    // bildirim, seçilen kayıt sayısını doğru vermeli; aynı kişiye ait ek (mükerrer) kayıtlar ayrı not edilmeli
+    const extraInMail = /birden fazla notebook/.test(t);
+    check("Zimmet Hatalı: bildirim seçilen kayıt sayısını veriyor (1 kayıt) ve ek kayıtları ayrı belirtiyor", /1 kayıt/.test(r.toast) && (!extraInMail || /\+\d+ ilgili kayıt, aynı kişiye ait olduğu için aynı maile eklendi/.test(r.toast)), r.toast);
     sane("Zimmet Hatalı", r.mails);
     check("Zimmet Hatalı: şablon metni (kayıtlı sahibi farklı… fiilen siz kullanıyorsunuz)", /kayıtlı sahibi farklı bir kişi görünüyor/.test(t) && /fiilen siz kullanıyorsunuz/.test(t));
     check("Zimmet Hatalı: tablo sütunları (Seri No … Last Logon)", ["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"].every((h) => t.includes(h)));
