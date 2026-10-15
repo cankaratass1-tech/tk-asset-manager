@@ -13,7 +13,8 @@
     "dist:win": "vite build && electron-builder --win portable nsis",
     "test:unit": "node --test src/services/*.test.js",
     "test:smoke": "node e2e/smoke.mjs",
-    "test:mail": "node e2e/mailtest.mjs"
+    "test:mail": "node e2e/mailtest.mjs",
+    "test:dash": "node e2e/dashcheck.mjs"
   },
   "build": {
     "appId": "com.varliktakip.app",

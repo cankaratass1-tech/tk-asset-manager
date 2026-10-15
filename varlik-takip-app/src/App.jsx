@@ -3536,7 +3536,7 @@ IT Support`;
                               <span style={styles.legendCount}>{overallZimmet.bad}</span>
                             </div>
                             <div style={styles.legendItemRow}>
-                              <span style={styles.legendItemLeft}><span style={{ ...styles.legendDot, background: pal.neutralDot }} />Kayıt yok</span>
+                              <span style={styles.legendItemLeft}><span style={{ ...styles.legendDot, background: pal.neutralDot }} />Doğrulanamayan</span>
                               <span style={styles.legendCount}>{overallZimmet.noRecord}</span>
                             </div>
                             {overallZimmet.monitorIssueCount > 0 && (
