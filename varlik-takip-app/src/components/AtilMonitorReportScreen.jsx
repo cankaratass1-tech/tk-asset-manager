@@ -286,6 +286,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
       }
     }
     setMailBusy(false);
+    if (sent > 0) setSelectedKeys(new Set()); // gönderilenler seçili kalmasın: bir sonraki gönderim aynı kayıtlara yeniden mail atmasın
     const skipped = noMail.reduce((n, x) => n + x.items.length, 0);
     recordMailHistory?.({
       id: Date.now(),

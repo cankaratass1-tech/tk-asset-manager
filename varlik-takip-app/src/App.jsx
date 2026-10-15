@@ -40,7 +40,7 @@ import AppFooter from "./components/AppFooter";
 import { LIGHT_PALETTE, DARK_PALETTE, AERO_PALETTE } from "./theme/palette";
 import { buildStyles } from "./theme/buildStyles";
 import Donut from "./components/Donut";
-import { backendClient, setSettingsAuth, clearSettingsAuth } from "./services/backendClient";
+import { backendClient, setSettingsAuth, clearSettingsAuth, getMailSuccessCount } from "./services/backendClient";
 import { ownerWithTitle } from "./services/ownerName";
 import TableView from "./components/recordList/TableView";
 import DenseGridView from "./components/recordList/DenseGridView";
@@ -2013,6 +2013,16 @@ IT Support`;
     });
   };
 
+  // Rapor sayfalarındaki "Mail Gönder": en az bir mail gittiyse seçili kayıtlar temizlenir (aynı kayıtlar sonraki gönderimde yeniden gitmesin)
+  const handleMailAndReset = async () => {
+    const before = getMailSuccessCount();
+    try {
+      await handleMail();
+    } finally {
+      if (getMailSuccessCount() > before) setSelectedKeys(new Set());
+    }
+  };
+
   const handleMail = async () => {
     const deptName = currentDeptLabel;
     const reportName = REPORT_TYPES.find((r) => r.id === activeReport).name;
@@ -3406,7 +3416,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       snapshots={reportSnapshots}
                       period={overviewPeriod}
                       setPeriod={setOverviewPeriod}
-                      companyScoped={dc !== "all"}
+                      company={dc}
                       live={{
                         toplamCihaz: byCompany(realSccmAll, dc).length,
                         inaktif: inaktifStats.total,
@@ -3447,6 +3457,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       setPeriod={setMgmtPeriod}
                       lbsFilter={mgmtLbsFilter}
                       setLbsFilter={setMgmtLbsFilter}
+                      company={dc}
                       styles={styles}
                       pal={pal}
                     />
@@ -4972,7 +4983,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     PDF'e Aktar
                   </button>
                   {/* Seçim varsa doğrudan seçililere gönderilir; seçim yoksa "hepsine gidecek" onayı sorulur */}
-                  <button style={styles.btnPrimary} onClick={() => (selectedKeys.size > 0 ? handleMail() : setConfirmMailOpen(true))}>
+                  <button style={styles.btnPrimary} onClick={() => (selectedKeys.size > 0 ? handleMailAndReset() : setConfirmMailOpen(true))}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                       <path d="M22 2L11 13" />
                       <path d="M22 2l-7 20-4-9-9-4z" />
@@ -5184,7 +5195,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 style={styles.btnPrimary}
                 onClick={() => {
                   setConfirmMailOpen(false);
-                  handleMail();
+                  handleMailAndReset();
                 }}
               >
                 Onayla ve Gönder

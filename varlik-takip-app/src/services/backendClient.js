@@ -39,6 +39,9 @@ export function setSessionToken(token) {
   }
 }
 
+let mailSuccessCount = 0;
+export const getMailSuccessCount = () => mailSuccessCount;
+
 async function request(path, options) {
   let res;
   const isSettingsPath = path.startsWith("/settings/") && path !== "/settings/login";
@@ -106,7 +109,13 @@ export const backendClient = {
   saveSmtpConfig: (cfg) => request("/settings/smtp", { method: "PUT", body: JSON.stringify(cfg) }),
   testSmtpConnection: (overrides = {}) => request("/settings/smtp/test", { method: "POST", body: JSON.stringify(overrides) }),
 
-  sendMail: ({ to, subject, text, html }) => request("/mail/send", { method: "POST", body: JSON.stringify({ to, subject, text, html }) }),
+  // Başarılı her gönderim sayılır (getMailSuccessCount): ekranlar "bu butona basınca en az bir mail gitti mi" sorusunu buradan
+  // öğrenip seçili kayıtları temizler — aynı kayıtlar bir sonraki gönderimde yeniden gitmesin.
+  sendMail: async ({ to, subject, text, html }) => {
+    const res = await request("/mail/send", { method: "POST", body: JSON.stringify({ to, subject, text, html }) });
+    if (res && res.ok) mailSuccessCount += 1;
+    return res;
+  },
 
   // /settings/mailgroups (admin şifreli) sadece Ayarlar ekranındaki düzenleme formu için;
   // "/mailgroups" (session token'ıyla, admin şifresi istemez) her oturum açmış kullanıcının Mail

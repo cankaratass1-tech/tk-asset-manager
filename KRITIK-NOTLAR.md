@@ -21,11 +21,10 @@ Bu dosya, ileride geri alınması / yeniden değerlendirilmesi gerekebilecek **b
 
 **Bilinçli sınırlar:**
 - **Disk Alanı:** dosyada şirket bilgisi yok. Ekranda filtre uygulanmaz; sol menüde sayılar "—" görünür. Ana Sayfa'da şirket seçiliyken disk kartı "—", disk paneli gizli ve **disk sayıları Açık Bulgu / Temiz Cihaz hesabına dahil edilmez** (açıklama notu ekranda).
-- **Şirket seçiliyken trend / çözüm oranı / dönemsel Açık Bulgu gösterilmez** (snapshot geçmişi şirket bazında tutulmuyor). Sadece canlı sayılar.
-- **Çözüm / Müdahale İstatistikleri paneli** (ManagementKpiPanel) şirket seçiminden etkilenmez (kendi filtreleri var).
+- **Trend / çözüm oranı / dönemsel Açık Bulgu (Genel Durum) ve Çözüm / Müdahale İstatistikleri paneli** da şirkete göre hesaplanır: snapshot'lardaki cihazların `company` alanı (ham şirket adı, örn. "TKAJ-AJET A.Ş.") süzülür. Disk Alanı snapshot'larında şirket bilgisi olmadığı için şirket seçiliyken Genel Durum'a dahil edilmez, Çözüm/Müdahale panelinde "şirket bazında ayrılamaz" yazar. (`dashboardOverviewService.combinedPeriodSummary` `{ company }`, `ManagementKpiPanel` `company` prop'u.)
 - Snapshot kaydı, mail gönderimi ve kişi bazlı birleşik mail hesabı **her zaman filtresizdir** (`zimmetRows` doğrudan kullanılır). Filtre sadece ekranda gösterilen satırlara ve dashboard sayılarına uygulanır.
 
-**Nasıl bulunur:** kodda `[ŞİRKET-FİLTRESİ]` etiketi (App.jsx: `byCompany`, `rawRows`, `enrichWithSccm`, sol menü `countSource`, dashboard `dc` / `diskScoped`; OverviewPanel.jsx: `companyScoped`). Commit mesajında da aynı etiket geçer:
+**Nasıl bulunur:** kodda `[ŞİRKET-FİLTRESİ]` etiketi (App.jsx: `byCompany`, `rawRows`, `enrichWithSccm`, sol menü `countSource`, dashboard `dc` / `diskScoped`; OverviewPanel.jsx: `company`; dashboardOverviewService.js: `combinedPeriodSummary`; ManagementKpiPanel.jsx: `company` prop'u). Ayrı bir iyileştirme olarak Yeni Kurulum ekranında başarılı gönderimden sonra seçim temizlenir (şirket filtresiyle ilgisi yok, geri alınmasına gerek yok). Commit mesajında da aynı etiket geçer:
 
 ```bash
 git log --grep="ŞİRKET-FİLTRESİ"
@@ -33,7 +32,7 @@ git log --grep="ŞİRKET-FİLTRESİ"
 
 **Nasıl geri alınır:**
 1. Tüm değişiklik tek commit'teyse: `git revert <commit-hash>`.
-2. Elle: `byCompany(...)` çağrılarını kaldırıp ham dizileri (`zimmetRows`, `lokasyonIpRows`, `bsodRows`, `batteryRows`, `realThAll`) geri koyun; `rawRows` ve Atıl Monitör `thRows` prop'u eski haline; sol menü `countSource`'u `activeReport === "disk" ? realDiskAll : realInaktifAll`; dashboard'da `dc`/`diskScoped`/`zimmetScoped` kullanımlarını kaldırın; `OverviewPanel`'e `companyScoped` geçmeyin.
+2. Elle: `byCompany(...)` çağrılarını kaldırıp ham dizileri (`zimmetRows`, `lokasyonIpRows`, `bsodRows`, `batteryRows`, `realThAll`) geri koyun; `rawRows` ve Atıl Monitör `thRows` prop'u eski haline; sol menü `countSource`'u `activeReport === "disk" ? realDiskAll : realInaktifAll`; dashboard'da `dc`/`diskScoped`/`zimmetScoped` kullanımlarını kaldırın; `OverviewPanel` ve `ManagementKpiPanel`'e `company` geçmeyin (servis/panel `company` parametresi varsayılan "all" olduğu için kendiliğinden eski davranışa döner).
 3. `e2e/companycheck.mjs` (`npm run test:company`) eski davranışı doğrulamaz — geri alırsanız bu testi de kaldırın ya da eski davranışa göre güncelleyin.
 
-**Doğrulama:** `npm run test:company` (60 kontrol).
+**Doğrulama:** `npm run test:company` (65 kontrol; Çözüm/Müdahale paneli için bilinen sonuçlu yapay snapshot'lar kullanır), `npm run test:unit` (`dashboardOverviewService.test.js`).

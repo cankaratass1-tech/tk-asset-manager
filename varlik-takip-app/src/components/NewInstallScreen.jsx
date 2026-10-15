@@ -470,6 +470,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
       if (ok) {
         await backendClient.markNewInstallsMailed(targetRecs.map((x) => x.id)).catch(() => {});
         await reload();
+        setSelected(new Set()); // gönderilenler seçili kalmasın: bir sonraki "Mail Gönder" aynı kayıtları yeniden göndermesin
         setMailPreview(r.previewUrl ? { url: r.previewUrl, to, at: new Date() } : null);
       }
       recordMailHistory &&

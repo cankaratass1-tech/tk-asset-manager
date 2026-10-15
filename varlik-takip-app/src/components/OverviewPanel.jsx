@@ -50,14 +50,12 @@ function DeltaTag({ value, unit = "%", goodWhenNegative = true, pal }) {
   );
 }
 
-// [ŞİRKET-FİLTRESİ — bkz. KRITIK-NOTLAR.md] companyScoped: şirket seçiliyken snapshot geçmişi şirket bazında tutulmadığı için
-// (trend, çözüm oranı, dönemsel açık bulgu) gösterilmez; sayılar yalnızca canlı (şirkete göre filtrelenmiş) değerlerden gelir.
-export default function OverviewPanel({ snapshots, period, setPeriod, live, styles, pal, companyScoped = false }) {
-  const summary = useMemo(() => combinedPeriodSummary(snapshots, period), [snapshots, period]);
-  const { enough } = summary;
-  const series = companyScoped ? [] : summary.series;
-  const latest = companyScoped ? null : summary.latest;
-  const prev = companyScoped ? null : summary.prev;
+// [ŞİRKET-FİLTRESİ — bkz. KRITIK-NOTLAR.md] company: şirket seçiliyken trend / çözüm oranı / dönemsel açık bulgu snapshot'lardaki
+// cihazların `company` alanına göre süzülür; Disk Alanı snapshot'larında şirket bilgisi olmadığı için dahil edilmez.
+export default function OverviewPanel({ snapshots, period, setPeriod, live, styles, pal, company = "all" }) {
+  const companyScoped = company !== "all";
+  const summary = useMemo(() => combinedPeriodSummary(snapshots, period, { company }), [snapshots, period, company]);
+  const { series, latest, prev, enough } = summary;
 
   const wf = useMemo(
     () =>
@@ -143,7 +141,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
           <p style={styles.settingsSectionTitle}>Genel Durum</p>
           <p style={{ ...styles.pageSub, margin: 0 }}>Cihaz envanteri sağlık özeti ve IT operasyon performansı — her ölçüt kendi grafiği ve renginde</p>
           {companyScoped && (
-            <p style={{ ...styles.pageSub, margin: "6px 0 0", color: pal.warnFg }}>Şirket seçili: trend ve çözüm oranı şirket bazında tutulmadığı için gösterilmiyor (Tüm Şirketler'de görünür).</p>
+            <p style={{ ...styles.pageSub, margin: "6px 0 0", color: pal.warnFg }}>Şirket seçili: trend ve çözüm oranı seçili şirkete göre hesaplanır; Disk Alanı şirkete göre ayrılamadığı için dahil değildir.</p>
           )}
         </div>
         <div style={styles.segmented}>

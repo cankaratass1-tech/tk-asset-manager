@@ -19,7 +19,11 @@ const PERIOD_LABELS = { month: "Aylık", week: "Haftalık", raw: "Her Yükleme" 
 export default function ManagementKpiPanel({
   snapshots, report, setReport, period, setPeriod,
   lbsFilter, setLbsFilter, styles, pal,
+  company = "all", // [ŞİRKET-FİLTRESİ — bkz. KRITIK-NOTLAR.md] Ana Sayfa'daki şirket seçimi; snapshot cihazlarının `company` alanına göre süzer
 }) {
+  const companyScoped = company !== "all";
+  // Disk Alanı snapshot'larında şirket bilgisi yok — şirket seçiliyken o rapor için sayı üretilemez
+  const companyNA = (id) => companyScoped && id === "disk";
   const list = snapshots?.[report] || [];
   const periods = useMemo(() => groupSnapshotsByPeriod(list, period), [list, period]);
 
@@ -30,12 +34,11 @@ export default function ManagementKpiPanel({
   }, [list]);
 
   const filterFn = useMemo(() => {
-    if (!lbsFilter || lbsFilter.length === 0) return () => true;
-    const set = new Set(lbsFilter);
-    return (d) => set.has(d.lbsParent);
-  }, [lbsFilter]);
+    const set = lbsFilter && lbsFilter.length > 0 ? new Set(lbsFilter) : null;
+    return (d) => (!companyScoped || d.company === company) && (!set || set.has(d.lbsParent));
+  }, [lbsFilter, company, companyScoped]);
 
-  const enough = periods.length >= 2;
+  const enough = periods.length >= 2 && !companyNA(report);
   const prevP = enough ? periods[periods.length - 2] : null;
   const currP = enough ? periods[periods.length - 1] : null;
 
@@ -67,6 +70,7 @@ export default function ManagementKpiPanel({
   const topicBreakdown = useMemo(() => {
     return Object.keys(snapshots || {})
       .map((id) => {
+        if (companyNA(id)) return { id, label: reportLabel(id), enough: false, companyNA: true };
         const topicPeriods = groupSnapshotsByPeriod(snapshots[id] || [], period);
         if (topicPeriods.length < 2) return { id, label: reportLabel(id), enough: false };
         const prevT = topicPeriods[topicPeriods.length - 2];
@@ -75,7 +79,7 @@ export default function ManagementKpiPanel({
         return { id, label: reportLabel(id), enough: true, periodLabel: currT.label, ...counts };
       })
       .sort((a, b) => a.label.localeCompare(b.label, "tr"));
-  }, [snapshots, period, filterFn]);
+  }, [snapshots, period, filterFn, company]);
 
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
@@ -171,7 +175,7 @@ export default function ManagementKpiPanel({
                       {r.label}
                     </td>
                     {!r.enough ? (
-                      <td style={{ ...styles.td, color: pal.inkSoft }} colSpan={5}>Veri bekleniyor — en az 2 {PERIOD_LABELS[period]?.toLowerCase() || period} dönemi gerekli</td>
+                      <td style={{ ...styles.td, color: pal.inkSoft }} colSpan={5}>{r.companyNA ? "Şirket bazında ayrılamaz — dosyada şirket bilgisi yok" : `Veri bekleniyor — en az 2 ${PERIOD_LABELS[period]?.toLowerCase() || period} dönemi gerekli`}</td>
                     ) : (
                       <>
                         <td style={styles.td}>{r.toplamTespit}</td>
@@ -194,7 +198,11 @@ export default function ManagementKpiPanel({
         )}
       </div>
 
-      {!enough ? (
+      {companyNA(report) ? (
+        <p style={{ ...styles.pageSub, marginTop: 16 }}>
+          {company} seçili: Disk Alanı dosyasında şirket bilgisi olmadığı için bu rapor şirket bazında hesaplanamaz (Tüm Şirketler'de görünür).
+        </p>
+      ) : !enough ? (
         <p style={{ ...styles.pageSub, marginTop: 16 }}>
           Trend ve çözüm oranı için en az <strong>2 dönem</strong> verisi gerekli — şu an {periods.length} dönem var.
           Her gerçek veri yüklemesinde otomatik bir dönem kaydı oluşur; veri biriktikçe bu panel dolacak.

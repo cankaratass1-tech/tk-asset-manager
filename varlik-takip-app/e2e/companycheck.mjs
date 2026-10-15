@@ -131,6 +131,48 @@ try {
   await select("Ana Sayfa", "Tüm Şirketler");
   const dBack = await txt();
   check("Ana Sayfa: Tüm Şirketler'e dönünce eski değerler geri geliyor (Açık bulgu, disk dahil)", open(dBack) === open(dAll) && pick(dBack, /Kritik Disk\t([\d.]+)/) === pick(dAll, /Kritik Disk\t([\d.]+)/), `${open(dBack)} ↔ ${open(dAll)}`);
+
+  // ---- Çözüm / Müdahale İstatistikleri + Genel Durum (snapshot geçmişi şirkete göre süzülür) ----
+  console.log("\nÇözüm / Müdahale İstatistikleri (şirkete göre)");
+  // Bilinen sonuçlu yapay bir rapor: önceki dönem {a1,a2 (AJET), t1,t2 (TKAO)}, bu dönem {a1,a3 (AJET), t1 (TKAO)}
+  const post = (at, devices) =>
+    fetch(`${be.base}/api/snapshots`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${be.token}` },
+      body: JSON.stringify({ reportId: "testrapor", capturedAt: at, sourceFileModifiedAt: at, devices: devices.map(([key, company]) => ({ key, serial: key, company })) }),
+    });
+  const AJ = "TKAJ-AJET A.Ş.", TK = "TKAO-MHY A.O."; // snapshot'lardaki company alanı ham şirket adıdır (sol menüde kısaltılır)
+  await post("2026-08-15T10:00:00Z", [["a1", AJ], ["a2", AJ], ["t1", TK], ["t2", TK]]);
+  await post("2026-09-15T10:00:00Z", [["a1", AJ], ["a3", AJ], ["t1", TK]]);
+  await page.reload();
+  await page.waitForTimeout(4000);
+  const reportSelect = page.locator("select").filter({ has: page.locator('option[value="testrapor"]') });
+  const kpi = (t, label) => pick(t, new RegExp(`${label}\\n(\\d+)\\n`));
+  const rate = (t) => pick(t, /Çözüm Oranı\n%(\d+)/);
+  const EXPECT = { "Tüm Şirketler": { toplam: 3, cozulen: 2, yeni: 1, oran: 50 }, AJET: { toplam: 2, cozulen: 1, yeni: 1, oran: 50 }, TKAO: { toplam: 1, cozulen: 1, yeni: 0, oran: 50 } };
+  for (const co of ["Tüm Şirketler", "AJET", "TKAO"]) {
+    await page.locator(`text="${co}"`).first().click();
+    await page.waitForTimeout(1200);
+    await reportSelect.selectOption("testrapor");
+    await page.waitForTimeout(800);
+    const t = await txt();
+    const e = EXPECT[co];
+    const got = { toplam: kpi(t, "Toplam Tespit"), cozulen: kpi(t, "Çözülen"), yeni: kpi(t, "Yeni Tespit"), oran: rate(t) };
+    check(`Çözüm/Müdahale paneli [${co}]: toplam tespit / çözülen / yeni / çözüm oranı = beklenen`, JSON.stringify(got) === JSON.stringify(e), `bulunan ${JSON.stringify(got)} ↔ beklenen ${JSON.stringify(e)}`);
+  }
+  await page.locator('text="AJET"').first().click();
+  await page.waitForTimeout(1200);
+  const gAjet = await txt();
+  check("Genel Durum [AJET]: not 'seçili şirkete göre hesaplanır; Disk dahil değil'", gAjet.includes("trend ve çözüm oranı seçili şirkete göre hesaplanır") && gAjet.includes("Disk Alanı şirkete göre ayrılamadığı için dahil değildir"));
+  const diskOption = await reportSelect.locator('option[value="disk"]').count();
+  if (diskOption > 0) {
+    await reportSelect.selectOption("disk");
+    await page.waitForTimeout(800);
+    const tDisk = await txt();
+    check("Çözüm/Müdahale paneli [AJET]: Disk raporu 'şirket bazında hesaplanamaz' diyor", tDisk.includes("bu rapor şirket bazında hesaplanamaz") && tDisk.includes("Şirket bazında ayrılamaz — dosyada şirket bilgisi yok"));
+  } else {
+    console.log("  – Disk snapshot'ı henüz yok (atlandı)");
+  }
 } finally {
   await browser.close();
   await be.stop();

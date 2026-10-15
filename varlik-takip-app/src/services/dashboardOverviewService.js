@@ -1,16 +1,22 @@
 // Ana Sayfa "Genel Durum" paneli — finans dashboard'u referansına göre (bkz. konuşma) IT
 // operasyon metriklerine uyarlanmış birleşik özet. Dönemsel seri snapshot geçmişinden
 // (reportSnapshots) türetilir; anlık sayılar App.jsx'ten geçirilir.
-import { groupSnapshotsByPeriod, comparePeriods } from "./periodComparisonService";
+import { groupSnapshotsByPeriod, comparePeriods } from "./periodComparisonService.js";
 
 // "Açık bulgu" = bu raporların o dönemdeki problemli cihazlarının toplamı.
 export const OVERVIEW_REPORTS = ["inaktif", "zimmet", "disk", "kullanilmayan"];
 
 // reportSnapshots: { [reportId]: [snapshot,...] } → dönem dönem birleşik özet.
-export function combinedPeriodSummary(reportSnapshots = {}, mode = "month") {
+// [ŞİRKET-FİLTRESİ — bkz. KRITIK-NOTLAR.md] company !== "all" ise snapshot cihazları `company` alanına göre süzülür; Disk Alanı
+// snapshot'larında şirket bilgisi olmadığı için şirket seçiliyken özete dahil edilmez.
+export function combinedPeriodSummary(reportSnapshots = {}, mode = "month", { company = "all" } = {}) {
+  const scoped = company !== "all";
+  const reports = scoped ? OVERVIEW_REPORTS.filter((r) => r !== "disk") : OVERVIEW_REPORTS;
+  const inCompany = (d) => !scoped || d.company === company;
   const perReport = {};
   const labelSet = new Set();
   OVERVIEW_REPORTS.forEach((rep) => {
+    if (!reports.includes(rep)) { perReport[rep] = new Map(); return; }
     const periods = groupSnapshotsByPeriod(reportSnapshots[rep] || [], mode);
     perReport[rep] = new Map(periods.map((p) => [p.label, p.snapshot]));
     periods.forEach((p) => labelSet.add(p.label));
@@ -25,13 +31,13 @@ export function combinedPeriodSummary(reportSnapshots = {}, mode = "month") {
     const perReportOpen = {};
     OVERVIEW_REPORTS.forEach((rep) => {
       const snap = perReport[rep].get(label);
-      const open = snap ? (snap.devices || []).length : 0;
+      const open = snap ? (snap.devices || []).filter(inCompany).length : 0;
       perReportOpen[rep] = open;
       acikBulgu += open;
       if (i > 0) {
         const prevSnap = perReport[rep].get(labels[i - 1]);
         if (prevSnap && snap) {
-          const c = comparePeriods(prevSnap, snap).counts;
+          const c = comparePeriods(prevSnap, snap, inCompany).counts;
           cozulen += c.cozulen;
           yeni += c.yeniTespit;
           devam += c.devamEden;

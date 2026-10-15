@@ -87,6 +87,7 @@ try {
   await selectRows(1);
   let r = await sendAndCollect(() => mailButton().click());
   check("Zimmet Hatalı: seçili kayda mail gidiyor (onaysız)", r.mails.length >= 1, r.toast);
+  check("Zimmet Hatalı: gönderimden sonra seçim temizlendi (onay kutusu boş)", r.mails.length >= 1 && !(await page.locator("tbody tr input[type=checkbox]").first().isChecked()));
   if (r.mails[0]) {
     const t = stripHtml(r.mails[0].html);
     // bildirim, seçilen kayıt sayısını doğru vermeli; aynı kişiye ait ek (mükerrer) kayıtlar ayrı not edilmeli
@@ -145,6 +146,7 @@ try {
   await selectRows(1);
   r = await sendAndCollect(() => page.getByRole("button", { name: /Bilgi Dışı Kullanıma Mail Gönder/ }).first().click());
   check("Atıl Monitörler: seçili bilgi dışı kullanıma mail gidiyor", r.mails.length >= 1, r.toast);
+  check("Atıl Monitörler: gönderimden sonra seçim temizlendi (buton 'seçili' göstermiyor)", r.mails.length >= 1 && (await page.getByRole("button", { name: /Bilgi Dışı Kullanıma Mail Gönder$/ }).count()) === 1);
   if (r.mails[0]) {
     sane("Atıl Monitörler", r.mails);
     const t = stripHtml(r.mails[0].html);
@@ -163,6 +165,7 @@ try {
       await selectRows(2);
       r = await sendAndCollect(() => mailButton().click());
       check(`${name}: seçili kayıtlara mail gidiyor`, r.mails.length >= 1, r.toast || "mail gelmedi ve bildirim yok");
+      if (r.mails.length >= 1) check(`${name}: gönderimden sonra seçim temizlendi`, !(await page.locator("tbody tr input[type=checkbox]").first().isChecked()));
       sane(name, r.mails);
     } catch (e) {
       check(`${name}: test akışı tamamlandı`, false, String(e.message).split("\n")[0].slice(0, 160));
@@ -208,6 +211,8 @@ try {
     }
     const sentBadge = await page.locator("tr", { hasText: /gönderildi · 1/ }).count();
     check("Yeni Kurulum: gönderilen kaydın rozeti 'gönderildi · 1' oldu", sentBadge >= 1);
+    // gönderimden sonra seçim temizlenmeli: buton "(1 seçili)" değil "(tümü)" göstermeli — aksi halde aynı kayıt yeniden gider
+    check("Yeni Kurulum: gönderimden sonra seçim temizlendi (buton '(tümü)' gösteriyor)", (await page.getByRole("button", { name: /Mail Gönder — TR \(tümü\)/ }).count()) === 1);
 
     // 2) İngilizce, 1 kayıt (sayfa yenilenir: önceki gönderimdeki seçim ekranda kalıyor — gözlem notu)
     await page.reload();
