@@ -2594,7 +2594,14 @@ IT Support`;
   // ekranları veriyi otomatik geri yükler (bkz. backend/src/importStore.js). Başarısız olursa (ör. yetki)
   // bu oturumdaki veri yine de kullanılır, kullanıcıya uyarı gösterilir.
   const persistImport = (kind, file) => {
-    backendClient.importFile(kind, file).catch((err) => showToast(`Dosya bu oturumda yüklendi ama kalıcı kaydedilemedi: ${err.message}`));
+    backendClient
+      .importFile(kind, file)
+      .then((res) => {
+        // Sütun kontrolü: eksik/benzer-ama-tanınmayan başlık varsa kullanıcıya hemen bildir (sessizce boş rapor olmasın)
+        const c = res?.check;
+        if (c && (!c.ok || c.missingRecommended.length > 0 || c.nearMisses.length > 0)) showToast(`${c.ok ? "⚠️" : "❌"} ${res.checkSummary}`);
+      })
+      .catch((err) => showToast(`Dosya bu oturumda yüklendi ama kalıcı kaydedilemedi: ${err.message}`));
   };
 
   // Lokasyon Mail Listesi — başlık satırı ilk satırda (Lokasyon Kodu, Açık Lokasyon Adı, Mail Adresi, IP_Address);

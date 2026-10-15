@@ -8,6 +8,7 @@ const path = require("path");
 const XLSX = require("xlsx");
 const { getDataDir } = require("./crypto");
 const { readSection } = require("./store");
+const { checkWorkbook, summarize } = require("./fileSchemas");
 
 // kind -> dosya öneki (reports.js'teki loadLatestReport öneklerle birebir aynı olmalı)
 const KINDS = {
@@ -67,7 +68,9 @@ function saveImport(kind, buffer, originalName = "") {
 
   const fileName = `${prefix}_${timestamp()}.xlsx`;
   fs.writeFileSync(path.join(dir, fileName), data);
-  return { fileName, size: data.length };
+  // Sütun kontrolü bilgilendirme amaçlıdır: dosya yine de kaydedilir, eksikler kullanıcıya bildirilir (bkz. fileSchemas.js)
+  const check = checkWorkbook(kind, workbook);
+  return { fileName, size: data.length, check, checkSummary: summarize(check) };
 }
 
 module.exports = { KINDS, importsDir, getFileSourceConfig, saveImport };

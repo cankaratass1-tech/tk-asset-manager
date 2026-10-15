@@ -172,6 +172,30 @@ try {
     }
     check(rep.id, "konsol/ağ hatası yok", problems.length === 0, problems.slice(0, 3).join(" | "));
   }
+
+  // Dosya içe aktarma sütun kontrolü (API düzeyi). Demo TH'nin yerine geçtiği için en sona bırakıldı.
+  if (!only.length) {
+    console.log("\nDosya sütun kontrolü (içe aktarma)");
+    const upload = async (rows, header) => {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header, ...rows]), "Sheet1");
+      const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      const res = await fetch(`${be.base}/api/settings/import-file?kind=th&name=TH.xlsx`, {
+        method: "POST",
+        headers: { "Content-Type": "application/octet-stream", Authorization: `Bearer ${be.token}` },
+        body: buf,
+      });
+      return res.json();
+    };
+    const full = ["Seri No", "Sahibi", "Owner Username", "Model", "Konum Kategorisi"];
+    const noUser = await upload([["S1", "Ali Veli", "DESKTOP", "User"]], ["Seri No", "Sahibi", "Model", "Konum Kategorisi"]);
+    check("import", "zorunlu sütun eksik dosya yine kaydedilir ama uyarı döner", noUser.ok === true && noUser.check?.ok === false && noUser.check.missingRequired.includes("Owner Username"), noUser.checkSummary);
+    check("import", "uyarı metni 'ZORUNLU sütun yok' diyor", /ZORUNLU sütun yok: Owner Username/.test(noUser.checkSummary || ""));
+    const typo = await upload([["S1", "Ali Veli", "ali.veli", "DESKTOP", "User"]], ["seri no", "Sahibi", "Owner Username", "Model", "Konum Kategorisi"]);
+    check("import", "büyük/küçük harf farkı olan başlık 'benzer başlık' olarak bildirilir", typo.check?.nearMisses?.some((n) => n.expected === "Seri No" && n.found === "seri no"), typo.checkSummary);
+    const ok = await upload([["S1", "Ali Veli", "ali.veli", "DESKTOP", "User"]], full);
+    check("import", "zorunlu sütunlar tamsa ok=true (önerilen eksikler sadece uyarı)", ok.check?.ok === true && ok.check.missingRequired.length === 0, ok.checkSummary);
+  }
 } finally {
   await browser.close();
   await be.stop();

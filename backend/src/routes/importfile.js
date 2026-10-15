@@ -12,7 +12,7 @@ router.post("/", (req, res) => {
   if (!KINDS[kind]) return res.status(400).json({ ok: false, message: "Bilinmeyen dosya türü" });
   try {
     const saved = saveImport(kind, req.body, name);
-    res.json({ ok: true, fileName: saved.fileName, size: saved.size });
+    res.json({ ok: true, fileName: saved.fileName, size: saved.size, check: saved.check, checkSummary: saved.checkSummary });
   } catch (err) {
     res.status(400).json({ ok: false, message: err.message });
   }
