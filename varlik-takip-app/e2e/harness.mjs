@@ -32,9 +32,10 @@ export async function startBackend({ port = 5055 } = {}) {
   const demo = join(backendDir, "demo-data", "current");
   if (existsSync(demo)) cpSync(demo, imports, { recursive: true });
 
+  const adminPass = randomBytes(9).toString("hex");
   const child = spawn(process.execPath, ["server.js"], {
     cwd: backendDir,
-    env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", DATA_DIR: dataDir, ADMIN_USERNAME: "smoke-admin", ADMIN_PASSWORD: randomBytes(9).toString("hex") },
+    env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", DATA_DIR: dataDir, ADMIN_USERNAME: "smoke-admin", ADMIN_PASSWORD: adminPass },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let log = "";
@@ -64,6 +65,7 @@ export async function startBackend({ port = 5055 } = {}) {
   return {
     base,
     token: body.token,
+    adminHeaders: { "x-admin-username": "smoke-admin", "x-admin-password": adminPass },
     dataDir,
     log: () => log,
     async stop() {
