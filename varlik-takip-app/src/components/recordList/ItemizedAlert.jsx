@@ -36,7 +36,8 @@ export function zimmetAlertItems(row) {
   if (/^Mükerrer Çift Zimmet/.test(tag)) {
     return [
       ...base,
-      { label: "Durum", value: "Aynı kişiye birden fazla notebook zimmetli" },
+      { label: "Durum", value: `Aynı kişiye ${(row.duplicateDevices || []).length || "birden fazla"} notebook zimmetli` },
+      ...(row.duplicateDevices && row.duplicateDevices.length ? [{ label: "Mükerrer olabilecek cihazlar", list: row.duplicateDevices.map((d) => ({ serial: d.serial, isThis: d.isThis, rows: [["Model", d.model || "—"], ["Hostname", d.hostname || "—"], ["Kullanan", d.user || "Tespit edilemedi"], ["Son giriş", d.lastLogonTime || "—"]] })) }] : []),
       { label: "Yapılacak", value: "Kullanılmayan cihaz iade edilmeli ya da neden gerektiği belirtilmeli", action: true },
     ];
   }
@@ -54,11 +55,35 @@ export default function ItemizedAlert({ title, items, tone = "bad", styles, pal 
       <div>
         {items.map((it, i) => {
           const source = it.chips ? it.chips.map((c) => c.text).join(", ") : "";
+          if (it.list) {
+            return (
+              <div key={it.label} data-alert-row={it.label} style={{ padding: "9px 0", borderTop: i === 0 ? "none" : `1px solid ${pal.ink}1f` }}>
+                <div style={text}>{it.label}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                  {it.list.map((d) => (
+                    <div key={d.serial} data-dup-device={d.serial} style={{ border: `1px solid ${pal.ink}22`, borderLeft: `3px solid ${d.isThis ? accent : pal.ink + "44"}`, borderRadius: 8, padding: "8px 12px", background: `${pal.ink}08` }}>
+                      <div style={{ ...text, fontWeight: 700, marginBottom: 4 }}>{d.serial}{d.isThis ? " — bu kayıt" : ""}</div>
+                      {d.rows.map(([k, v]) => (
+                        <div key={k} style={{ display: "grid", gridTemplateColumns: "129px 1fr", gap: 0, ...text }}>
+                          <span>{k}</span><span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={it.label} data-alert-row={it.label} style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 14, padding: "9px 0", borderTop: i === 0 ? "none" : `1px solid ${pal.ink}1f` }}>
               <span style={text}>{it.label}</span>
               <span style={{ ...text, fontWeight: it.action ? 700 : 500, minWidth: 0, overflowWrap: "anywhere" }}>
-                {it.value}{it.line2 ? `, ${it.line2}` : ""}{source ? ` (${source})` : ""}
+                {it.list ? it.list.map((d) => (
+                  <span key={d.head} style={{ display: "block", marginBottom: 6 }}>
+                    {d.head}
+                    <span style={{ display: "block", fontWeight: 500 }}>{d.detail}</span>
+                  </span>
+                )) : <>{it.value}{it.line2 ? `, ${it.line2}` : ""}{source ? ` (${source})` : ""}</>}
               </span>
             </div>
           );

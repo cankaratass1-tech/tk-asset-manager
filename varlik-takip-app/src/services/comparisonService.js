@@ -82,6 +82,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       notebookOwnerCounts.get(id).push(r.serial);
     });
 
+  const thBySerialAll = new Map(relevantTh.map((r) => [norm(r.serial), r]));
   const sccmBySerial = new Map();
   sccmRows.forEach((s) => {
     const key = norm(s.serial);
@@ -216,6 +217,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
     const s = sccmBySerial.get(norm(th.serial));
     const sccmUser = s && s.userLabel && s.userLabel !== "Tespit Edilemedi" ? s.userLabel : "";
     let statusTag, matched, userDetail;
+    let duplicateDevices = []; // Mükerrer Çift Zimmet: aynı kişiye zimmetli notebook'lar (popup/detay listesi için)
 
     if (!s) {
       // SCCM'de kaydı yok (ör. ajan hiç kurulmamış/silinmiş) — bunu otomatik "hatalı" saymak
@@ -262,6 +264,11 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
         const others = dupSerials.filter((sn) => sn !== th.serial);
         statusTag = "Mükerrer Çift Zimmet";
         matched = false;
+        duplicateDevices = dupSerials.map((sn) => {
+          const t = thBySerialAll.get(norm(sn)) || {};
+          const ss = sccmBySerial.get(norm(sn));
+          return { serial: sn, isThis: sn === th.serial, model: (ss && ss.deviceModel) || t.model || "", hostname: ss ? ss.hostname : "", user: ss && ss.userLabel && ss.userLabel !== "Tespit Edilemedi" ? ss.userLabel : "", lastLogonTime: ss ? ss.lastLogonTime : "", assetNote: t.asset || "" };
+        });
         userDetail = `${th.owner} kişisine birden fazla notebook zimmetli görünüyor: ${th.serial} (bu kayıt) + ${others.join(", ")} — mükerrer/çift zimmet olabilir, tekilleştirme gerekir.`;
       }
     }
@@ -297,6 +304,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       matched: finalMatched,
       statusTag: finalStatusTag,
       hostname: s ? s.hostname : "—",
+      duplicateDevices,
       deviceModel: s ? s.deviceModel : th.model,
       lastLogonTime: s ? s.lastLogonTime : "",
       ouName: s ? s.ouName : "",
