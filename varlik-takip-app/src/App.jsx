@@ -3116,7 +3116,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               kalanından (nav listesi) görsel olarak ayrılsın diye (bkz. konuşma — referans görsel). */}
           <div style={{ borderRadius: 12, background: pal.fieldBg, border: `1px solid ${pal.line}`, padding: "14px 12px 10px", marginBottom: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <div style={{ width: "100%", height: 56, borderRadius: 8, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: pal.shadow, padding: 8 }}>
-              <img src={companyLogo} alt="Marmara Hava Yolları" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <img src={companyLogo} alt="TK Asset Manager" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.01em", color: pal.ink }}>TK Asset Manager</div>
           </div>

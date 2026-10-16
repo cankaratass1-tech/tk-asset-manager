@@ -21,7 +21,10 @@
     "test:theme": "node e2e/themecheck.mjs",
     "test:trend": "node e2e/trendlegend.mjs",
     "test:history": "node e2e/historycheck.mjs",
-    "test:scroll": "node e2e/scrollcheck.mjs"
+    "test:scroll": "node e2e/scrollcheck.mjs",
+    "test:change": "node e2e/changecheck.mjs",
+    "test:sweep": "node e2e/sweep.mjs",
+    "test:all": "node e2e/run-all.mjs"
   },
   "build": {
     "appId": "com.varliktakip.app",

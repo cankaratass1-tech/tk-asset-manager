@@ -31,6 +31,8 @@ hosts.forEach((h) => {
 });
 const out = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(out, XLSX.utils.aoa_to_sheet(rows), "Resource");
-const name = "Lakeside_Resource_20260901000000.xlsx";
+const stampM = sccmFile.match(/_(\d{14})/);
+fs.readdirSync(dir).filter((n) => /^Lakeside_Resource_\d{14}\.xlsx$/.test(n)).forEach((n) => fs.unlinkSync(path.join(dir, n))); // eski tarihli kopyalar kalmasın
+const name = `Lakeside_Resource_${stampM ? stampM[1] : "20260901000000"}.xlsx`;
 XLSX.writeFile(out, path.join(dir, name));
 console.log(`${name}: ${rows.length - 1} cihaz -> ${dir}`);

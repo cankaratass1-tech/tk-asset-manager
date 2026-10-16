@@ -61,7 +61,7 @@ export default function LoginScreen({ onLoginSuccess }) {
               padding: 14,
             }}
           >
-            <img src={companyLogo} alt="Marmara Hava Yolları" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <img src={companyLogo} alt="TK Asset Manager" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           </div>
           <p style={{ ...styles.pageTitle, fontSize: 21, textAlign: "center" }}>TK Asset Manager</p>
           <p style={{ ...styles.pageSub, textAlign: "center" }}>Devam etmek için kurumsal bilgilerinizle giriş yapın</p>

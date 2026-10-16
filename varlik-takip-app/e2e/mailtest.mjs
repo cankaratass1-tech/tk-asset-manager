@@ -177,7 +177,15 @@ ${body}`);
       await page.reload();
       await page.waitForTimeout(3000);
       await openReport(name);
-      await selectRows(2);
+      if (name.startsWith("Lokasyon")) {
+        // Bu rapor yalnız UYUŞMAZLIK satırlarına mail atar; liste doğru-ofis satırlarını da içerir → uyuşmazlık satırlarını seç
+        const trs = page.locator("tbody tr");
+        let picked = 0;
+        for (let i = 0; i < (await trs.count()) && picked < 2; i++) {
+          if (!/eşleşiyor/.test(await trs.nth(i).innerText())) { await trs.nth(i).locator("input[type=checkbox]").check(); picked++; }
+        }
+        check("Lokasyon/IP: listede uyuşmazlık satırı var (mail için)", picked === 2, `${picked} satır`);
+      } else await selectRows(2);
       r = await sendAndCollect(() => mailButton().click());
       check(`${name}: seçili kayıtlara mail gidiyor`, r.mails.length >= 1, r.toast || "mail gelmedi ve bildirim yok");
       if (r.mails.length >= 1) check(`${name}: gönderimden sonra seçim temizlendi`, !(await page.locator("tbody tr input[type=checkbox]").first().isChecked()));
