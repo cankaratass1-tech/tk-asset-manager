@@ -22,7 +22,7 @@ function ChoiceField({ value, onChange, options, inputStyle, pal, typeable = fal
     padding: "9px 14px", cursor: "pointer", fontSize: 14, fontWeight: selected ? 700 : 500,
     color: pal.ink, background: selected ? pal.accentSoft : "transparent", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
   });
-  const arrow = <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: pal.inkSoft, pointerEvents: "none" }}>▾</span>;
+  const arrow = <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: pal.inkSoft, pointerEvents: "none" }}>▾</span>;
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
@@ -574,7 +574,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                     }}
                   >
                     {returnLines.length === 0 ? (
-                      <span style={{ color: pal.inkSoft, fontSize: 12.5, alignSelf: "center" }}>
+                      <span style={{ color: pal.inkSoft, fontSize: 13, alignSelf: "center" }}>
                         Aşağıdaki "kişinin zimmetli cihazları" listesinden seçin
                       </span>
                     ) : (
@@ -617,7 +617,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                       placeholder="SYNP… yazın, listeden seçin"
                     />
                     {!editingId && norm(form.serial).length >= 2 && (
-                      <p style={{ margin: "3px 0 0", fontSize: 11.5, color: pal.inkSoft }}>
+                      <p style={{ margin: "3px 0 0", fontSize: 12, color: pal.inkSoft }}>
                         {thBySerial.has(norm(form.serial))
                           ? "✓ TuruncuHat'ta bulundu — Model otomatik dolduruldu"
                           : serialSuggestions.length
@@ -677,7 +677,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                         gap: 10,
                         padding: "8px 12px",
                         borderBottom: `1px solid ${pal.line}`,
-                        fontSize: 12.5,
+                        fontSize: 13,
                         cursor: added ? "default" : "pointer",
                         opacity: added ? 0.55 : 1,
                       }}
@@ -715,7 +715,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
           <p style={styles.settingsSectionTitle}>
             Kayıtlar ({filteredRecords.length === records.length ? records.length : `${filteredRecords.length} / ${records.length}`})
           </p>
-          <span style={{ fontSize: 12.5, color: pal.inkSoft }}>
+          <span style={{ fontSize: 13, color: pal.inkSoft }}>
             {counts.unsynced === 0 ? "Tümü Excel'e işlendi" : `${counts.unsynced} Excel'e işlenmedi`} ·{" "}
             {counts.unmailed === 0 ? "Tümü maillendi" : `${counts.unmailed} mail gönderilmedi`}
           </span>
@@ -787,7 +787,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
             style={{ ...inp, flex: "0 1 360px" }}
             placeholder="Mail alıcı(lar) — boşsa lokasyon mail grubu"
           />
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: pal.inkSoft, flex: "0 0 auto" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: pal.inkSoft, flex: "0 0 auto" }}>
             Dil
             <select value={mailLang} onChange={(e) => setMailLang(e.target.value)} style={{ ...inp, width: 120, flex: "0 0 auto" }}>
               <option value="tr">Türkçe</option>
@@ -847,7 +847,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                       <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} style={styles.checkbox} />
                     </td>
                     {FIELDS.map((f) => (
-                      <td key={f.k} style={{ ...styles.td, fontSize: 12.5, whiteSpace: f.wide ? "normal" : "nowrap" }}>
+                      <td key={f.k} style={{ ...styles.td, fontSize: 13, whiteSpace: f.wide ? "normal" : "nowrap" }}>
                         {r[f.k] || <span style={{ color: pal.inkSoft }}>—</span>}
                       </td>
                     ))}

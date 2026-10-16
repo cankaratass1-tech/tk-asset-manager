@@ -167,13 +167,13 @@ export default function TableView({
                 </td>
               )}
               {showLastLogon && (
-                <td style={{ ...tdS, fontSize: 12.5, whiteSpace: "nowrap" }}>
+                <td style={{ ...tdS, fontSize: 13, whiteSpace: "nowrap" }}>
                   {lastLogonText(r) || <span style={{ color: pal.inkSoft, fontStyle: "italic" }}>Veri Yok</span>}
                 </td>
               )}
               {showDeviceAge && (
                 <td
-                  style={{ ...tdS, fontSize: 12.5, whiteSpace: "nowrap", ...(r.deviceAge != null && r.deviceAge > 5 ? { color: pal.bad, fontWeight: 600 } : {}) }}
+                  style={{ ...tdS, fontSize: 13, whiteSpace: "nowrap", ...(r.deviceAge != null && r.deviceAge > 5 ? { color: pal.bad, fontWeight: 600 } : {}) }}
                   title={r.deviceAgeSource ? `${r.deviceAgeSource}${r.deviceAgeDate ? ` (${r.deviceAgeDate})` : ""}` : undefined}
                 >
                   {deviceAgeText(r) || <span style={{ color: pal.inkSoft, fontStyle: "italic" }}>Veri Yok</span>}
@@ -232,7 +232,7 @@ export default function TableView({
               <tr>
                 <td style={{ ...tdS, background: pal.fieldBg, padding: 0 }} colSpan={emptyColSpan}>
                   <div style={{ padding: "12px 20px" }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: pal.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: pal.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.03em" }}>
                       {expandedPerson.person} — {isZimmet ? "tüm zimmet kayıtları" : `diğer ${ownerLabel === "Hostname" ? "cihazlar" : "kayıtlar"}`}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -241,7 +241,7 @@ export default function TableView({
                         .map((pr, pi) => (
                           <div
                             key={pi}
-                            style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: pal.panelSolid, fontSize: 13.5 }}
+                            style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: pal.panelSolid, fontSize: 14 }}
                           >
                             {isZimmet && (
                               <span style={{ ...styles.badge, ...(pr.owner === expandedPerson.person ? styles.badgeNeutral : {}), flexShrink: 0 }}>

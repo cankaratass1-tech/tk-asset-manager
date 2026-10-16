@@ -225,14 +225,14 @@ export default function App({ user, onLogout } = {}) {
                   title={`${tip} — cihaz listesi için tıklayın`}
                   style={{ ...styles.badge, ...tone, padding: "7px 14px", borderRadius: 10, fontSize: 13, gap: 6, cursor: "pointer", userSelect: "none", outline: summaryDetail === k ? `2px solid ${pal.accent}` : "none" }}
                 >
-                  <span style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>{n}</span> {label}
+                  <span style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>{n}</span> {label}
                 </span>
               ))}
               <span
                 style={{ ...styles.badge, padding: "7px 14px", borderRadius: 10, fontSize: 13, gap: 6, background: pal.accentSoft, color: pal.accent }}
                 title="Çözüm oranı = çözülen ÷ (çözülen + bekleyen): önceki dönemdeki sorunlu cihazların yüzde kaçı listeden çıktı"
               >
-                <span style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>%{s.cozumOrani}</span> çözüm oranı
+                <span style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>%{s.cozumOrani}</span> çözüm oranı
               </span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "flex-end" }}>
@@ -1353,7 +1353,7 @@ export default function App({ user, onLogout } = {}) {
         startY: 54,
         head: [headers],
         body: sheetRows.map((row) => headers.map((h) => String(row[h] ?? ""))),
-        styles: { font: "Roboto", fontSize: 7.5, cellPadding: 3, overflow: "linebreak" },
+        styles: { font: "Roboto", fontSize: 12, cellPadding: 3, overflow: "linebreak" },
         headStyles: { font: "Roboto", fillColor: [217, 99, 31], textColor: 255 },
         alternateRowStyles: { fillColor: [248, 246, 243] },
         margin: { left: 20, right: 20 },
@@ -3197,7 +3197,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 })()
               : !USE_MOCK_DATA
               ? (
-                  <p style={{ fontSize: 12.5, color: pal.inkSoft, margin: "6px 4px", lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 13, color: pal.inkSoft, margin: "6px 4px", lineHeight: 1.5 }}>
                     Henüz veri yüklenmedi. Ayarlar &gt; Veri Input bölümünden dosyaları seçin.
                   </p>
                 )
@@ -3227,7 +3227,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   title={isOpen ? "Kapat" : "Aç"}
                 >
                   <span>{cat.name}</span>
-                  <span style={{ fontSize: 11 }}>{isOpen ? "▾" : "▸"}</span>
+                  <span style={{ fontSize: 12 }}>{isOpen ? "▾" : "▸"}</span>
                 </div>
                 {isOpen && (
                   <div style={styles.deptList}>
@@ -3254,7 +3254,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             title={networkExpanded ? "Kapat" : "Aç"}
           >
             <span>Network</span>
-            <span style={{ fontSize: 11 }}>{networkExpanded ? "▾" : "▸"}</span>
+            <span style={{ fontSize: 12 }}>{networkExpanded ? "▾" : "▸"}</span>
           </div>
           {networkExpanded && (
             <div style={styles.deptList}>
@@ -3325,7 +3325,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 <div
                   style={{
                     width: 32, height: 32, borderRadius: "50%", background: pal.accentGrad, color: "#fff",
-                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13.5, flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0,
                   }}
                 >
                   {(user.username || "?").slice(0, 1).toUpperCase()}
@@ -3337,13 +3337,13 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   onClick={() => setChangePasswordOpen(true)}
                 >
                   <span style={{ fontSize: 13, fontWeight: 700, color: pal.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.username}</span>
-                  <span style={{ fontSize: 11, color: pal.inkSoft }}>{user.role === "master" ? "Master" : "Kullanıcı"}</span>
+                  <span style={{ fontSize: 12, color: pal.inkSoft }}>{user.role === "master" ? "Master" : "Kullanıcı"}</span>
                 </div>
                 <button
                   onClick={onLogout}
                   className="vt-tip"
                   data-tip="Çıkış Yap"
-                  style={{ border: "none", background: "transparent", cursor: "pointer", color: pal.inkSoft, fontSize: 17, lineHeight: 1, padding: "2px 2px 2px 6px", flexShrink: 0 }}
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: pal.inkSoft, fontSize: 16, lineHeight: 1, padding: "2px 2px 2px 6px", flexShrink: 0 }}
                 >
                   ⏻
                 </button>
@@ -3420,7 +3420,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 const rollingMiniSummary = (s) =>
                   !s ? null : (
                     <div
-                      style={{ display: "flex", gap: 8, fontSize: 10.5, fontFamily: "var(--font-mono)", color: pal.inkSoft, marginBottom: 2 }}
+                      style={{ display: "flex", gap: 8, fontSize: 12, fontFamily: "var(--font-mono)", color: pal.inkSoft, marginBottom: 2 }}
                       title={`${s.prevLabel} → ${s.periodLabel}`}
                     >
                       <span style={{ color: pal.ok }}>çöz {s.cozulen}</span>
@@ -3553,7 +3553,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <button style={styles.btnGhost} onClick={() => toggleDashboardDemo(true)} title="Yeni Ana Sayfa tasarımının demosunu göster">✨ Yeni tasarımı dene (demo)</button>
-                          <span style={{ fontSize: 11.5, color: pal.inkSoft }}>Kart özetleri:</span>
+                          <span style={{ fontSize: 12, color: pal.inkSoft }}>Kart özetleri:</span>
                           {summaryPeriodToggle}
                         </div>
                         {dashboardCompanyFilter !== "all" && (
@@ -3673,7 +3673,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
                     {/* Disk Alanı bölümü */}
                     {!diskScoped && (
-                      <div style={{ ...styles.panel, padding: "14px 24px", color: pal.inkSoft, fontSize: 13.5 }}>
+                      <div style={{ ...styles.panel, padding: "14px 24px", color: pal.inkSoft, fontSize: 14 }}>
                         {companyShortLabel(dc)} seçili: Disk Alanı dosyasında şirket bilgisi olmadığı için disk sayıları şirket görünümüne dahil edilmedi (Tüm Şirketler'de görünür).
                       </div>
                     )}
@@ -3726,7 +3726,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                           <div style={{ marginTop: 14 }}>
                             <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                               <span style={{ ...styles.kpiValue, fontSize: 36, color: diskFilterColor }}>%{diskFilterPct}</span>
-                              <span style={{ color: pal.inkSoft, fontSize: 12.5 }}>{diskFilterCount} / {diskStats.total} birim</span>
+                              <span style={{ color: pal.inkSoft, fontSize: 13 }}>{diskFilterCount} / {diskStats.total} birim</span>
                             </div>
                             <div style={{ ...styles.dashBar, marginTop: 12 }}>
                               <div style={{ ...styles.dashBarSeg, width: `${diskFilterPct}%`, background: diskFilterColor }} />
@@ -4174,7 +4174,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     {runningScanNow ? "Taranıyor..." : "🔍 Şimdi Tara"}
                   </button>
                   {scheduleStatus?.lastRunAt && (
-                    <span style={{ fontSize: 12.5, color: pal.inkSoft }}>
+                    <span style={{ fontSize: 13, color: pal.inkSoft }}>
                       Son tarama: {new Date(scheduleStatus.lastRunAt).toLocaleString("tr-TR")} · {scheduleStatus.knownCount} uyuşmazlık kayıtlı
                     </span>
                   )}
@@ -4192,13 +4192,13 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   value={ustYonetimText}
                   onChange={(e) => setUstYonetimText(e.target.value)}
                   placeholder={"genel.mudur@mhy.com.tr\nbaskan@mhy.com.tr"}
-                  style={{ ...styles.formInput, width: "100%", minHeight: 120, fontFamily: "var(--font-mono)", fontSize: 12.5, marginTop: 8 }}
+                  style={{ ...styles.formInput, width: "100%", minHeight: 120, fontFamily: "var(--font-mono)", fontSize: 13, marginTop: 8 }}
                 />
                 <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
                   <button style={styles.btnPrimary} onClick={saveUstYonetimList} disabled={savingUstYonetim}>
                     {savingUstYonetim ? "Kaydediliyor..." : "Kaydet"}
                   </button>
-                  <span style={{ fontSize: 12.5, color: pal.inkSoft }}>
+                  <span style={{ fontSize: 13, color: pal.inkSoft }}>
                     {ustYonetimText.split("\n").map((s) => s.trim()).filter((s) => /@/.test(s)).length} geçerli e-posta
                   </span>
                 </div>
@@ -4621,7 +4621,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       if (!h) return <div style={styles.detailEmpty}>Kayıt bulunamadı</div>;
                       return (
                         <>
-                          <p style={{ ...styles.pageTitle, fontSize: 19 }}>Gönderim Detayı</p>
+                          <p style={{ ...styles.pageTitle, fontSize: 18 }}>Gönderim Detayı</p>
                           <div>
                             <div style={styles.detailFieldRow}><span style={{ color: pal.inkSoft }}>Gönderen kullanıcı</span><span>{h.senderUsername || "—"}</span></div>
                             <div style={styles.detailFieldRow}><span style={{ color: pal.inkSoft }}>Gönderim tarihi</span><span>{h.date}</span></div>
@@ -4656,7 +4656,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                                     )}
                                     {d.message && d.sendingStatus !== "Başarılı" && <div style={{ color: pal.bad, marginTop: 2 }}>{d.message}</div>}
                                     {d.ok && d.previewUrl && (
-                                      <a href={d.previewUrl} target="_blank" rel="noreferrer" style={{ color: pal.accent, fontSize: 11.5 }}>Önizle ↗</a>
+                                      <a href={d.previewUrl} target="_blank" rel="noreferrer" style={{ color: pal.accent, fontSize: 12 }}>Önizle ↗</a>
                                     )}
                                   </div>
                                 ))}
@@ -4796,7 +4796,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   return (
                     <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${pal.line}` }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 8 }}>
-                        <span style={{ fontSize: 13.5, fontWeight: 700, color: meta[2] }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: meta[2] }}>
                           {meta[0]} — {list.length} cihaz <span style={{ fontWeight: 500, color: pal.inkSoft }}>({s.prevLabel} → {s.periodLabel}) · {meta[1]}</span>
                         </span>
                         <span style={{ cursor: "pointer", fontSize: 13, color: pal.inkSoft }} onClick={() => setSummaryDetail(null)} title="Kapat">✕</span>

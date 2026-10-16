@@ -98,17 +98,17 @@ function ColumnFilterMenu({ pal, styles, column, allValues, selected, onChange, 
           </div>
         ))}
         {matching.length > MAX_VISIBLE_OPTIONS && (
-          <div style={{ fontSize: 11, color: pal.inkSoft, padding: "4px 2px" }}>
+          <div style={{ fontSize: 12, color: pal.inkSoft, padding: "4px 2px" }}>
             {matching.length - MAX_VISIBLE_OPTIONS} değer daha var — daraltmak için ara
           </div>
         )}
         {matching.length === 0 && <div style={{ fontSize: 12, color: pal.inkSoft, padding: "4px 2px" }}>Sonuç yok</div>}
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "flex-end" }}>
-        <button type="button" style={{ ...styles.btnGhost, padding: "3px 8px", fontSize: 11.5 }} onClick={() => onChange(new Set())}>
+        <button type="button" style={{ ...styles.btnGhost, padding: "3px 8px", fontSize: 12 }} onClick={() => onChange(new Set())}>
           Filtreyi Kaldır
         </button>
-        <button type="button" style={{ ...styles.btnPrimary, padding: "3px 8px", fontSize: 11.5 }} onClick={onClose}>
+        <button type="button" style={{ ...styles.btnPrimary, padding: "3px 8px", fontSize: 12 }} onClick={onClose}>
           Tamam
         </button>
       </div>
@@ -228,7 +228,7 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
                           onClick={() => setOpenFilterCol(openFilterCol === c ? null : c)}
                         >
                           <span>{c}</span>
-                          <span style={{ fontSize: 10, color: active ? pal.accent || pal.ok : pal.inkSoft }}>▾</span>
+                          <span style={{ fontSize: 12, color: active ? pal.accent || pal.ok : pal.inkSoft }}>▾</span>
                         </div>
                         {openFilterCol === c && (
                           <ColumnFilterMenu
@@ -250,7 +250,7 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
                 {paged.map((r, i) => (
                   <tr key={i}>
                     {columns.map((c) => (
-                      <td key={c} style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>{r[c] || <span style={{ color: pal.inkSoft }}>—</span>}</td>
+                      <td key={c} style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{r[c] || <span style={{ color: pal.inkSoft }}>—</span>}</td>
                     ))}
                   </tr>
                 ))}

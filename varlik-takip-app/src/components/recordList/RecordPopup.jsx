@@ -8,13 +8,14 @@
 import { isZimmetUnverified } from "../../services/zimmetService";
 import { isInaktifUnverified, needsInaktifAction } from "../../services/inaktifComparisonService";
 import DeviceActionHistory from "./DeviceActionHistory";
+import ItemizedAlert, { inaktifActionItems, zimmetAlertItems } from "./ItemizedAlert";
 import { ownerTitleOf } from "../../services/ownerName";
 
 export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailHistory }) {
   if (!row) return null;
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={{ ...styles.modalCard, width: "min(580px, 100%)", fontSize: 15.5 }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ ...styles.modalCard, width: "min(580px, 100%)", fontSize: 14 }} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <p style={{ ...styles.modalTitle, fontFamily: "var(--font-mono)" }}>{row.serial}</p>
           <span style={styles.modalClose} onClick={onClose}>✕</span>
@@ -29,6 +30,8 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
               // yazması kafa karıştırıyordu).
               const personOk = row.personMatched ?? row.matched;
               if (!personOk) {
+                const zItems = zimmetAlertItems(row);
+                if (zItems) return <div style={{ marginTop: 4 }}><ItemizedAlert title={row.personStatusTag ?? row.statusTag} items={zItems} styles={styles} pal={pal} /></div>;
                 return (
                   <div style={{ ...styles.detailAlert, marginTop: 4 }}>
                     <div style={styles.detailAlertTitle}>{row.personStatusTag ?? row.statusTag}</div>
@@ -121,6 +124,8 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
           <div style={{ marginTop: 14 }}>
             {row.statusTag && !row.matched && (() => {
               const actionNeeded = needsInaktifAction(row.statusTag);
+              const items = actionNeeded ? inaktifActionItems(row) : null;
+              if (items) return <div style={{ marginBottom: 10 }}><ItemizedAlert title={row.statusTag} items={items} tone="warn" styles={styles} pal={pal} /></div>;
               return (
                 <div style={{ ...styles.detailAlert, marginBottom: 10, ...(actionNeeded ? { background: pal.warnBg, border: `1px solid ${pal.warnFg}33` } : {}) }}>
                   <div style={{ ...styles.detailAlertTitle, ...(actionNeeded ? { color: pal.warnFg } : {}) }}>{row.statusTag}</div>
@@ -157,7 +162,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
                 <span style={{ color: pal.inkSoft }}>Hostname / Son Giriş</span>
                 <span style={{ textAlign: "right" }}>
                   <div style={{ fontFamily: "var(--font-mono)" }}>{row.hostname}</div>
-                  {row.actualUser && <div style={{ color: pal.inkSoft, fontSize: 12.5 }}>{row.actualUser}</div>}
+                  {row.actualUser && <div style={{ color: pal.inkSoft, fontSize: 13 }}>{row.actualUser}</div>}
                 </span>
               </div>
             )}

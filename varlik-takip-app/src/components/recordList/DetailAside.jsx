@@ -4,6 +4,7 @@ import { isInaktifUnverified, needsInaktifAction } from "../../services/inaktifC
 import { deviceKeyOf } from "../../services/deviceActionService";
 import DeviceActionHistory from "./DeviceActionHistory";
 import { useStickyTop } from "../../hooks/useStickyTop";
+import ItemizedAlert, { inaktifActionItems, zimmetAlertItems } from "./ItemizedAlert";
 
 const smallBtnStyle = (pal) => ({
   fontSize: 12,
@@ -123,7 +124,7 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
         <div style={styles.detailAvatar}>{initials}</div>
         <div style={{ minWidth: 0 }}>
           <div
-            style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.25, ...(isZimmet && row.owner !== "—" ? styles.clickableName : {}) }}
+            style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.25, ...(isZimmet && row.owner !== "—" ? styles.clickableName : {}) }}
             onClick={isZimmet && row.owner !== "—" ? () => setSelectedPerson(row.owner) : undefined}
           >
             {row.ownerFull || row.owner}
@@ -146,6 +147,8 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
           if (row.statusTag) {
             const actionNeeded = needsInaktifAction(row.statusTag);
             const unverified = isInaktifUnverified(row.statusTag);
+            const items = actionNeeded ? inaktifActionItems(row) : null;
+            if (items) return <ItemizedAlert title={row.statusTag} items={items} tone="warn" styles={styles} pal={pal} />;
             return (
               <div style={{ ...styles.detailAlert, ...(actionNeeded ? { background: pal.warnBg, border: `1px solid ${pal.warnFg}33` } : {}) }}>
                 <div style={{ ...styles.detailAlertTitle, ...(actionNeeded ? { color: pal.warnFg } : {}) }}>{row.statusTag}</div>
@@ -169,6 +172,8 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
           );
         }
         if (!personOk) {
+          const zItems = zimmetAlertItems(row);
+          if (zItems) return <ItemizedAlert title={row.personStatusTag ?? row.statusTag} items={zItems} styles={styles} pal={pal} />;
           return (
             <div style={styles.detailAlert}>
               <div style={styles.detailAlertTitle}>{row.personStatusTag ?? row.statusTag}</div>
@@ -211,7 +216,7 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
             <span title={row.windowsDetail || ""} style={{ textAlign: "right" }}>
               {row.windowsLabel || <span style={{ color: pal.inkSoft }}>Veri Yok</span>}
               {row.windowsSupportLabel && (
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: row.windowsStatus === "ended" ? pal.bad : row.windowsStatus === "ending" ? pal.warnFg : row.windowsStatus === "supported" ? pal.ok : pal.inkSoft }}>{row.windowsSupportLabel}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: row.windowsStatus === "ended" ? pal.bad : row.windowsStatus === "ending" ? pal.warnFg : row.windowsStatus === "supported" ? pal.ok : pal.inkSoft }}>{row.windowsSupportLabel}</div>
               )}
             </span>
           </div>
@@ -239,7 +244,7 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
             (önceki hal tek bir uzun paragraftı, kullanıcı geri bildirimi: "çok karmaşık"). */}
         {isZimmet && row.monitorDetails?.length > 0 && (
           <div style={{ ...styles.detailFieldRow, borderBottom: "none", flexDirection: "column", alignItems: "flex-start", gap: 8, width: "100%", paddingTop: 16 }}>
-            <span style={{ color: pal.inkSoft, fontSize: 12.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Bağlı Monitörler</span>
+            <span style={{ color: pal.inkSoft, fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Bağlı Monitörler</span>
             {row.monitorDetails.map((m, i) => {
               const badgeStyle = m.ok === true ? styles.badgeOk : m.ok === false ? styles.badgeBad : styles.badgeNeutral;
               const dotColor = m.ok === true ? pal.ok : m.ok === false ? pal.bad : pal.inkSoft;
@@ -261,7 +266,7 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
                     </span>
                   </div>
                   {m.label && <div style={{ color: pal.inkSoft, fontSize: 12 }}>{m.label}</div>}
-                  <div style={{ display: "flex", justifyContent: "space-between", color: pal.inkSoft, fontSize: 12.5 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: pal.inkSoft, fontSize: 13 }}>
                     <span>Zimmetli: {m.assignedTo || "—"}</span>
                     <span>Kullanan: {m.usedBy}</span>
                   </div>

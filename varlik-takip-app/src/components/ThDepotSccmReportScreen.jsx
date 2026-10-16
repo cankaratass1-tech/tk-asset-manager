@@ -164,7 +164,7 @@ export default function ThDepotSccmReportScreen({ styles, pal, thRows, sccmRows,
                       setPage(1);
                     }}
                     title="Aramayı temizle"
-                    style={{ cursor: "pointer", color: pal.inkSoft, fontSize: 15, lineHeight: 1, padding: "0 2px" }}
+                    style={{ cursor: "pointer", color: pal.inkSoft, fontSize: 14, lineHeight: 1, padding: "0 2px" }}
                   >
                     ×
                   </span>
@@ -202,10 +202,10 @@ export default function ThDepotSccmReportScreen({ styles, pal, thRows, sccmRows,
                     <td style={styles.td}>{r.thStatus}</td>
                     <td style={styles.td}>{r.sccmStatus}</td>
                     <td style={styles.td}>{r.lastUser}</td>
-                    <td style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>{r.lastSeen}</td>
+                    <td style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{r.lastSeen}</td>
                     <td style={styles.td}>{r.company}</td>
                     <td style={styles.td}>{r.location}</td>
-                    <td style={{ ...styles.td, fontSize: 12.5 }}>{r.reason}</td>
+                    <td style={{ ...styles.td, fontSize: 13 }}>{r.reason}</td>
                   </tr>
                 ))}
                 {paged.length === 0 && (

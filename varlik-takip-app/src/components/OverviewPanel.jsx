@@ -126,7 +126,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
     >
       <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
         <span style={{ width: 24, height: 3, borderRadius: 2, background: accent }} />
-        <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", color: pal.ink }}>{title}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: pal.ink }}>{title}</span>
       </div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>{children}</div>
     </div>
@@ -170,13 +170,13 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
             />
             <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minWidth: 0 }}>
               <div>
-                <div style={{ fontSize: 11, color: pal.inkSoft, fontWeight: 600 }}>Toplam Cihaz</div>
-                <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-mono)", color: C.blue }}>{fmt(live.toplamCihaz)}</div>
+                <div style={{ fontSize: 12, color: pal.inkSoft, fontWeight: 600 }}>Toplam Cihaz</div>
+                <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-mono)", color: C.blue }}>{fmt(live.toplamCihaz)}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: pal.inkSoft, fontWeight: 600 }}>Açık Bulgu</div>
+                <div style={{ fontSize: 12, color: pal.inkSoft, fontWeight: 600 }}>Açık Bulgu</div>
                 <div style={{ display: "flex", alignItems: "baseline" }}>
-                  <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-mono)", color: C.coral }}>{fmt(latest ? latest.acikBulgu : acikBulguLive)}</span>
+                  <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-mono)", color: C.coral }}>{fmt(latest ? latest.acikBulgu : acikBulguLive)}</span>
                   <DeltaTag value={latest && prev ? pctChange(latest.acikBulgu, prev.acikBulgu) : null} unit="%" pal={pal} />
                 </div>
                 <Spark values={series.map((s) => s.acikBulgu)} color={C.coral} width={150} />
@@ -225,9 +225,9 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
               centerLabel={fmt(acikBulguLive)}
               centerSub="açık bulgu"
             />
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
-                <tr style={{ color: pal.inkSoft, fontSize: 11 }}>
+                <tr style={{ color: pal.inkSoft, fontSize: 12 }}>
                   <th style={{ textAlign: "left", padding: "4px 6px", fontWeight: 600 }}>Kategori</th>
                   <th style={{ textAlign: "right", padding: "4px 6px", fontWeight: 600 }}>Adet</th>
                   <th style={{ textAlign: "right", padding: "4px 6px", fontWeight: 600 }}>Pay</th>
@@ -257,7 +257,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
 
         {/* ---- Satır 2: Cihaz Sağlık Şelalesi (yığılı çubuk + çıkarma tablosu) ---- */}
         <Card title="Cihaz Sağlığı Durumu" accent={C.slate} span={7}>
-          <p style={{ ...styles.pageSub, margin: "0 0 12px", fontSize: 11.5 }}>
+          <p style={{ ...styles.pageSub, margin: "0 0 12px", fontSize: 12 }}>
             Toplam cihazdan problem kategorileri çıkarılınca kalan "temiz" cihaz (bir cihaz birden çok kategoride olabilir)
           </p>
 
@@ -267,12 +267,12 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
               const w = (s.value / stackTotal) * 100;
               return (
                 <div key={s.key} title={`${s.key}: ${fmt(s.value)}`} style={{ width: `${w}%`, background: s.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {w > 8 && <span style={{ fontSize: 10.5, fontWeight: 700, color: "#fff" }}>{fmt(s.value)}</span>}
+                  {w > 8 && <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{fmt(s.value)}</span>}
                 </div>
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: pal.inkSoft, margin: "8px 0 14px" }}>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: pal.inkSoft, margin: "8px 0 14px" }}>
             {stackSegs.map((s) => (
               <span key={s.key}>
                 <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: s.color, marginRight: 5 }} />
@@ -282,11 +282,11 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
           </div>
 
           {/* Çıkarma tablosu */}
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <tbody>
               {healthRows.map((r, i) => (
                 <tr key={r.key} style={{ borderTop: i === 0 ? "none" : `1px solid ${pal.line}`, background: r.bold ? pal.fieldBg : "transparent" }}>
-                  <td style={{ padding: "8px 8px", width: 26, textAlign: "center", color: r.color, fontWeight: 800 }}>{r.sign}</td>
+                  <td style={{ padding: "8px 8px", width: 26, textAlign: "center", color: r.color, fontWeight: 700 }}>{r.sign}</td>
                   <td style={{ padding: "8px 8px", fontWeight: r.bold ? 800 : 500 }}>{r.key}</td>
                   <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "var(--font-mono)", fontWeight: r.bold ? 800 : 600, color: r.bold ? r.color : pal.ink }}>
                     {fmt(r.value)}
@@ -298,7 +298,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
               ))}
             </tbody>
           </table>
-          <p style={{ ...styles.pageSub, margin: "10px 0 0", fontSize: 11 }}>
+          <p style={{ ...styles.pageSub, margin: "10px 0 0", fontSize: 12 }}>
             Sağlıklı cihaz oranı: <strong style={{ color: saglikPct >= 80 ? C.emerald : saglikPct >= 60 ? C.amber : C.coral }}>%{saglikPct}</strong>
           </p>
         </Card>
@@ -308,7 +308,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
           {enough && latestTrend ? (
             <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 800, color: pal.ink }}>{latestTrend.label} dönemi</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: pal.ink }}>{latestTrend.label} dönemi</span>
                 <Donut
                   size={168}
                   thickness={24}
@@ -321,7 +321,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
                   centerLabel={latestTrend.cozumOrani != null ? `%${latestTrend.cozumOrani}` : "—"}
                   centerSub="çözüm oranı"
                 />
-                <div style={{ display: "flex", gap: 12, fontSize: 11.5, color: pal.inkSoft, flexWrap: "wrap", justifyContent: "center" }}>
+                <div style={{ display: "flex", gap: 12, fontSize: 12, color: pal.inkSoft, flexWrap: "wrap", justifyContent: "center" }}>
                   <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: C.emerald, marginRight: 4 }} />Çözülen</span>
                   <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: C.slate, marginRight: 4 }} />Devam Eden</span>
                   <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 3, background: C.coral, marginRight: 4 }} />Yeni Tespit</span>
@@ -335,9 +335,9 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
               </div>
 
               <div style={{ flex: 1, minWidth: 320, overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
-                    <tr style={{ color: pal.inkSoft, fontSize: 11 }}>
+                    <tr style={{ color: pal.inkSoft, fontSize: 12 }}>
                       <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Dönem</th>
                       <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600 }}>Açık Bulgu</th>
                       <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600, color: C.emerald }}>Çözülen</th>
@@ -355,13 +355,13 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
                         <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "var(--font-mono)" }}>{fmt(p.devam)}</td>
                         <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "var(--font-mono)", color: C.coral, fontWeight: 700 }}>{fmt(p.yeni)}</td>
                         <td style={{ padding: "8px 8px", textAlign: "right" }}>
-                          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, color: okColor(p.cozumOrani) }}>{p.cozumOrani != null ? `%${p.cozumOrani}` : "—"}</span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: okColor(p.cozumOrani) }}>{p.cozumOrani != null ? `%${p.cozumOrani}` : "—"}</span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <p style={{ ...styles.pageSub, margin: "8px 0 0", fontSize: 11 }}>
+                <p style={{ ...styles.pageSub, margin: "8px 0 0", fontSize: 12 }}>
                   Çözüm Oranı = Çözülen ÷ (Çözülen + Devam Eden) — önceki dönemdeki problemli cihazların yüzde kaçı listeden düştü.
                 </p>
               </div>

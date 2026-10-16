@@ -357,7 +357,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
           <>
             {funnelGroups.map((group) => (
               <div key={group.title} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{group.title}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{group.title}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {group.items.map(([id, label, n, tone]) => {
                     const selected = id === stage;
@@ -388,7 +388,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
               <div style={{ background: pal.fieldBg, borderRadius: 10, padding: "10px 14px", margin: "0 0 14px", fontSize: 13, lineHeight: 1.5 }}>
                 <div style={{ fontWeight: 700, marginBottom: 2 }}>{stageLabel}</div>
                 <div style={{ color: pal.inkSoft }}>{stageInfo.what}</div>
-                <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: 12.5 }}>{stageInfo.calc}</div>
+                <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: 13 }}>{stageInfo.calc}</div>
               </div>
             )}
 
@@ -436,7 +436,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                         setPage(1);
                       }}
                       title="Aramayı temizle"
-                      style={{ cursor: "pointer", color: pal.inkSoft, fontSize: 15, lineHeight: 1, padding: "0 2px" }}
+                      style={{ cursor: "pointer", color: pal.inkSoft, fontSize: 14, lineHeight: 1, padding: "0 2px" }}
                     >
                       ×
                     </span>
@@ -530,7 +530,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                           </td>
                           <td style={styles.td}>{r.company}</td>
                           <td style={styles.td}>{r.location}</td>
-                          <td style={{ ...styles.td, fontSize: 12.5 }}>{r.reason}</td>
+                          <td style={{ ...styles.td, fontSize: 13 }}>{r.reason}</td>
                         </tr>
                         {expanded && (
                           <tr>
@@ -541,13 +541,13 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                                   ["kullandığı, başkasına ait monitörler", expandedOwner.userKey ? borrowedByUser.get(expandedOwner.userKey) || [] : [], true],
                                 ].map(([title, list, borrowed]) => (
                                   <div key={title} style={{ marginBottom: 10 }}>
-                                    <div style={{ fontSize: 12.5, fontWeight: 700, color: pal.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: pal.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.03em" }}>
                                       {expandedOwner.person} — {title} ({list.length})
                                     </div>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                       {list.length === 0 && <div style={{ fontSize: 13, color: pal.inkSoft }}>Kayıt yok</div>}
                                       {list.map((pr) => (
-                                        <div key={pr.rowKey} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: pal.panelSolid, fontSize: 13.5 }}>
+                                        <div key={pr.rowKey} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: pal.panelSolid, fontSize: 14 }}>
                                           <span style={{ ...styles.serial, ...styles.clickableName, flexShrink: 0 }} onClick={() => setDetailRow(pr)} title="Bu monitörün detayını gör">
                                             {pr.monitorSerial}
                                           </span>
@@ -615,7 +615,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
 
       {detailRow && (
         <div style={styles.modalOverlay} onClick={() => setDetailRow(null)}>
-          <div style={{ ...styles.modalCard, width: "min(580px, 100%)", fontSize: 15.5 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ ...styles.modalCard, width: "min(580px, 100%)", fontSize: 16 }} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <p style={{ ...styles.modalTitle, fontFamily: "var(--font-mono)" }}>{detailRow.monitorSerial}</p>
               <span style={styles.modalClose} onClick={() => setDetailRow(null)}>✕</span>

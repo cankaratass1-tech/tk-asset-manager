@@ -360,7 +360,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
             <p style={styles.settingsSectionTitle}>
               Kayıtlar ({filtered.length === pending.length ? pending.length : `${filtered.length} / ${pending.length}`})
             </p>
-            <span style={{ fontSize: 12.5, color: pal.inkSoft }}>
+            <span style={{ fontSize: 13, color: pal.inkSoft }}>
               {unsentCount === 0 ? "Tümü hatırlatıldı" : `${unsentCount} hiç hatırlatılmadı`} ·{" "}
               {overdueCount === 0 ? "7+ gün bekleyen yok" : `${overdueCount} tanesi 7+ gündür bekliyor`}
             </span>
@@ -418,7 +418,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
               style={{ ...inp, flex: "0 1 320px" }}
               placeholder="Mail alıcı(lar) — boşsa lokasyon mail grubu"
             />
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: pal.inkSoft, flex: "0 0 auto" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: pal.inkSoft, flex: "0 0 auto" }}>
               Dil
               <select value={mailLang} onChange={(e) => setMailLang(e.target.value)} style={{ ...inp, width: 120, flex: "0 0 auto" }}>
                 <option value="tr">Türkçe</option>
@@ -469,13 +469,13 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
                         <td style={styles.td} onClick={(e) => e.stopPropagation()}>
                           <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} style={styles.checkbox} />
                         </td>
-                        <td style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>{(th && th.barkod) || <span style={{ color: pal.inkSoft }}>—</span>}</td>
-                        <td style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>{r.serial || <span style={{ color: pal.inkSoft }}>—</span>}</td>
-                        <td style={{ ...styles.td, fontSize: 12.5 }}>{(th && (th.asset || th.model)) || <span style={{ color: pal.inkSoft }}>—</span>}</td>
-                        <td style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>{r.atoNo || <span style={{ color: pal.inkSoft }}>—</span>}</td>
-                        <td style={{ ...styles.td, fontSize: 12.5 }}>{r.userInfo || <span style={{ color: pal.inkSoft }}>—</span>}</td>
-                        <td style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>{r.location || <span style={{ color: pal.inkSoft }}>—</span>}</td>
-                        <td style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>{new Date(r.mailSentAt).toLocaleDateString("tr-TR")}</td>
+                        <td style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{(th && th.barkod) || <span style={{ color: pal.inkSoft }}>—</span>}</td>
+                        <td style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{r.serial || <span style={{ color: pal.inkSoft }}>—</span>}</td>
+                        <td style={{ ...styles.td, fontSize: 13 }}>{(th && (th.asset || th.model)) || <span style={{ color: pal.inkSoft }}>—</span>}</td>
+                        <td style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{r.atoNo || <span style={{ color: pal.inkSoft }}>—</span>}</td>
+                        <td style={{ ...styles.td, fontSize: 13 }}>{r.userInfo || <span style={{ color: pal.inkSoft }}>—</span>}</td>
+                        <td style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{r.location || <span style={{ color: pal.inkSoft }}>—</span>}</td>
+                        <td style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{new Date(r.mailSentAt).toLocaleDateString("tr-TR")}</td>
                         <td style={styles.td}>
                           <span style={{ ...styles.badge, ...(overdue ? { background: `${pal.bad}1e`, color: pal.bad } : styles.badgeNeutral) }}>
                             {days == null ? "—" : `${days} gün`}

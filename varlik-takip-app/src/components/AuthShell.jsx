@@ -57,21 +57,21 @@ export default function AuthShell({ children }) {
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <img src={companyLogo} alt="" style={{ width: 44, height: 44 }} />
-              <span style={{ fontWeight: 700, fontSize: 19, letterSpacing: "0.01em" }}>TK Asset Manager</span>
+              <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.01em" }}>TK Asset Manager</span>
             </div>
-            <h2 style={{ margin: "56px 0 12px", fontSize: 34, lineHeight: 1.18, fontWeight: 800, letterSpacing: "-0.02em", maxWidth: 420 }}>
+            <h2 style={{ margin: "56px 0 12px", fontSize: 34, lineHeight: 1.18, fontWeight: 700, letterSpacing: "-0.02em", maxWidth: 420 }}>
               Cihaz varlıklarınız<br />tek ekranda, kontrol altında
             </h2>
-            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, opacity: 0.8, maxWidth: 400 }}>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, opacity: 0.8, maxWidth: 400 }}>
               Envanter, zimmet ve sağlık verilerini birleştirir; sorunlu cihazları öne çıkarır, raporlar ve mailler üretir.
             </p>
           </div>
           <ul className="auth-features" style={{ position: "relative", zIndex: 1, listStyle: "none", padding: 0, margin: "36px 0 0", display: "flex", flexDirection: "column", gap: 16 }}>
             {FEATURES.map(([icon, title, sub]) => (
               <li key={title} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>{icon}</span>
+                <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</span>
                 <span>
-                  <span style={{ display: "block", fontWeight: 600, fontSize: 14.5 }}>{title}</span>
+                  <span style={{ display: "block", fontWeight: 600, fontSize: 14 }}>{title}</span>
                   <span style={{ display: "block", fontSize: 13, opacity: 0.72, marginTop: 2 }}>{sub}</span>
                 </span>
               </li>

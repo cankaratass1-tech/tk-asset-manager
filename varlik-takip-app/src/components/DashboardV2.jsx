@@ -80,7 +80,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
 
   const card = { ...styles.panel, padding: "18px 20px", margin: 0 };
   const label = { fontSize: 12, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: pal.inkSoft };
-  const chip = (txt, color, bg) => <span style={{ fontSize: 11.5, fontWeight: 700, color, background: bg, borderRadius: 20, padding: "3px 9px", whiteSpace: "nowrap" }}>{txt}</span>;
+  const chip = (txt, color, bg) => <span style={{ fontSize: 12, fontWeight: 700, color, background: bg, borderRadius: 20, padding: "3px 9px", whiteSpace: "nowrap" }}>{txt}</span>;
 
   const Kpi = ({ title, value, tone, sub, summary, to, opts, na }) => (
     <div
@@ -89,8 +89,8 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
       title={to ? "Rapora git" : undefined}
     >
       <span style={label}>{title}</span>
-      <span style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.05, fontFamily: "var(--font-mono)", color: na ? pal.inkSoft : tone || pal.ink }}>{na ? "—" : fmt(value)}</span>
-      <span style={{ fontSize: 12.5, color: pal.inkSoft, minHeight: 18 }}>{na ? "şirket bazında ayrılamaz" : sub}</span>
+      <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.05, fontFamily: "var(--font-mono)", color: na ? pal.inkSoft : tone || pal.ink }}>{na ? "—" : fmt(value)}</span>
+      <span style={{ fontSize: 13, color: pal.inkSoft, minHeight: 18 }}>{na ? "şirket bazında ayrılamaz" : sub}</span>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minHeight: 24 }}>
         {summary ? (
           <>
@@ -108,8 +108,8 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
     <svg width="132" height="132" viewBox="0 0 120 120" style={{ flexShrink: 0 }}>
       <circle cx="60" cy="60" r={R} fill="none" stroke={pal.fieldBg || pal.line} strokeWidth="11" />
       <circle cx="60" cy="60" r={R} fill="none" stroke={healthTone} strokeWidth="11" strokeLinecap="round" strokeDasharray={`${(totals.healthPct / 100) * C} ${C}`} transform="rotate(-90 60 60)" />
-      <text x="60" y="58" textAnchor="middle" style={{ fontSize: 26, fontWeight: 800, fill: pal.ink, fontFamily: "var(--font-mono)" }}>%{totals.healthPct}</text>
-      <text x="60" y="76" textAnchor="middle" style={{ fontSize: 10, fill: pal.inkSoft, fontWeight: 600, letterSpacing: "0.06em" }}>SAĞLIK</text>
+      <text x="60" y="58" textAnchor="middle" style={{ fontSize: 26, fontWeight: 700, fill: pal.ink, fontFamily: "var(--font-mono)" }}>%{totals.healthPct}</text>
+      <text x="60" y="76" textAnchor="middle" style={{ fontSize: 12, fill: pal.inkSoft, fontWeight: 600, letterSpacing: "0.06em" }}>SAĞLIK</text>
     </svg>
   );
 
@@ -135,7 +135,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
             onMouseEnter={(e) => { if (to) e.currentTarget.style.background = pal.accentSoft; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
               <span style={{ fontWeight: 600 }}>{it.key}</span>
               <span style={{ color: pal.inkSoft, fontFamily: "var(--font-mono)" }}>{fmt(it.count)}</span>
             </div>
@@ -161,14 +161,14 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
             {chip(data.scope, pal.accent, pal.accentSoft)}
             {chip("DEMO TASARIM", pal.warnFg, pal.warnBg || `${pal.warnFg}1e`)}
           </div>
-          <p style={{ margin: "8px 0 0", fontSize: 15.5, lineHeight: 1.5, color: pal.ink }}>{summaryText}</p>
-          <p style={{ margin: "6px 0 0", fontSize: 12.5, color: pal.inkSoft }}>
+          <p style={{ margin: "8px 0 0", fontSize: 16, lineHeight: 1.5, color: pal.ink }}>{summaryText}</p>
+          <p style={{ margin: "6px 0 0", fontSize: 13, color: pal.inkSoft }}>
             {fmt(totals.devices)} cihaz üzerinden · {fmt(totals.open)} açık bulgu{data.diskScoped ? "" : " (Disk şirket bazında ayrılamadığı için dahil değil)"}
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11.5, color: pal.inkSoft }}>Kıyas dönemi:</span>
+            <span style={{ fontSize: 12, color: pal.inkSoft }}>Kıyas dönemi:</span>
             {summaryToggle}
           </div>
           <button style={styles.btnPrimary} onClick={onExec}>📊 Yönetici özeti (tek sayfa)</button>
@@ -190,7 +190,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
         <div style={{ ...card, gridColumn: "span 2", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <p style={styles.settingsSectionTitle}>Bugün aksiyon gerekenler</p>
-            <span style={{ fontSize: 12.5, color: pal.inkSoft }}>{actions.length} başlık · önem derecesine göre</span>
+            <span style={{ fontSize: 13, color: pal.inkSoft }}>{actions.length} başlık · önem derecesine göre</span>
           </div>
           {actions.length === 0 ? (
             <p style={{ ...styles.pageSub, margin: "10px 0 0" }}>Şu an aksiyon gerektiren bulgu yok.</p>
@@ -205,11 +205,11 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
                 >
                   <span style={{ width: 9, height: 9, borderRadius: "50%", background: sev[a.sev].c, flexShrink: 0 }} title={`Önem: ${sev[a.sev].l}`} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14.5 }}>{a.title}</div>
-                    <div style={{ fontSize: 12.5, color: pal.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.desc}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
+                    <div style={{ fontSize: 13, color: pal.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.desc}</div>
                   </div>
                   {chip(sev[a.sev].l, sev[a.sev].c, `${sev[a.sev].c}1a`)}
-                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 18, minWidth: 54, textAlign: "right" }}>{fmt(a.n)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 18, minWidth: 54, textAlign: "right" }}>{fmt(a.n)}</span>
                   <span style={{ color: pal.accent, fontSize: 13, fontWeight: 700 }}>Aç →</span>
                 </div>
               ))}
@@ -227,7 +227,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
           </div>
           <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
             {dist.map((d) => (
-              <div key={d.k} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13.5 }}>
+              <div key={d.k} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 14 }}>
                 <span style={{ width: 10, height: 10, borderRadius: 3, background: d.c }} />
                 <span style={{ flex: 1 }}>{d.k}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>{fmt(d.v)}</span>
@@ -255,7 +255,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
                 <polyline points={line} fill="none" stroke={pal.accent} strokeWidth="2.5" strokeLinejoin="round" />
                 {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="3.5" fill={pal.accent}><title>{`${series[i].label}: ${series[i].v}`}</title></circle>)}
               </svg>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: pal.inkSoft }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: pal.inkSoft }}>
                 <span>{series[0].label}</span>
                 <span>{series[series.length - 1].label}</span>
               </div>

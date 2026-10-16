@@ -40,7 +40,7 @@ export default function DarbogazScreen({ styles, pal, rows, summary, resourceMet
     </div>
   );
   const chip = (s) => (
-    <span title={s.text} style={{ display: "inline-block", fontSize: 11.5, fontWeight: 600, color: color[s.level], background: s.level === "none" ? "transparent" : `${color[s.level]}1a`, borderRadius: 8, padding: "2px 8px", whiteSpace: "nowrap" }}>
+    <span title={s.text} style={{ display: "inline-block", fontSize: 12, fontWeight: 600, color: color[s.level], background: s.level === "none" ? "transparent" : `${color[s.level]}1a`, borderRadius: 8, padding: "2px 8px", whiteSpace: "nowrap" }}>
       {s.level === "none" ? "—" : s.text}
     </span>
   );

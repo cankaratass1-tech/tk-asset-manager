@@ -1,6 +1,11 @@
+/* Kurumsal tipografi: Windows kurumsal standardı Segoe UI; başka sistemlerde uygulamayla birlikte gelen Roboto (public/fonts).
+   Tüm yazı tek ailede: seri no / hostname gibi kimlikler de aynı aileyle (tabular rakamlarla) gösterilir — eski monospace için
+   --font-mono'yu yeniden ui-monospace yapmak yeterli. Boyut ölçeği: 12 / 13 / 14 (gövde) / 16 / 18 / 20 / 22 / 24; kalınlık 400 / 500 / 600 / 700. */
+@font-face { font-family: "Roboto"; font-weight: 400; font-style: normal; src: url("/fonts/Roboto-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Roboto"; font-weight: 500 700; font-style: normal; src: url("/fonts/Roboto-Medium.ttf") format("truetype"); font-display: swap; }
 :root {
-  --font-sans: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-sans);
 }
 
 * {
@@ -18,6 +23,9 @@ textarea {
 
 body {
   margin: 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {

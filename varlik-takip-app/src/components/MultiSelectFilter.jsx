@@ -45,7 +45,7 @@ export default function MultiSelectFilter({ label, options, selected, onChange, 
         title={selected.join(", ") || undefined}
       >
         <span style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</span>
-        <span style={{ fontSize: 10, color: pal.inkSoft }}>▾</span>
+        <span style={{ fontSize: 12, color: pal.inkSoft }}>▾</span>
       </div>
       {open && (
         <div
@@ -78,7 +78,7 @@ export default function MultiSelectFilter({ label, options, selected, onChange, 
           {selected.length > 0 && (
             <div
               onClick={() => onChange([])}
-              style={{ fontSize: 12.5, color: pal.accent, cursor: "pointer", padding: "6px 10px", fontWeight: 600, flexShrink: 0 }}
+              style={{ fontSize: 13, color: pal.accent, cursor: "pointer", padding: "6px 10px", fontWeight: 600, flexShrink: 0 }}
             >
               Temizle ({selected.length})
             </div>
@@ -90,7 +90,7 @@ export default function MultiSelectFilter({ label, options, selected, onChange, 
             {filteredOptions.map((opt) => (
               <label
                 key={opt}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", fontSize: 13.5, cursor: "pointer", borderRadius: 6 }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", fontSize: 14, cursor: "pointer", borderRadius: 6 }}
               >
                 <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggle(opt)} style={styles.checkbox} />
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{opt}</span>

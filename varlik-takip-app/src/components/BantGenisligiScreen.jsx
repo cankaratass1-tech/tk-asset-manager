@@ -262,7 +262,7 @@ export default function BantGenisligiScreen({
                     <td style={styles.td}>{r.bandwidth}</td>
                     <td style={styles.td}>{r.avgBandwidth}</td>
                     <td style={styles.td}>{r.seviye}</td>
-                    <td style={{ ...styles.td, fontSize: 12.5, whiteSpace: "nowrap" }}>{r.tarih}</td>
+                    <td style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{r.tarih}</td>
                     <td style={styles.td}>
                       <span style={{ ...styles.badge, ...(r.isWarning ? styles.badgeBad : styles.badgeOk) }}>
                         <span style={{ ...styles.badgeDot, background: r.isWarning ? pal.bad : pal.ok }} />

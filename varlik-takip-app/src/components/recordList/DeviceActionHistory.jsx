@@ -98,13 +98,13 @@ export default function DeviceActionHistory({ row, mailHistory, styles, pal }) {
     return (
       <div key={key} data-history-event={c}
         onClick={expandable ? () => setOpen(open === key ? null : key) : undefined}
-        style={{ padding: "9px 11px", borderRadius: 9, background: pal.fieldBg, fontSize: 12.5, borderLeft: `3px solid ${c === "zimmet" ? pal.accent : c === "mail" ? pal.ok : c === "rapor" ? pal.warnFg : pal.neutralDot}`, cursor: expandable ? "pointer" : "default" }}>
+        style={{ padding: "9px 11px", borderRadius: 9, background: pal.fieldBg, fontSize: 13, borderLeft: `3px solid ${c === "zimmet" ? pal.accent : c === "mail" ? pal.ok : c === "rapor" ? pal.warnFg : pal.neutralDot}`, cursor: expandable ? "pointer" : "default" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
           <span style={{ fontWeight: 700 }}>
             {CATEGORY_ICON[c]} {e.type}
-            {derivedEvt && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: pal.inkSoft, border: `1px solid ${pal.line}`, borderRadius: 8, padding: "0 5px" }} title={e.source === "TuruncuHat" ? "TuruncuHat kaynak dosyasından" : "Snapshot geçmişinden otomatik türetildi"}>{e.source === "TuruncuHat" ? "kaynak" : "otomatik"}</span>}
+            {derivedEvt && <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 600, color: pal.inkSoft, border: `1px solid ${pal.line}`, borderRadius: 8, padding: "0 5px" }} title={e.source === "TuruncuHat" ? "TuruncuHat kaynak dosyasından" : "Snapshot geçmişinden otomatik türetildi"}>{e.source === "TuruncuHat" ? "kaynak" : "otomatik"}</span>}
           </span>
-          <span style={{ color: pal.inkSoft, fontSize: 11.5, flexShrink: 0 }}>{timeOf(e.ts)}</span>
+          <span style={{ color: pal.inkSoft, fontSize: 12, flexShrink: 0 }}>{timeOf(e.ts)}</span>
         </div>
         {e.description && <div style={{ marginTop: 2, lineHeight: 1.45 }}>{e.description}</div>}
         {e.mailSubject && (
@@ -112,7 +112,7 @@ export default function DeviceActionHistory({ row, mailHistory, styles, pal }) {
             Konu: {e.mailSubject}
           </div>
         )}
-        <div style={{ marginTop: 3, color: pal.inkSoft, fontSize: 11.5, display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ marginTop: 3, color: pal.inkSoft, fontSize: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
           {e.ts && <span>🕒 {dayOf(e.ts)}</span>}
           {e.user && <span>👤 {e.user}</span>}
           {e.reportId && <span>📋 {reportLabel(e.reportId)}</span>}
@@ -160,7 +160,7 @@ export default function DeviceActionHistory({ row, mailHistory, styles, pal }) {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "4px 0 12px" }}>
               {HISTORY_CATEGORIES.filter(([id]) => id === "all" || counts[id] > 0).map(([id, label]) => (
                 <span key={id} onClick={() => setCat(id)} data-history-chip={id}
-                  style={{ cursor: "pointer", fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 14, border: `1px solid ${cat === id ? pal.accent : pal.line}`, background: cat === id ? pal.accentSoft : "transparent", color: cat === id ? pal.accent : pal.inkSoft }}>
+                  style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 14, border: `1px solid ${cat === id ? pal.accent : pal.line}`, background: cat === id ? pal.accentSoft : "transparent", color: cat === id ? pal.accent : pal.inkSoft }}>
                   {label} ({counts[id]})
                 </span>
               ))}
@@ -168,7 +168,7 @@ export default function DeviceActionHistory({ row, mailHistory, styles, pal }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }} data-history-full>
               {groups.map((g) => (
                 <div key={g.day}>
-                  <div data-history-day style={{ fontSize: 11, fontWeight: 700, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.05em", margin: "8px 0 4px" }}>{g.day}</div>
+                  <div data-history-day style={{ fontSize: 12, fontWeight: 700, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.05em", margin: "8px 0 4px" }}>{g.day}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {g.items.map((e, i) => eventCard(e, `${g.day}-${i}`))}
                   </div>

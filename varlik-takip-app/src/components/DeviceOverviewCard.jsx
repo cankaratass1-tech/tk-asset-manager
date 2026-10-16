@@ -94,7 +94,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
         <div style={{ marginTop: 16 }} data-win-list>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
             <strong style={{ fontSize: 14 }}>{list.length} cihaz</strong>
-            {!listMode && <span style={{ fontSize: 12.5, color: pal.inkSoft }}>"{submitted}" Windows sürümüyle eşleşti</span>}
+            {!listMode && <span style={{ fontSize: 13, color: pal.inkSoft }}>"{submitted}" Windows sürümüyle eşleşti</span>}
             {["ended", "ending", "supported", "unknown"].map((k) => (
               <span
                 key={k}
@@ -105,7 +105,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
                 {SUPPORT_LABEL[k]} ({facets.statuses[k]})
               </span>
             ))}
-            {listMode && <span onClick={resetList} style={{ cursor: "pointer", fontSize: 12.5, color: pal.accent, fontWeight: 600 }}>Filtreyi temizle</span>}
+            {listMode && <span onClick={resetList} style={{ cursor: "pointer", fontSize: 13, color: pal.accent, fontWeight: 600 }}>Filtreyi temizle</span>}
           </div>
           {list.length === 0 ? (
             <p style={styles.pageSub}>Bu kriterlere uyan cihaz yok.</p>
@@ -115,7 +115,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
                 <thead>
                   <tr>
                     {["Hostname", "Seri No", "Kullanıcı", "Windows", "Destek"].map((h) => (
-                      <th key={h} style={{ ...styles.th, fontSize: 12.5, padding: "9px 14px" }}>{h}</th>
+                      <th key={h} style={{ ...styles.th, fontSize: 13, padding: "9px 14px" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -127,7 +127,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
                       <td style={{ ...styles.td, padding: "9px 14px", fontSize: 13 }}>{r.userLabel}</td>
                       <td style={{ ...styles.td, padding: "9px 14px", fontSize: 13 }}>{r.windowsLabel || <span style={{ color: pal.inkSoft }}>Veri Yok</span>}</td>
                       <td style={{ ...styles.td, padding: "9px 14px" }}>
-                        <span title={r.windowsDetail || ""} style={{ fontSize: 11.5, fontWeight: 700, color: statusColor[r.windowsStatus || "unknown"], background: `${statusColor[r.windowsStatus || "unknown"]}1e`, borderRadius: 10, padding: "2px 9px", whiteSpace: "nowrap" }}>
+                        <span title={r.windowsDetail || ""} style={{ fontSize: 12, fontWeight: 700, color: statusColor[r.windowsStatus || "unknown"], background: `${statusColor[r.windowsStatus || "unknown"]}1e`, borderRadius: 10, padding: "2px 9px", whiteSpace: "nowrap" }}>
                           {r.windowsSupportLabel || "Bilinmiyor"}
                         </span>
                       </td>
@@ -164,7 +164,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
                   {card.items.map((it, i) => {
                     const st = S[it.state] || S.none;
                     return (
-                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12.5 }}>
+                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13 }}>
                         <span style={{ color: pal.inkSoft, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                           <span style={{ fontWeight: 600 }}>{it.value}</span>
@@ -172,7 +172,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
                               OK/Kritik yerine onu göster — bkz. konuşma */}
                           {/* Değeri olan bilgi satırlarında (Build, Toplam, Şarj döngüsü…) "Veri Yok" rozeti yanıltıcıydı — yalnız durum/eksik veri için rozet */}
                           {(it.state !== "none" || it.badgeLabel || /veri yok|^yok/i.test(String(it.value))) && (
-                            <span style={{ background: st.bg, color: st.fg, borderRadius: 6, padding: "1px 7px", fontSize: 10.5, fontWeight: 700 }} title={it.note || ""}>{it.badgeLabel || st.label}</span>
+                            <span style={{ background: st.bg, color: st.fg, borderRadius: 6, padding: "1px 7px", fontSize: 12, fontWeight: 700 }} title={it.note || ""}>{it.badgeLabel || st.label}</span>
                           )}
                         </span>
                       </div>

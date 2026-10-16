@@ -85,7 +85,7 @@ export default function LoginScreen({ onLoginSuccess }) {
           {error && <p style={{ ...styles.formHelper, color: pal.bad, margin: 0 }}>{error}</p>}
           <button
             type="submit"
-            style={{ ...styles.btnPrimary, justifyContent: "center", padding: "11px 16px", fontSize: 14.5, marginTop: 4 }}
+            style={{ ...styles.btnPrimary, justifyContent: "center", padding: "11px 16px", fontSize: 14, marginTop: 4 }}
             disabled={loading || !username.trim() || !password}
           >
             {loading ? "Giriş yapılıyor..." : "Giriş Yap"}

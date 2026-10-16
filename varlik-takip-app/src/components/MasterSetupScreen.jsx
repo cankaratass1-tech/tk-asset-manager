@@ -38,7 +38,7 @@ export default function MasterSetupScreen({ onMasterCreated }) {
     <AuthShell>
       <div style={{ ...styles.panel, padding: "40px 36px", width: "min(420px, 100%)", boxShadow: "0 18px 50px rgba(18,53,91,0.14)", border: "1px solid #E3E7EF" }}>
         <CardLogo />
-        <p style={{ ...styles.pageTitle, fontSize: 21, textAlign: "center" }}>İlk Kurulum</p>
+        <p style={{ ...styles.pageTitle, fontSize: 22, textAlign: "center" }}>İlk Kurulum</p>
         <p style={{ ...styles.pageSub, textAlign: "center" }}>
           Uygulama ilk kez çalıştırılıyor — devam etmeden önce bir Master User (yerel yönetici hesabı) oluşturun.
         </p>
@@ -59,7 +59,7 @@ export default function MasterSetupScreen({ onMasterCreated }) {
           {error && <p style={{ ...styles.formHelper, color: pal.bad, margin: 0 }}>{error}</p>}
           <button
             type="submit"
-            style={{ ...styles.btnPrimary, justifyContent: "center", padding: "11px 16px", fontSize: 14.5, marginTop: 4 }}
+            style={{ ...styles.btnPrimary, justifyContent: "center", padding: "11px 16px", fontSize: 14, marginTop: 4 }}
             disabled={loading}
           >
             {loading ? "Oluşturuluyor..." : "Master User Oluştur"}

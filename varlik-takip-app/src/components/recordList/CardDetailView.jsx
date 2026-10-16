@@ -60,7 +60,7 @@ export default function CardDetailView({
             <div style={styles.cardRowSerial}>{r.serial}</div>
             <div style={styles.cardRowName} title={r.ownerFull || r.owner}>
               {r.owner}
-              {ownerTitleOf(r.ownerFull) && <div style={{ fontSize: 11.5, fontWeight: 400, opacity: 0.7 }}>{ownerTitleOf(r.ownerFull)}</div>}
+              {ownerTitleOf(r.ownerFull) && <div style={{ fontSize: 12, fontWeight: 400, opacity: 0.7 }}>{ownerTitleOf(r.ownerFull)}</div>}
             </div>
             {splitModel && <div style={styles.cardRowLocation}>{r.model}</div>}
             <div style={styles.cardRowLocation}>{isZimmet ? r.office : r.location}</div>
