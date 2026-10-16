@@ -25,6 +25,7 @@ import { computeInaktifDashboard, computeDiskDashboard, computeZimmetLocationBre
 import { latestPeriodSummary } from "./services/periodComparisonService";
 import LocationTrendChart from "./components/LocationTrendChart";
 import OverviewPanel from "./components/OverviewPanel";
+import ExecutiveSummary from "./components/ExecutiveSummary"; // DEMO: yönetici için tek sayfalık özet
 import DashboardV2 from "./components/DashboardV2"; // DEMO (commit edilmedi) — yeni Ana Sayfa tasarımı
 import { computeAtilMonitorRows } from "./services/atilMonitorService";
 import ManagementKpiPanel from "./components/ManagementKpiPanel";
@@ -183,6 +184,8 @@ export default function App({ user, onLogout } = {}) {
   const [summaryPeriod, setSummaryPeriod] = useState("week"); // week | month
   const [dashboardDemo, setDashboardDemo] = useState(() => { try { return localStorage.getItem("varlikTakip.dashboardDemo") === "1"; } catch { return false; } }); // DEMO: yeni Ana Sayfa tasarımı
   const [atilStage, setAtilStage] = useState(null); // DEMO: Atıl Monitörler ekranı hangi aşamayla açılsın (null = varsayılan)
+  const [execView, setExecView] = useState(() => { try { return localStorage.getItem("varlikTakip.execView") === "1"; } catch { return false; } }); // DEMO: Yönetici Özeti
+  const toggleExecView = (v) => { setExecView(v); try { localStorage.setItem("varlikTakip.execView", v ? "1" : "0"); } catch { /* sessiz geç */ } };
   const toggleDashboardDemo = (v) => { setDashboardDemo(v); try { localStorage.setItem("varlikTakip.dashboardDemo", v ? "1" : "0"); } catch { /* sessiz geç */ } };
   const [summaryDetail, setSummaryDetail] = useState(null); // null | "cozulen" | "yeniTespit" | "devamEden" — rozete tıklanınca açılan cihaz listesi
   useEffect(() => { setSummaryDetail(null); }, [activeReport]);
@@ -3395,8 +3398,21 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     locations: { zimmet: zimmetTopLocations, inaktif: inaktifStats.topLocations },
                     freshness: [meta("TuruncuHat", realThMeta), meta("SCCM", realSccmMeta), meta("İnaktif", realInaktifMeta), meta("Disk", realDiskMeta), meta("Monitor", realMonitorMeta), meta("BSOD", realBsodMeta), meta("Battery", realBatteryMeta)],
                   };
+                  v2.topLoc = locationTrend;
+                  v2.companies = inaktifCompanies.map((c) => {
+                    const dev = byCompany(realSccmAll, c).length;
+                    const inak = realInaktifAll.filter((r) => r.company === c).length;
+                    const zim = computeOverallZimmetStats(byCompany(zimmetRows, c)).bad;
+                    const unu = byCompany(unusedDeviceRows, c).length;
+                    const open = inak + zim + unu;
+                    return { key: c, label: companyShortLabel(c), devices: dev, inaktif: inak, zimmet: zim, unused: unu, open, healthPct: dev ? Math.max(0, Math.round(((dev - open) / dev) * 100)) : 0 };
+                  });
+                  if (execView) {
+                    return <ExecutiveSummary data={v2} snapshots={reportSnapshots} company={dc} summaryToggle={summaryPeriodToggle} onBack={() => toggleExecView(false)} />;
+                  }
                   return (
                     <DashboardV2
+                      onExec={() => toggleExecView(true)}
                       styles={styles}
                       pal={pal}
                       data={v2}
