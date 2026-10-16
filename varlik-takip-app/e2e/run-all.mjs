@@ -9,6 +9,7 @@ const SUITES = [
   ["Backend (şema + demo veri tutarlılığı)", "npm", ["test", "--prefix", "../backend"], "backend"],
   ["Tüm ekran taraması", "node", ["e2e/sweep.mjs", "--skip-build"]],
   ["Veri değişimi → dashboard/rapor", "node", ["e2e/changecheck.mjs", "--skip-build"]],
+  ["Senaryolar (zimmet devri, hostname, pil, disk…)", "node", ["e2e/scenarios.mjs", "--skip-build"]],
   ["Duman testi", "node", ["e2e/smoke.mjs", "--skip-build"]],
   ["Mail", "node", ["e2e/mailtest.mjs", "--skip-build"]],
   ["Dashboard doğruluğu", "node", ["e2e/dashcheck.mjs", "--skip-build"]],
