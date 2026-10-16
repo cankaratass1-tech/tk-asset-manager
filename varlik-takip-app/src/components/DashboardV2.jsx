@@ -36,7 +36,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
   const actions = useMemo(() => {
     const items = [
       cards.disk.value != null && { id: "disk", sev: "high", n: cards.disk.value, title: "Kritik disk alanı", desc: "Boş alanı ≤10 GB olan diskler", to: "disk", opts: { segment: "critical" } },
-      { id: "zimmet", sev: "high", n: cards.zimmet.value, title: "Hatalı zimmet", desc: "Zimmetli kişi ile fiilen kullanan farklı / mükerrer", to: "zimmet", opts: { segment: "unmatched" } },
+      { id: "zimmet", sev: "high", n: cards.zimmet.value, title: "Hatalı zimmet", desc: "Zimmetli kişi ile cihazı kullanan farklı / mükerrer", to: "zimmet", opts: { segment: "unmatched" } },
       { id: "closure", sev: closure.overdue > 0 ? "high" : "mid", n: closure.overdue || closure.pending, title: closure.overdue > 0 ? "Kapatma onayı geciken kayıtlar" : "Kapatma onayı bekleyen kayıtlar", desc: closure.overdue > 0 ? `7 günü geçti (toplam ${closure.pending} bekleyen)` : "Kullanıcı Turuncuhat'tan onay verecek", to: "kapatma-onayi" },
       { id: "monitor", sev: "mid", n: cards.zimmet.monitor, title: "Monitör uyuşmazlığı", desc: "Kişi başkasına zimmetli monitörü kullanıyor", to: "zimmet", opts: { segment: "monitorIssue" } },
       { id: "bilgidisi", sev: "mid", n: cards.atil.bilgiDisi, title: "Bilgi dışı kullanılan monitör", desc: "Zimmetli kişi dışında biri kullanıyor", to: "atil-monitor", opts: { atilStage: "outside" } },

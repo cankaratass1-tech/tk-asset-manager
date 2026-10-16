@@ -1177,8 +1177,8 @@ export default function App({ user, onLogout } = {}) {
         "Şirket": r.company || "",
         "Durum": r.statusTag || (r.matched ? "Eşleşti" : "Eşleşmedi"),
         "Hostname": r.hostname || "",
-        "Fiilen Kullanan": r.actualUser || "",
-        "Fiilen Kullanan E-posta": r.actualUserMail || "",
+        "Cihazı Kullanan (SCCM)": r.actualUser || "",
+        "Cihazı Kullanan E-posta": r.actualUserMail || "",
         "Açıklama": r.matchDetail || "",
       }));
     }
@@ -1462,7 +1462,7 @@ export default function App({ user, onLogout } = {}) {
     return `
       <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
         <p>Merhabalar,</p>
-        <p>Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi inaktif durumda. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı fiilen <strong>siz</strong> kullanıyorsunuz.</p>
+        <p>Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi inaktif durumda. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz.</p>
         <p>Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir. Bunun için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:</p>
         <p>turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → açılan pencerede Servis kısmına tıklayıp arama bölümünden ilgili zimmet servisini seçin → gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz.</p>
         <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
@@ -1509,7 +1509,7 @@ export default function App({ user, onLogout } = {}) {
     };
     if (mismatchRows.length || monitorEntries.length) {
       sections.push(`
-        <p>Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi farklı bir kişi görünüyor. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı fiilen <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.</p>
+        <p>Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi farklı bir kişi görünüyor. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.</p>
         <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
           ${zimmetMailTableHead("Kayıtlı Sahibi (Eski)")}
           <tbody>${mismatchRows.map(zimmetMailTableRow).join("")}${monitorEntries.map(monitorTableRow).join("")}</tbody>
@@ -1517,7 +1517,7 @@ export default function App({ user, onLogout } = {}) {
     }
     if (duplicateRows.length) {
       sections.push(`
-        <p${mismatchRows.length || monitorEntries.length ? ' style="margin-top:18px;"' : ""}>Ayrıca, sistem kayıtlarımıza göre üzerinize <strong>birden fazla notebook</strong> zimmetli görünüyor (aşağıdaki liste). Zimmet envanterinin doğru tutulabilmesi için, fiilen kullanmadığınız cihaz(lar)ın iade edilmesi ya da gerçekten ihtiyaç duyduğunuz birden fazla cihaz varsa bu durumun gerekçesiyle birlikte bildirilmesi rica olunur.</p>
+        <p${mismatchRows.length || monitorEntries.length ? ' style="margin-top:18px;"' : ""}>Ayrıca, sistem kayıtlarımıza göre üzerinize <strong>birden fazla notebook</strong> zimmetli görünüyor (aşağıdaki liste). Zimmet envanterinin doğru tutulabilmesi için, kullanmadığınız cihaz(lar)ın iade edilmesi ya da gerçekten ihtiyaç duyduğunuz birden fazla cihaz varsa bu durumun gerekçesiyle birlikte bildirilmesi rica olunur.</p>
         <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
           ${zimmetMailTableHead("Zimmetli Kişi")}
           <tbody>${duplicateRows.map(zimmetMailTableRow).join("")}</tbody>
@@ -4757,7 +4757,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 <p style={styles.pageSub}>
                   {isZimmet
                     ? realSccmMeta
-                      ? `Gerçek veri (SCCM) — ${realSccmMeta.fileName} (${new Date(realSccmMeta.modifiedAt).toLocaleString("tr-TR")}) · her kişinin zimmetli cihazı ile fiilen kullandığı cihaz karşılaştırılıyor`
+                      ? `Gerçek veri (SCCM) — ${realSccmMeta.fileName} (${new Date(realSccmMeta.modifiedAt).toLocaleString("tr-TR")}) · her kişinin zimmetli cihazı ile SCCM'e göre kullandığı cihaz karşılaştırılıyor`
                       : "Henüz SCCM envanter dosyası yüklenmedi — aşağıdan yükleyin"
                     : isLokasyonIp
                     ? realSccmMeta && realLokasyonMailMeta

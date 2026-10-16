@@ -109,7 +109,7 @@ ${body}`);
     const extraInMail = /birden fazla notebook/.test(t);
     check("Zimmet Hatalı: bildirim seçilen kayıt sayısını veriyor (1 kayıt) ve ek kayıtları ayrı belirtiyor", /1 kayıt/.test(r.toast) && (!extraInMail || /\+\d+ ilgili kayıt, aynı kişiye ait olduğu için aynı maile eklendi/.test(r.toast)), r.toast);
     sane("Zimmet Hatalı", r.mails);
-    check("Zimmet Hatalı: şablon metni (kayıtlı sahibi farklı… fiilen siz kullanıyorsunuz)", /kayıtlı sahibi farklı bir kişi görünüyor/.test(t) && /fiilen siz kullanıyorsunuz/.test(t));
+    check("Zimmet Hatalı: şablon metni (kayıtlı sahibi farklı… son giriş kayıtlarına göre siz kullanıyorsunuz)", /kayıtlı sahibi farklı bir kişi görünüyor/.test(t) && /son giriş kayıtlarına göre bu cihaz\(lar\)ı siz kullanıyorsunuz/.test(t) && !/fiilen/.test(t));
     check("Zimmet Hatalı: tablo sütunları (Seri No … Last Logon)", ["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"].every((h) => t.includes(h)));
     check("Zimmet Hatalı: kayıtlı sahibi unvanıyla yazılmış (Ad Soyad (… Takimi))", /\(.*Takimi\)/.test(t));
     check("Zimmet Hatalı: Turuncuhat talimatı (mhy.com.tr)", t.includes("turuncuhat.mhy.com.tr"));

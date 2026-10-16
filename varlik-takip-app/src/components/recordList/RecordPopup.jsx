@@ -127,7 +127,10 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
                   <div style={styles.detailAlertBody}>{row.matchDetail}</div>
                   {row.actualUser && (
                     <div style={{ ...styles.detailAlertBody, marginTop: 4 }}>
-                      Fiilen kullanan: <strong>{row.actualUser}</strong>{row.actualUserMail ? ` (${row.actualUserMail})` : ""}
+                      Cihazı kullanan: <strong>{row.actualUser}</strong>{row.actualUserMail ? ` (${row.actualUserMail})` : ""}
+                      <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>
+                        SCCM'de son oturum açan{row.hostname ? <> · Hostname: <span style={{ fontFamily: "var(--font-mono)" }}>{row.hostname}</span></> : ""}
+                      </div>
                     </div>
                   )}
                 </div>
