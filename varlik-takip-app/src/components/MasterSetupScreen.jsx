@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { LIGHT_PALETTE } from "../theme/palette";
+import { ITSM_PALETTE } from "../theme/palette";
 import { buildStyles } from "../theme/buildStyles";
 import { backendClient } from "../services/backendClient";
+import AuthShell, { CardLogo } from "./AuthShell";
 
 // İlk çalıştırma ekranı — gereksinim #7: Master User oluşturma. Şifre plaintext hiçbir yerde
 // saklanmaz/loglanmaz; backend bcrypt ile hash'ler (bkz. backend/src/authProviders/local.js).
 export default function MasterSetupScreen({ onMasterCreated }) {
-  const pal = LIGHT_PALETTE;
+  const pal = ITSM_PALETTE; // kurumsal: mavi vurgu, soğuk gri/beyaz (çerçeve AuthShell ile uyumlu)
   const styles = useMemo(() => buildStyles(pal), []);
 
   const [username, setUsername] = useState("");
@@ -34,10 +35,11 @@ export default function MasterSetupScreen({ onMasterCreated }) {
   }
 
   return (
-    <div style={{ ...styles.body, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ ...styles.panel, padding: "40px 36px", width: "min(420px, 100%)" }}>
-        <p style={{ ...styles.pageTitle, fontSize: 21 }}>İlk Kurulum</p>
-        <p style={styles.pageSub}>
+    <AuthShell>
+      <div style={{ ...styles.panel, padding: "40px 36px", width: "min(420px, 100%)", boxShadow: "0 18px 50px rgba(18,53,91,0.14)", border: "1px solid #E3E7EF" }}>
+        <CardLogo />
+        <p style={{ ...styles.pageTitle, fontSize: 21, textAlign: "center" }}>İlk Kurulum</p>
+        <p style={{ ...styles.pageSub, textAlign: "center" }}>
           Uygulama ilk kez çalıştırılıyor — devam etmeden önce bir Master User (yerel yönetici hesabı) oluşturun.
         </p>
 
@@ -64,6 +66,6 @@ export default function MasterSetupScreen({ onMasterCreated }) {
           </button>
         </form>
       </div>
-    </div>
+    </AuthShell>
   );
 }
