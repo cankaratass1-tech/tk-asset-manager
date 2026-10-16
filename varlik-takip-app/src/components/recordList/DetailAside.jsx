@@ -3,6 +3,7 @@ import { isZimmetUnverified } from "../../services/zimmetService";
 import { isInaktifUnverified, needsInaktifAction } from "../../services/inaktifComparisonService";
 import { deviceKeyOf } from "../../services/deviceActionService";
 import DeviceActionHistory from "./DeviceActionHistory";
+import { useStickyTop } from "../../hooks/useStickyTop";
 
 const smallBtnStyle = (pal) => ({
   fontSize: 12,
@@ -104,9 +105,11 @@ function NotesBlock({ row, rowMeta, addNote, editNote, deleteNote, styles, pal }
 
 // Detay görünümü sağ panel — Zimmet notları burada, satır seçilince görünür
 export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, modelLabel, locationLabel, styles, pal, setSelectedPerson, rowMeta, addNote, editNote, deleteNote, mailHistory }) {
+  // Panel ekrandan uzunsa (uzun geçmiş, çok not) sabit top içeriğin alt kısmını erişilemez bırakıyordu — bkz. hooks/useStickyTop.js
+  const [asideRef, asideTop] = useStickyTop(20);
   if (!row) {
     return (
-      <aside style={styles.detailAside}>
+      <aside ref={asideRef} style={{ ...styles.detailAside, top: asideTop }}>
         <div style={styles.detailEmpty}>Detayını görmek için soldaki listeden bir kayıt seç</div>
       </aside>
     );
@@ -115,7 +118,7 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
   const initials = row.owner !== "—" ? row.owner.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase() : "?";
 
   return (
-    <aside style={styles.detailAside}>
+    <aside ref={asideRef} style={{ ...styles.detailAside, top: asideTop }}>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={styles.detailAvatar}>{initials}</div>
         <div style={{ minWidth: 0 }}>

@@ -20,7 +20,8 @@
     "test:darbogaz": "node e2e/darbogazcheck.mjs",
     "test:theme": "node e2e/themecheck.mjs",
     "test:trend": "node e2e/trendlegend.mjs",
-    "test:history": "node e2e/historycheck.mjs"
+    "test:history": "node e2e/historycheck.mjs",
+    "test:scroll": "node e2e/scrollcheck.mjs"
   },
   "build": {
     "appId": "com.varliktakip.app",

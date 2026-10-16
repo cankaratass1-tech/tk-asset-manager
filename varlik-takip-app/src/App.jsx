@@ -43,6 +43,7 @@ import ThDepotSccmReportScreen from "./components/ThDepotSccmReportScreen";
 import AtilMonitorReportScreen from "./components/AtilMonitorReportScreen";
 import BantGenisligiScreen from "./components/BantGenisligiScreen";
 import AppFooter from "./components/AppFooter";
+import { useStickyTop } from "./hooks/useStickyTop";
 import { LIGHT_PALETTE, DARK_PALETTE, AERO_PALETTE, ITSM_PALETTE } from "./theme/palette";
 import { buildStyles } from "./theme/buildStyles";
 import Donut from "./components/Donut";
@@ -137,6 +138,9 @@ export default function App({ user, onLogout } = {}) {
       // localStorage kullanılamıyorsa sessizce geç — madde 14
     }
   }, [theme]);
+  // Sol menü ve detay paneli ekrandan uzun olabilir: sabit top yerine useStickyTop (bkz. hooks/useStickyTop.js)
+  const [sidebarRef, sidebarTop] = useStickyTop(16);
+  const [detailRef, detailTop] = useStickyTop(20);
   const PALETTES = { light: LIGHT_PALETTE, dark: DARK_PALETTE, aero: AERO_PALETTE, itsm: ITSM_PALETTE };
   const pal = PALETTES[theme] || LIGHT_PALETTE;
   const styles = useMemo(() => buildStyles(pal), [theme]);
@@ -3106,7 +3110,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
       <div style={styles.shell} className="vt-shell">
         {/* SIDEBAR */}
-        <aside style={styles.sidebar} className="no-print">
+        <aside ref={sidebarRef} style={{ ...styles.sidebar, maxHeight: "none", overflowY: "visible", top: sidebarTop }} className="no-print">
           {/* Tema değiştirici + Ayarlar butonu buradan kaldırılıp sağ üste (ana panel başlığına)
               taşındı (bkz. konuşma). Logo + isim artık kendi ayrı kartında — sidebar'ın geri
               kalanından (nav listesi) görsel olarak ayrılsın diye (bkz. konuşma — referans görsel). */}
@@ -4608,7 +4612,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 </div>
 
                 {/* Gönderim Detayı — sağ panel (gereksinim #12/#13) */}
-                <div style={styles.detailAside} className="no-print">
+                <div ref={detailRef} style={{ ...styles.detailAside, top: detailTop }} className="no-print">
                   {!selectedHistoryId ? (
                     <div style={styles.detailEmpty}>Detayları görmek için soldaki listeden bir gönderim seçin</div>
                   ) : (
