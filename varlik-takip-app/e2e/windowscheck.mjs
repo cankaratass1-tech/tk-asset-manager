@@ -81,6 +81,28 @@ try {
   check("Satıra tıklayınca cihaz görünümü açılıyor ve 'İŞLETİM SİSTEMİ' kartı var", t.includes("Windows sürümü") && t.includes("Destek durumu"));
   check("Kartta sürüm etiketi (Windows 10/11 …) ve destek durumu görünüyor", /Windows 1[01] \d{2}H\d/.test(t) && /(Destek sona erdi|Destekte|Destek bitiyor)/.test(t));
 
+  console.log("\nCihaz kartı düzeni: Güvenlik (BitLocker + işletim sistemi) ve Donanım (batarya)");
+  const batFile = new URL("../../backend/demo-data/battery-health.xlsx", import.meta.url);
+  const bwb = XLSX.read(readFileSync(batFile));
+  const brow = XLSX.utils.sheet_to_json(bwb.Sheets[bwb.SheetNames[0]], { defval: "" })[0];
+  const bHost = String(brow["System"]).split(".")[0];
+  const up = await fetch(`${be.base}/api/settings/battery-health-upload`, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${be.token}` },
+    body: JSON.stringify({ fileName: "battery-health.xlsx", contentBase64: readFileSync(batFile).toString("base64") }),
+  }).then((r) => r.json());
+  check("Battery Health demo dosyası yüklendi", up.ok === true, up.message || "");
+  await page.goto(be.base);
+  await page.waitForTimeout(5000);
+  const s2 = page.locator('input[placeholder^="Hostname / Seri No / Last Logon"]');
+  await s2.fill(bHost); await s2.press("Enter");
+  await page.waitForTimeout(1200);
+  const cardOf = async (title) => (await page.locator("div", { has: page.locator(`p:text-is("${title}")`) }).last().innerText()).replace(/\n+/g, " | ");
+  const sec = await cardOf("Güvenlik");
+  check("Güvenlik kartında BitLocker'ın altında Windows sürümü ve Destek durumu var", /BitLocker.*Windows sürümü.*Build.*Destek durumu/i.test(sec), sec.slice(0, 160));
+  check("Ayrı 'İşletim Sistemi' kartı kalmadı", (await page.locator("p", { hasText: /^İşletim Sistemi$/i }).count()) === 0);
+  const hw = await cardOf("Donanım");
+  check("Donanım kartı: Batarya sağlığı %, etiket, Şarj döngüsü satırları", /Batarya sağlığı \| %\d+/i.test(hw) && /(İyi|İzlenmeli|Değişmeli)/i.test(hw) && /Şarj döngüsü \| \d+/i.test(hw), hw.slice(0, 220));
+
   console.log("\nZimmet raporunda Windows filtresi ve sütunu");
   await page.locator('text="Zimmet Uyuşmazlığı"').first().click();
   await page.waitForTimeout(2500);

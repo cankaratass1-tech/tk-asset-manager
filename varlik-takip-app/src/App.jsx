@@ -2960,6 +2960,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     if (realSccmAll.length === 0) loadRealSccmData({ silent: true });
     if (realThAll.length === 0) loadRealThData({ silent: true });
     if (realMonitorAll.length === 0) loadRealMonitorData({ silent: true });
+    // Cihaz Genel Görünüm "Donanım" kartındaki batarya sağlığı için (Battery Health yalnızca kendi raporunda yükleniyordu → ana sayfada hep "Veri Yok")
+    if (!batteryLoaded) loadRealBatteryData({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDashboard, fileSourceConfig.folderPath]);
 

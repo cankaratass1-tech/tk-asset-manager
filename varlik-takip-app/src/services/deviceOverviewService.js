@@ -5,7 +5,7 @@
 import { norm, compareAssignment } from "./comparisonService";
 import { classifyDisk } from "./dashboardService";
 import { deviceAgeYears, daysSince } from "./unusedDeviceService";
-import { findBattery, batteryHealthState } from "./batteryFileService";
+import { findBattery } from "./batteryFileService";
 import { matchesWindowsQuery } from "./windowsVersionService.js";
 
 const OK = "ok", WARN = "warn", CRIT = "crit", NONE = "none";
@@ -92,6 +92,16 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
         group: "Güvenlik",
         items: [
           { label: "BitLocker", value: val(sccm?.bitlocker), state: !sccm?.bitlocker ? NONE : bitOn ? OK : CRIT },
+          // İşletim sistemi: güvenlik kartında BitLocker'ın altında (destek bitmiş sürüm = güvenlik riski)
+          ...(() => {
+            const st = sccm?.windowsStatus;
+            const state = st === "supported" ? OK : st === "ending" ? WARN : st === "ended" ? CRIT : NONE;
+            return [
+              { label: "Windows sürümü", value: val(sccm?.windowsLabel), state: sccm?.windowsLabel ? OK : NONE, note: sccm?.windowsLabel ? "" : "SCCM envanterinde işletim sistemi sütunu yok/boş" },
+              { label: "Build", value: val(sccm?.osBuild), state: NONE },
+              { label: "Destek durumu", value: val(sccm?.windowsSupportLabel), state, note: sccm?.windowsDetail || "" },
+            ];
+          })(),
         ],
       },
       {
@@ -112,18 +122,6 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
         ],
       },
       {
-        group: "İşletim Sistemi",
-        items: (() => {
-          const st = sccm?.windowsStatus;
-          const state = st === "supported" ? OK : st === "ending" ? WARN : st === "ended" ? CRIT : NONE;
-          return [
-            { label: "Windows sürümü", value: val(sccm?.windowsLabel), state: sccm?.windowsLabel ? OK : NONE, note: sccm?.windowsLabel ? "" : "SCCM envanterinde işletim sistemi sütunu yok/boş" },
-            { label: "Build", value: val(sccm?.osBuild), state: NONE },
-            { label: "Destek durumu", value: val(sccm?.windowsSupportLabel), state, note: sccm?.windowsDetail || "" },
-          ];
-        })(),
-      },
-      {
         group: "Donanım",
         items: [
           { label: "BIOS Date", value: val(sccm?.biosDate), state: sccm?.biosDate ? OK : NONE },
@@ -131,10 +129,21 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
             ? [{ label: "Garanti Başlangıç (TH)", value: th.warrantyStartDate, state: OK, note: "BIOS Date yok — yaş bu tarihten" }]
             : []),
           { label: "Cihaz Yaşı", value: age != null ? `${age} yıl` : "Veri Yok", state: age == null ? NONE : age > 5 ? CRIT : age > 3 ? WARN : OK, note: ageSource ? `Kaynak: ${ageSource}` : "" },
-          (() => {
+          ...(() => {
             const bat = findBattery(batteryRows, sccm?.hostname || th?.hostname || inaktif?.hostname || query);
-            const bs = batteryHealthState(bat);
-            return { label: "Batarya", value: bs.value, state: bs.state, note: bat ? `LakeSide · ${bat.hostShort}` : "LakeSide Battery Health yüklenince" };
+            if (!bat || bat.batteryHealth == null) {
+              const desktop = /desktop|masa/i.test(String(sccm?.sub || ""));
+              return [{ label: "Batarya sağlığı", value: desktop ? "Masaüstü — batarya yok" : "Veri Yok", state: NONE, note: desktop ? "Cihaz tipi Desktop" : "LakeSide Battery Health dosyasında bu cihaz yok / dosya yüklenmedi" }];
+            }
+            const h = bat.batteryHealth;
+            const state = h < 60 ? CRIT : h < 80 ? WARN : OK;
+            const cap = bat.designCapacity && bat.fullChargeCapacity ? `${bat.fullChargeCapacity} / ${bat.designCapacity} mWh` : "";
+            return [
+              { label: "Batarya sağlığı", value: `%${h}`, state, badgeLabel: bat.durum, note: "Yeni pile göre kalan kapasite. ≥%80 iyi · %60-80 izlenmeli · <%60 değişmeli" },
+              ...(bat.cycleCount != null ? [{ label: "Şarj döngüsü", value: `${bat.cycleCount}`, state: NONE, note: "Tamamlanan şarj/deşarj sayısı (yüksekse pil yıpranır)" }] : []),
+              ...(cap ? [{ label: "Kapasite", value: cap, state: NONE, note: "Mevcut tam şarj kapasitesi / tasarım kapasitesi" }] : []),
+              ...(bat.batteryStatus ? [{ label: "Pil durumu", value: bat.batteryStatus, state: NONE }] : []),
+            ];
           })(),
         ],
       },

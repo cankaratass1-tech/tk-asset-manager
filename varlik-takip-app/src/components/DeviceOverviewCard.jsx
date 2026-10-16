@@ -170,7 +170,10 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
                           <span style={{ fontWeight: 600 }}>{it.value}</span>
                           {/* it.badgeLabel varsa (örn. monitör zimmet karşılaştırması "Doğru"/"Hatalı") genel
                               OK/Kritik yerine onu göster — bkz. konuşma */}
-                          <span style={{ background: st.bg, color: st.fg, borderRadius: 6, padding: "1px 7px", fontSize: 10.5, fontWeight: 700 }} title={it.note || ""}>{it.badgeLabel || st.label}</span>
+                          {/* Değeri olan bilgi satırlarında (Build, Toplam, Şarj döngüsü…) "Veri Yok" rozeti yanıltıcıydı — yalnız durum/eksik veri için rozet */}
+                          {(it.state !== "none" || it.badgeLabel || /veri yok|^yok/i.test(String(it.value))) && (
+                            <span style={{ background: st.bg, color: st.fg, borderRadius: 6, padding: "1px 7px", fontSize: 10.5, fontWeight: 700 }} title={it.note || ""}>{it.badgeLabel || st.label}</span>
+                          )}
                         </span>
                       </div>
                     );
