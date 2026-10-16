@@ -57,12 +57,12 @@ const STAGE_EXPORT_NAMES = {
 // Ayarlar'daki rapor ekranlarıyla aynı davranış (İnaktif Cihazlar tablosu gibi): satırlar onay
 // kutusuyla seçilebilir, sahibe tıklayınca kişinin tüm monitörleri açılır, seri numarasına
 // tıklayınca monitörün detayı açılır. Hesaplama atilMonitorService.js'te.
-export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRows, thMeta, monitorMeta, loading, showToast, recordMailHistory, deptLabel }) {
+export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRows, thMeta, monitorMeta, loading, showToast, recordMailHistory, deptLabel, initialStage = "atil" }) {
   const [confirmMailOpen, setConfirmMailOpen] = useState(false);
   const [mailBusy, setMailBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [stage, setStage] = useState("atil");
+  const [stage, setStage] = useState(initialStage);
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
   const [expandedOwner, setExpandedOwner] = useState(null); // { rowKey, ownerKey, userKey, person }
   const [detailRow, setDetailRow] = useState(null);

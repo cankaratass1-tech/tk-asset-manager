@@ -25,6 +25,8 @@ import { computeInaktifDashboard, computeDiskDashboard, computeZimmetLocationBre
 import { latestPeriodSummary } from "./services/periodComparisonService";
 import LocationTrendChart from "./components/LocationTrendChart";
 import OverviewPanel from "./components/OverviewPanel";
+import DashboardV2 from "./components/DashboardV2"; // DEMO (commit edilmedi) — yeni Ana Sayfa tasarımı
+import { computeAtilMonitorRows } from "./services/atilMonitorService";
 import ManagementKpiPanel from "./components/ManagementKpiPanel";
 import { deviceKeyOf, logDeviceAction, persistDeviceMeta } from "./services/deviceActionService";
 import { computeUnusedDevices, DEFAULT_STALE_DAYS } from "./services/unusedDeviceService";
@@ -179,6 +181,9 @@ export default function App({ user, onLogout } = {}) {
   // "haftalık/aylık filtrelenebilecek şekilde... bütün raporlarda gözükmeli". Tek bir paylaşılan
   // state: nerede gösterilirse gösterilsin AYNI dönem seçimini kullanır (senkronizasyon).
   const [summaryPeriod, setSummaryPeriod] = useState("week"); // week | month
+  const [dashboardDemo, setDashboardDemo] = useState(() => { try { return localStorage.getItem("varlikTakip.dashboardDemo") === "1"; } catch { return false; } }); // DEMO: yeni Ana Sayfa tasarımı
+  const [atilStage, setAtilStage] = useState(null); // DEMO: Atıl Monitörler ekranı hangi aşamayla açılsın (null = varsayılan)
+  const toggleDashboardDemo = (v) => { setDashboardDemo(v); try { localStorage.setItem("varlikTakip.dashboardDemo", v ? "1" : "0"); } catch { /* sessiz geç */ } };
   const [summaryDetail, setSummaryDetail] = useState(null); // null | "cozulen" | "yeniTespit" | "devamEden" — rozete tıklanınca açılan cihaz listesi
   useEffect(() => { setSummaryDetail(null); }, [activeReport]);
 
@@ -734,7 +739,7 @@ export default function App({ user, onLogout } = {}) {
     setLoginPassword("");
   };
   const goDept = (id) => { setActiveDept(id); closeAllViews(); setSelectedKeys(new Set()); };
-  const goReport = (id) => { setActiveReport(id); closeAllViews(); setSelectedKeys(new Set()); setExpandedPerson(null); };
+  const goReport = (id) => { setActiveReport(id); closeAllViews(); setSelectedKeys(new Set()); setExpandedPerson(null); setAtilStage(null); };
 
   // TuruncuHat envanteri yüklüyse (Ayarlar > TuruncuHat ve Monitor Raporu) SCCM+TH+Monitor üçlü
   // karşılaştırması kullanılır — bu, monitörler için de gerçek doğru/hatalı zimmet tespiti verir
@@ -2858,6 +2863,16 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattery]);
 
+  // [DEMO DASHBOARD] Aksiyon listesi BSOD / Battery / Bant sayılarını da gösterir; bu veriler normalde yalnızca ilgili rapora girilince
+  // yüklenir — demo açıkken Ana Sayfa'da da baştan yüklenir (yoksa bu satırlar rapora girilene kadar 0 görünürdü).
+  useEffect(() => {
+    if (!(showDashboard && dashboardDemo)) return;
+    if (realBsodAll.length === 0) loadRealBsodData({ silent: true });
+    if (!batteryLoaded) loadRealBatteryData({ silent: true });
+    if (!bantLoaded) loadRealBantData({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDashboard, dashboardDemo]);
+
   // SCCM Ajan Raporu — dashboard'a hiç girilmeden doğrudan bu ekrana gelinirse SCCM verisi
   // henüz yüklenmemiş olabilir (bkz. konuşma: "defaultta kullandığımız sccm listesinden al").
   useEffect(() => {
@@ -2897,6 +2912,18 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   // alt lokasyon seçimini sıfırla
   useEffect(() => {
     setLocationFilter([]);
+  }, [lbsParentFilter]);
+
+  // [DEMO DASHBOARD] Dashboard'daki bir lokasyona tıklanınca rapor o lokasyonla (ve gerekirse segmentle) açılır. Rapor/şirket
+  // değişince çalışan sıfırlama efektleri (activeReport, lbsParentFilter) filtreyi temizlediği için seçim burada, onlardan SONRA uygulanır.
+  const pendingNavRef = useRef(null);
+  useEffect(() => {
+    const p = pendingNavRef.current;
+    if (!p) return;
+    pendingNavRef.current = null;
+    setLocationFilter(p.location ? [p.location] : []);
+    setStatusFilter(p.status ? [p.status] : []);
+    setSegment(p.segment || "all");
   }, [lbsParentFilter]);
 
   // Herhangi bir filtre değişince sayfalama 1. sayfaya döner — aksi halde kullanıcı 10. sayfada
@@ -3339,6 +3366,66 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   );
                 };
 
+                if (dashboardDemo) {
+                  // ---- DEMO: yeni Ana Sayfa (DashboardV2). Aynı canlı veriden, şirket filtresine uyar ----
+                  const unusedScoped = byCompany(unusedDeviceRows, dc);
+                  const atilStats = computeAtilMonitorRows({ thRows: byCompany(realThAll, dc), monitorRows: realMonitorAll }).stats;
+                  const inCo = (d) => dc === "all" || d.company === dc;
+                  const sm = (id) => latestPeriodSummary(reportSnapshots[id], summaryPeriod, inCo);
+                  const devices = byCompany(realSccmAll, dc).length;
+                  const openTotal = inaktifStats.total + overallZimmet.bad + unusedScoped.length + (diskScoped ? diskStats.critical : 0);
+                  const meta = (label, m) => ({ label, at: m?.modifiedAt || null, file: m?.fileName });
+                  const v2 = {
+                    scope: dc === "all" ? "Tüm Şirketler" : companyShortLabel(dc),
+                    diskScoped,
+                    totals: { devices, open: openTotal, healthPct: devices ? Math.max(0, Math.round(((devices - openTotal) / devices) * 100)) : 0 },
+                    cards: {
+                      zimmet: { value: overallZimmet.bad, unverified: overallZimmet.noRecord, monitor: overallZimmet.monitorIssueCount, summary: sm("zimmet") },
+                      inaktif: { value: inaktifStats.total, summary: sm("inaktif") },
+                      disk: { value: diskScoped ? diskStats.critical : null, warning: diskStats.warning, summary: diskScoped ? sm("disk") : null },
+                      unused: { value: unusedScoped.length, summary: sm("kullanilmayan") },
+                      atil: { value: atilStats.atil, bilgiDisi: atilStats.outside },
+                    },
+                    extra: {
+                      lokasyonIp: byCompany(lokasyonIpRows, dc).filter((r) => !r.matched).length,
+                      bsod: byCompany(bsodRows, dc).length,
+                      batteryReplace: byCompany(batteryRows, dc).filter((r) => r.batteryHealth != null && r.batteryHealth < 60).length,
+                      bantWarn: realBantAll.filter((r) => r.isWarning).length,
+                    },
+                    locations: { zimmet: zimmetTopLocations, inaktif: inaktifStats.topLocations },
+                    freshness: [meta("TuruncuHat", realThMeta), meta("SCCM", realSccmMeta), meta("İnaktif", realInaktifMeta), meta("Disk", realDiskMeta), meta("Monitor", realMonitorMeta), meta("BSOD", realBsodMeta), meta("Battery", realBatteryMeta)],
+                  };
+                  return (
+                    <DashboardV2
+                      styles={styles}
+                      pal={pal}
+                      data={v2}
+                      snapshots={reportSnapshots}
+                      company={dc}
+                      summaryToggle={summaryPeriodToggle}
+                      searchSlot={
+                        <DeviceOverviewCard
+                          sources={{ sccmRows: realSccmAll, thRows: realThAll, monitorRows: realMonitorAll, inaktifRows: inaktifComparisonRows.length ? inaktifComparisonRows : realInaktifAll, diskRows: realDiskAll, batteryRows: realBatteryAll, staleDays }}
+                          styles={styles}
+                          pal={pal}
+                        />
+                      }
+                      onNavigate={(id, opts = {}) => {
+                        if (id === "bant-genisligi") { closeAllViews(); setActiveNetworkView(id); setSelectedKeys(new Set()); return; }
+                        // şirket seçiliyken rapor da aynı şirketle açılsın (kartlardaki sayı ile rapor sayısı tutsun)
+                        const effectsWillReset = activeReport !== id || activeCompany !== dc;
+                        goReport(id);
+                        if (opts.atilStage) setAtilStage(opts.atilStage);
+                        setActiveCompany(dc);
+                        setTypeFilter([]); setModelFilter([]); setStatusFilter([]); setSearch(""); setShowSnoozed(false);
+                        if (effectsWillReset) pendingNavRef.current = { location: opts.location, segment: opts.segment, status: opts.status };
+                        else { setLocationFilter(opts.location ? [opts.location] : []); setStatusFilter(opts.status ? [opts.status] : []); setSegment(opts.segment || "all"); }
+                      }}
+                      onBack={() => toggleDashboardDemo(false)}
+                    />
+                  );
+                }
+
                 return (
                   <>
                     {/* Madde 10, 11 — "Cihaz Genel Görünüm": hostname/seri no/last logon ile
@@ -3370,6 +3457,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                           <p style={styles.pageSub}>İnaktif Cihazlar, Disk Alanı ve Zimmet Uyuşmazlığı gerçek verilerle</p>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button style={styles.btnGhost} onClick={() => toggleDashboardDemo(true)} title="Yeni Ana Sayfa tasarımının demosunu göster">✨ Yeni tasarımı dene (demo)</button>
                           <span style={{ fontSize: 11.5, color: pal.inkSoft }}>Kart özetleri:</span>
                           {summaryPeriodToggle}
                         </div>
@@ -4502,6 +4590,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             <PendingClosureScreen styles={styles} pal={pal} showToast={showToast} thRows={realThAll} />
           ) : activeReport === "atil-monitor" ? (
             <AtilMonitorReportScreen
+              key={atilStage || "varsayilan"}
+              initialStage={atilStage || "atil"}
               styles={styles}
               pal={pal}
               thRows={byCompany(realThAll, activeCompany)}
