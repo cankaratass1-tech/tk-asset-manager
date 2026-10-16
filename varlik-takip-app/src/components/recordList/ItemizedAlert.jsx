@@ -1,18 +1,18 @@
+import { ownerTitleOf } from "../../services/ownerName";
+
 // Durum kutusunun maddeli (anahtar–değer) gösterimi: paragraf yerine "Seri no / Hostname / Zimmetli kişi / Cihazı kullanan / Yapılacak".
-// Her bilginin KAYNAĞI ayrı bir rozet olarak görünür (SCCM, TuruncuHat…) — soluk yazı yerine net etiket.
+// Değerler tablodaki kişi hücresiyle AYNI biçimde: üstte ad (kalın), altında ayrıntı satırları (takım, e-posta, kaynak) daha küçük/gri.
 // Paragraf metni (matchDetail) mailler ve Excel "Açıklama" için aynen durur; bu yalnız ekran görünümüdür.
 // Aksiyon gerektirmeyen durumlarda items verilmez (çağıran eski paragraf kutusunu kullanır).
-
-const SRC = (text) => ({ text, kind: "source" });
 
 // İnaktif Cihazlar — "Kullanılıyor — Zimmet Aktarımı Gerekli"
 export function inaktifActionItems(row) {
   if (!row.actualUser) return null;
   return [
-    { label: "Seri no", value: row.serial, mono: true },
-    ...(row.hostname ? [{ label: "Hostname", value: row.hostname, mono: true, chips: [SRC("SCCM")] }] : []),
-    { label: "Kayıtlı sahibi", value: row.owner && row.owner !== "—" ? row.owner : "—", chips: [SRC("İnaktif listesinde")] },
-    { label: "Cihazı kullanan", value: row.actualUser, line2: row.actualUserMail || "", chips: [SRC("SCCM · son oturum açan")] },
+    { label: "Seri no", value: row.serial },
+    ...(row.hostname ? [{ label: "Hostname", value: row.hostname, lines: ["SCCM"] }] : []),
+    { label: "Kayıtlı sahibi", value: row.owner && row.owner !== "—" ? row.owner : "—", lines: [ownerTitleOf(row.ownerFull), "İnaktif listesi"] },
+    { label: "Cihazı kullanan", value: row.actualUser, lines: [row.actualUserMail, "SCCM · son oturum açan"] },
     { label: "Yapılacak", value: `Zimmet ${row.actualUser} adına aktarılmalı`, action: true },
   ];
 }
@@ -22,14 +22,14 @@ export function zimmetAlertItems(row) {
   const tag = String(row.personStatusTag ?? row.statusTag ?? "");
   const user = row.userLabel && row.userLabel !== "Tespit Edilemedi" ? row.userLabel : "";
   const base = [
-    { label: "Seri no", value: row.serial, mono: true },
-    ...(row.hostname ? [{ label: "Hostname", value: row.hostname, mono: true, chips: [SRC("SCCM")] }] : []),
-    { label: "Zimmetli kişi", value: row.owner && row.owner !== "—" ? row.owner : "—", chips: [SRC("TuruncuHat")] },
+    { label: "Seri no", value: row.serial },
+    ...(row.hostname ? [{ label: "Hostname", value: row.hostname, lines: ["SCCM"] }] : []),
+    { label: "Zimmetli kişi", value: row.owner && row.owner !== "—" ? row.owner : "—", lines: [ownerTitleOf(row.ownerFull), "TuruncuHat"] },
   ];
   if (/^Zimmet Hatalı/.test(tag) && user) {
     return [
       ...base,
-      { label: "Cihazı kullanan", value: user, line2: row.mail || "", chips: [SRC("SCCM · son oturum açan")] },
+      { label: "Cihazı kullanan", value: user, lines: [row.mail, "SCCM · son oturum açan"] },
       { label: "Yapılacak", value: `Zimmet ${user} adına aktarılmalı ya da kullanım düzeltilmeli`, action: true },
     ];
   }
@@ -37,7 +37,16 @@ export function zimmetAlertItems(row) {
     return [
       ...base,
       { label: "Durum", value: `Aynı kişiye ${(row.duplicateDevices || []).length || "birden fazla"} notebook zimmetli` },
-      ...(row.duplicateDevices && row.duplicateDevices.length ? [{ label: "Mükerrer olabilecek cihazlar", list: row.duplicateDevices.map((d) => ({ serial: d.serial, isThis: d.isThis, rows: [["Model", d.model || "—"], ["Hostname", d.hostname || "—"], ["Kullanan", d.user || "Tespit edilemedi"], ["Son giriş", d.lastLogonTime || "—"]] })) }] : []),
+      ...(row.duplicateDevices && row.duplicateDevices.length
+        ? [{
+            label: "Mükerrer olabilecek cihazlar",
+            list: row.duplicateDevices.map((d) => ({
+              serial: d.serial,
+              isThis: d.isThis,
+              rows: [["Model", d.model || "—"], ["Hostname", d.hostname || "—"], ["Kullanan", d.user || "Tespit edilemedi"], ["Son giriş", d.lastLogonTime || "—"]],
+            })),
+          }]
+        : []),
       { label: "Yapılacak", value: "Kullanılmayan cihaz iade edilmeli ya da neden gerektiği belirtilmeli", action: true },
     ];
   }
@@ -47,21 +56,21 @@ export function zimmetAlertItems(row) {
 export default function ItemizedAlert({ title, items, tone = "bad", styles, pal }) {
   const warn = tone === "warn";
   const accent = warn ? pal.warnFg : pal.bad;
-  // Tüm yazılar aynı boyut/renk/kalınlıkta; kaynak bilgisi parantez içinde aynı yazı stiliyle. Yalnız "Yapılacak" değeri kalın.
   const text = { fontSize: 14, lineHeight: 1.5, color: pal.ink, fontWeight: 500 };
+  const sub = { fontSize: 13, lineHeight: 1.45, color: pal.ink, opacity: 0.68, fontWeight: 400 }; // tablodaki ikinci satır gibi
+  const rowBorder = (i) => (i === 0 ? "none" : `1px solid ${pal.ink}1f`);
   return (
     <div data-itemized-alert style={{ ...styles.detailAlert, ...(warn ? { background: pal.warnBg, border: `1px solid ${pal.warnFg}33` } : {}) }}>
       <div style={{ ...styles.detailAlertTitle, color: accent, fontSize: 16, marginBottom: 6 }}>{title}</div>
       <div>
         {items.map((it, i) => {
-          const source = it.chips ? it.chips.map((c) => c.text).join(", ") : "";
           if (it.list) {
             return (
-              <div key={it.label} data-alert-row={it.label} style={{ padding: "9px 0", borderTop: i === 0 ? "none" : `1px solid ${pal.ink}1f` }}>
+              <div key={it.label} data-alert-row={it.label} style={{ padding: "9px 0", borderTop: rowBorder(i) }}>
                 <div style={text}>{it.label}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                   {it.list.map((d) => (
-                    <div key={d.serial} data-dup-device={d.serial} style={{ border: `1px solid ${pal.ink}22`, borderLeft: `3px solid ${d.isThis ? accent : pal.ink + "44"}`, borderRadius: 8, padding: "8px 12px", background: `${pal.ink}08` }}>
+                    <div key={d.serial} data-dup-device={d.serial} style={{ border: `1px solid ${pal.ink}22`, borderLeft: `3px solid ${d.isThis ? accent : `${pal.ink}44`}`, borderRadius: 8, padding: "8px 12px", background: `${pal.ink}08` }}>
                       <div style={{ ...text, fontWeight: 700, marginBottom: 4 }}>{d.serial}{d.isThis ? " — bu kayıt" : ""}</div>
                       {d.rows.map(([k, v]) => (
                         <div key={k} style={{ display: "grid", gridTemplateColumns: "129px 1fr", gap: 0, ...text }}>
@@ -75,15 +84,11 @@ export default function ItemizedAlert({ title, items, tone = "bad", styles, pal 
             );
           }
           return (
-            <div key={it.label} data-alert-row={it.label} style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 14, padding: "9px 0", borderTop: i === 0 ? "none" : `1px solid ${pal.ink}1f` }}>
+            <div key={it.label} data-alert-row={it.label} style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 14, padding: "9px 0", borderTop: rowBorder(i) }}>
               <span style={text}>{it.label}</span>
-              <span style={{ ...text, fontWeight: it.action ? 700 : 500, minWidth: 0, overflowWrap: "anywhere" }}>
-                {it.list ? it.list.map((d) => (
-                  <span key={d.head} style={{ display: "block", marginBottom: 6 }}>
-                    {d.head}
-                    <span style={{ display: "block", fontWeight: 500 }}>{d.detail}</span>
-                  </span>
-                )) : <>{it.value}{it.line2 ? `, ${it.line2}` : ""}{source ? ` (${source})` : ""}</>}
+              <span style={{ ...text, minWidth: 0, overflowWrap: "anywhere" }}>
+                <span style={{ fontWeight: it.action ? 700 : 600 }}>{it.value}</span>
+                {(it.lines || []).filter(Boolean).map((l) => <span key={l} style={{ display: "block", ...sub }}>{l}</span>)}
               </span>
             </div>
           );
