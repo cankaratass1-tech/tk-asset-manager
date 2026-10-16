@@ -23,7 +23,9 @@ const SCHEMAS = {
     sheetIndex: 0,
     headerRow: 3,
     required: ["Hostname", "Serial Number", "Type", "Model", "LastLogon UserName", "LastLogonTime", "IPAddresses"],
-    recommended: ["Envanter User", "Envanter User Name", "EnvanterLokasyon", "EnvanterLocationParent", "LastLogonMail", "LastLogonUser", "İştirak", "Bitlocker Enabled", "OUName"],
+    // Windows sürümü sütunu: gerçek dosyadaki adı doğrulanmadı — frontend/src/services/sccmFileService.js ile aynı varyantlar
+    recommended: ["Envanter User", "Envanter User Name", "EnvanterLokasyon", "EnvanterLocationParent", "LastLogonMail", "LastLogonUser", "İştirak", "Bitlocker Enabled", "OUName",
+      ["Operating System", "OperatingSystem", "OS Name", "OSName", "OS", "Caption", "Windows Version", "Windows", "OS Version", "OSVersion", "Operating System Version", "OS Build", "OSBuild", "Build", "Build Number", "Version"]],
   },
   monitor: {
     label: "Monitor Raporu (Attached Monitors)",
@@ -67,6 +69,22 @@ const SCHEMAS = {
       ["Application Name", "ApplicationName", "BSOD", "Stop Code", "Bugcheck"],
     ],
     recommended: [["BSOD Count", "BSODCount", "Count", "Adet"], ["Crash Date", "CrashDate", "Date", "Tarih"]],
+  },
+  resource: {
+    label: "Kaynak Kullanımı CPU/RAM (LakeSide)",
+    prefix: "Lakeside_Resource",
+    sheetIndex: 0,
+    headerRow: 0,
+    // Alternatifler frontend/src/services/resourceFileService.js ile birebir aynıdır (gerçek export adı doğrulanmadı)
+    required: [["Machine Name", "MachineName", "Hostname", "Computer Name", "System", "Cihaz"]],
+    requiredAny: {
+      label: "CPU ya da RAM kullanım sütunu (Avg CPU % / Avg RAM %)",
+      options: [
+        [["Avg CPU %", "CPU Avg %", "Average CPU %", "CPU Usage %", "CPU %", "CPU"]],
+        [["Avg RAM %", "RAM Avg %", "Average RAM %", "Memory Usage %", "RAM %", "Memory %", "RAM"]],
+      ],
+    },
+    recommended: [["Peak CPU %", "CPU Peak %", "Max CPU %"], ["Peak RAM %", "RAM Peak %", "Max RAM %"], ["Total RAM (GB)", "RAM GB", "Installed RAM (GB)"], ["Date", "Tarih", "Week"]],
   },
   // Battery Health ve Bant Genişliği dosyaları sabit bir ad desenine uymaz; Ayarlar > Veri Input'tan ayrı yükleme
   // yollarıyla (routes/batteryhealthupload.js, bantgenisligiupload.js) gelir. fromUpload: reports.js'te okunmaz.

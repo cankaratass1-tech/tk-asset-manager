@@ -201,6 +201,17 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
         </div>
         {isZimmet && (
           <div style={styles.detailFieldRow}>
+            <span style={{ color: pal.inkSoft }}>Windows</span>
+            <span title={row.windowsDetail || ""} style={{ textAlign: "right" }}>
+              {row.windowsLabel || <span style={{ color: pal.inkSoft }}>Veri Yok</span>}
+              {row.windowsSupportLabel && (
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: row.windowsStatus === "ended" ? pal.bad : row.windowsStatus === "ending" ? pal.warnFg : row.windowsStatus === "supported" ? pal.ok : pal.inkSoft }}>{row.windowsSupportLabel}</div>
+              )}
+            </span>
+          </div>
+        )}
+        {isZimmet && (
+          <div style={styles.detailFieldRow}>
             <span style={{ color: pal.inkSoft }}>Zimmet Türü</span>
             <span>{row.assignmentType === "OBS" ? "OBS (Müdürlük)" : row.assignmentType === "User" ? "User (Kişi)" : "—"}</span>
           </div>

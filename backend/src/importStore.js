@@ -19,6 +19,7 @@ const KINDS = {
   monitor: "Attached Monitors Report",
   lokasyon: "LokasyonMailListesi",
   bsod: "Weekly_BSOD",
+  resource: "Lakeside_Resource",
 };
 
 function importsDir() {

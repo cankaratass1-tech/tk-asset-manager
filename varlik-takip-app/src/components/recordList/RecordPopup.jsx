@@ -62,6 +62,12 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
                 <span style={{ color: pal.inkSoft }}>Zimmet türü</span>
                 <span>{row.assignmentType === "OBS" ? "OBS (Müdürlük)" : row.assignmentType === "User" ? "User (Kişi)" : "—"}</span>
               </div>
+              <div style={styles.detailFieldRow}>
+                <span style={{ color: pal.inkSoft }}>Windows</span>
+                <span title={row.windowsDetail || ""} style={{ textAlign: "right" }}>
+                  {row.windowsLabel ? `${row.windowsLabel} · ${row.windowsSupportLabel || ""}` : <span style={{ color: pal.inkSoft }}>Veri Yok</span>}
+                </span>
+              </div>
               <div style={{ ...styles.detailFieldRow, ...(row.monitorDetails?.length > 0 ? {} : { borderBottom: "none" }) }}>
                 <span style={{ color: pal.inkSoft }}>Durum</span>
                 <span style={{ ...styles.badge, ...(row.matched ? styles.badgeOk : isZimmetUnverified(row.statusTag) ? styles.badgeNeutral : styles.badgeBad) }}>

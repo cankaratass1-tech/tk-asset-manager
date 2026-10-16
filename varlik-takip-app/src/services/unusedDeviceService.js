@@ -86,6 +86,7 @@ export function computeUnusedDevices({ thRows = [], sccmRows = [], staleDays = D
         deviceAgeSource: ageSource,
         deviceAgeDate: ageBasisDate,
         bitlocker: s?.bitlocker || "",
+        windowsLabel: s?.windowsLabel || "", windowsStatus: s?.windowsStatus || "", windowsSupportLabel: s?.windowsSupportLabel || "", windowsDetail: s?.windowsDetail || "", windowsSearch: s?.windowsSearch || "",
         obsStatus: "OBS Zimmetli",
         sccmStatus: s ? "SCCM'de Kayıtlı" : "SCCM'de Yok",
         usageStatus,

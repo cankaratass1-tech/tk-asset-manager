@@ -187,6 +187,7 @@ export const backendClient = {
   getLokasyonMailReport: () => request("/reports/lokasyon-mail"),
   getMonitorReport: () => request("/reports/monitor-raporu"),
   getBsodReport: () => request("/reports/bsod"),
+  getResourceReport: () => request("/reports/lakeside-resource"),
 
   // Elle seçilen rapor dosyasını backend'e kalıcı kaydeder (uygulama yeniden açılınca rapor ekranları
   // veriyi buradan otomatik yükler). Ham bayt gönderilir (JSON değil); yalnızca Master User.

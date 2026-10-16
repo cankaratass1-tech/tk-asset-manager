@@ -116,3 +116,41 @@ export const AERO_PALETTE = {
   warnFg: "#FCD34D",
   warnBg: "rgba(245,158,11,0.20)",
 };
+
+// "ITSM" teması — Lakeside'ın herkese açık sitesinden (lakesidesoftware.com) alınan marka kimliği: birincil mavi
+// #4162F4, sade beyaz yüzeyler, Inter/Manrope tipografisi (uygulama CSP font-src 'self' olduğu için sistem fontu
+// kullanılır). SMAX/Lakeside ürün arayüzlerine erişim olmadığından ürün ekranları birebir taklit EDİLMEDİ; modern ITSM
+// konsollarının ortak dili uygulandı: soğuk gri zemin, ince çizgili kartlar, kompakt tablo, sol menüde mavi aktif şerit,
+// anlamsal durum renkleri (yeşil/amber/kırmızı). `itsm: true` bayrağı buildStyles'ta ek stil geçersiz kılmalarını açar.
+export const ITSM_PALETTE = {
+  itsm: true,
+  bg: "#F3F5F9",
+  bgGradient: "linear-gradient(#F3F5F9, #F3F5F9)",
+  panel: "#FFFFFF",
+  panelSolid: "#FFFFFF",
+  line: "#E3E7EF",
+  ink: "#172033",
+  inkSoft: "#667085",
+  accent: "#4162F4",
+  accentGrad: "linear-gradient(135deg, #4162F4, #2F4AD6)",
+  accentSoft: "rgba(65,98,244,0.10)",
+  accentSoftStrong: "rgba(65,98,244,0.07)",
+  ok: "#12B76A",
+  okBg: "rgba(18,183,106,0.12)",
+  bad: "#D92D20",
+  badBg: "rgba(217,45,32,0.09)",
+  neutralFg: "#667085",
+  neutralBg: "rgba(23,32,51,0.06)",
+  neutralDot: "#C5CCDA",
+  fieldBg: "#F2F4F8",
+  white: "#FFFFFF",
+  overlay: "rgba(16,24,40,0.50)",
+  toastBg: "#172033",
+  toastFg: "#FFFFFF",
+  shadow: "0 1px 2px rgba(16,24,40,0.06)",
+  modalShadow: "0 20px 50px rgba(16,24,40,0.28)",
+  fieldBorder: "1px solid #D5DBE7",
+  scrollbarThumb: "rgba(23,32,51,0.22)",
+  warnFg: "#B54708",
+  warnBg: "rgba(247,144,9,0.14)",
+};

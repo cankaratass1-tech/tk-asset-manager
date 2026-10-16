@@ -6,6 +6,7 @@ import { norm, compareAssignment } from "./comparisonService";
 import { classifyDisk } from "./dashboardService";
 import { deviceAgeYears, daysSince } from "./unusedDeviceService";
 import { findBattery, batteryHealthState } from "./batteryFileService";
+import { matchesWindowsQuery } from "./windowsVersionService.js";
 
 const OK = "ok", WARN = "warn", CRIT = "crit", NONE = "none";
 
@@ -111,6 +112,18 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
         ],
       },
       {
+        group: "İşletim Sistemi",
+        items: (() => {
+          const st = sccm?.windowsStatus;
+          const state = st === "supported" ? OK : st === "ending" ? WARN : st === "ended" ? CRIT : NONE;
+          return [
+            { label: "Windows sürümü", value: val(sccm?.windowsLabel), state: sccm?.windowsLabel ? OK : NONE, note: sccm?.windowsLabel ? "" : "SCCM envanterinde işletim sistemi sütunu yok/boş" },
+            { label: "Build", value: val(sccm?.osBuild), state: NONE },
+            { label: "Destek durumu", value: val(sccm?.windowsSupportLabel), state, note: sccm?.windowsDetail || "" },
+          ];
+        })(),
+      },
+      {
         group: "Donanım",
         items: [
           { label: "BIOS Date", value: val(sccm?.biosDate), state: sccm?.biosDate ? OK : NONE },
@@ -137,4 +150,41 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
       },
     ],
   };
+}
+
+// ---- Windows sürümüne göre arama / filtreleme (Genel Arama) ----
+const STATUS_ORDER = { ended: 0, ending: 1, supported: 2, unknown: 3 };
+
+// SCCM satırlarındaki Windows sürümleri ve adetleri (sürüm filtresi seçenekleri) + destek durumu sayıları
+export function windowsFacets(sccmRows = []) {
+  const versions = new Map();
+  const statuses = { ended: 0, ending: 0, supported: 0, unknown: 0 };
+  sccmRows.forEach((r) => {
+    const label = r.windowsLabel || "";
+    const key = label || "__bilinmiyor__";
+    const cur = versions.get(key) || { label, count: 0, status: r.windowsStatus || "unknown" };
+    cur.count += 1;
+    versions.set(key, cur);
+    statuses[r.windowsStatus || "unknown"] += 1;
+  });
+  const list = [...versions.entries()]
+    .map(([key, v]) => ({ key, ...v }))
+    .sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3) || b.label.localeCompare(a.label, "tr"));
+  return { versions: list, statuses, total: sccmRows.length, known: sccmRows.length - statuses.unknown };
+}
+
+// version: tam sürüm etiketi ("Windows 10 22H2") ya da "__bilinmiyor__"; status: ended|ending|supported|unknown; query: serbest metin
+// (hostname / seri no / kullanıcı / "windows 10" / "22h2" / build / destek durumu). Sonuç: eşleşen SCCM satırları.
+export function filterDevicesByWindows(sccmRows = [], { version = "", status = "", query = "" } = {}) {
+  const q = norm(query);
+  return sccmRows.filter((r) => {
+    if (version) {
+      if (version === "__bilinmiyor__" ? r.windowsLabel : r.windowsLabel !== version) return false;
+    }
+    if (status && (r.windowsStatus || "unknown") !== status) return false;
+    if (!q) return true;
+    const direct = [r.hostname, r.serial, r.userLabel, r.owner].some((v) => norm(v).includes(q));
+    const desc = r.windowsLabel ? { info: {}, searchText: String(r.windowsSearch || "") } : null;
+    return direct || matchesWindowsQuery(desc, query);
+  });
 }

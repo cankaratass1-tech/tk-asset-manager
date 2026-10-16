@@ -11,6 +11,7 @@
 //   İştirak -> şirket kodu, EnvanterLokasyon/EnvanterLocationParent -> lokasyon
 import { backendClient } from "./backendClient";
 import { daysSince, DEFAULT_STALE_DAYS } from "./comparisonService";
+import { describeWindows } from "./windowsVersionService.js";
 
 function col(row, ...names) {
   for (const name of names) {
@@ -28,6 +29,11 @@ function shortName(full) {
 
 export function mapSccmRow(raw) {
   const hostname = col(raw, "Hostname");
+  // Windows sürümü: gerçek export'ta sütun adları doğrulanmadı — olası varyantlar denenir; hiçbiri yoksa boş kalır ("Veri Yok").
+  // Ad ve build ayrı sütunlarda gelebilir ("Operating System" + "OS Version"/"OS Build"); ikisi birlikte ayrıştırılır.
+  const osName = col(raw, "Operating System", "OperatingSystem", "OS Name", "OSName", "OS", "Caption", "Windows Version", "Windows");
+  const osBuild = col(raw, "OS Version", "OSVersion", "Operating System Version", "OS Build", "OSBuild", "Build", "Build Number", "Version");
+  const win = describeWindows(osName, osBuild);
   const serial = col(raw, "Serial Number") || hostname;
   const ownerShort = col(raw, "Envanter User Name");
   const ownerFullRaw = col(raw, "Envanter User");
@@ -115,6 +121,14 @@ export function mapSccmRow(raw) {
     biosDate: col(raw, "BIOS Date", "BIOSDate", "Bios Date", "BiosReleaseDate", "SMBIOS BIOS Date"),
     lastClientContact: col(raw, "Last Client Check", "LastClientCheck", "Last Hardware Scan", "LastHardwareScan", "Last Active Time", "LastActiveTime"),
     clientActive: col(raw, "Client Active", "ClientActive", "Active"),
+    // Windows sürümü ve destek (yaşam döngüsü) durumu — windowsVersionService.js
+    osName,
+    osBuild,
+    windowsLabel: win.label,
+    windowsStatus: win.info ? win.support.status : "",
+    windowsSupportLabel: win.info ? win.support.label : "",
+    windowsDetail: win.info ? win.support.detail : "",
+    windowsSearch: win.searchText,
     matched,
     statusTag,
     _raw: raw,

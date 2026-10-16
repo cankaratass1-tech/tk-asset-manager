@@ -108,6 +108,12 @@ export default function TableView({
                       {r.serial}
                     </span>
                     <div style={styles.cellSub}>{r.sub}</div>
+                    {r.windowsLabel && (
+                      <div style={styles.cellSub} title={r.windowsDetail || ""}>
+                        <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", marginRight: 5, background: r.windowsStatus === "ended" ? pal.bad : r.windowsStatus === "ending" ? pal.warnFg : r.windowsStatus === "supported" ? pal.ok : pal.inkSoft }} />
+                        {r.windowsLabel}
+                      </div>
+                    )}
                   </td>
                   <td style={tdS}>
                     <span

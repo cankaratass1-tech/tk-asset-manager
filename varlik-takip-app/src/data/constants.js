@@ -24,7 +24,6 @@ export const REPORT_CATEGORIES = [
       { id: "checkpoint", name: "Checkpoint" },
       { id: "bitlocker", name: "BitLocker Kontrol" },
       { id: "sccm-ajan", name: "SCCM Ajan Raporu" },
-      { id: "duplicate-bilgisayar", name: "Duplicate Bilgisayarlar" },
     ],
   },
   {
@@ -34,6 +33,7 @@ export const REPORT_CATEGORIES = [
       { id: "battery-health", name: "Battery Health" },
       { id: "ajan-yuklu", name: "Ajan Yüklü Cihazlar" },
       { id: "bsod", name: "BSOD" },
+      { id: "darbogaz", name: "Bottleneck" },
     ],
   },
 ];
@@ -44,7 +44,7 @@ export const REPORT_TYPES = REPORT_CATEGORIES.flatMap((c) => c.reports);
 
 // Rapor kayıtlarında hangi raporların gerçek veriye sahip olduğu / Model filtresi gösterip
 // göstermeyeceği (gereksinim #3, #15) — bu üçü dışındakiler henüz veri kaynağı yok (F bloğu).
-export const REPORTS_WITH_REAL_DATA = new Set(["inaktif", "disk", "zimmet", "kullanilmayan", "bsod", "battery-health", "yeni-kurulum", "kapatma-onayi", "sccm-ajan", "atil-monitor"]);
+export const REPORTS_WITH_REAL_DATA = new Set(["inaktif", "disk", "zimmet", "kullanilmayan", "bsod", "darbogaz", "battery-health", "yeni-kurulum", "kapatma-onayi", "sccm-ajan", "atil-monitor"]);
 export const REPORTS_WITHOUT_MODEL_FILTER = new Set(["disk", "bsod", "battery-health", "yeni-kurulum"]);
 
 // Sol menü — Network (gereksinim #1). Kaynak şu an manuel yükleme; ileride SharePoint/API'ye

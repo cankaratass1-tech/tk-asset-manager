@@ -15,7 +15,10 @@
     "test:smoke": "node e2e/smoke.mjs",
     "test:mail": "node e2e/mailtest.mjs",
     "test:dash": "node e2e/dashcheck.mjs",
-    "test:company": "node e2e/companycheck.mjs"
+    "test:company": "node e2e/companycheck.mjs",
+    "test:windows": "node e2e/windowscheck.mjs",
+    "test:darbogaz": "node e2e/darbogazcheck.mjs",
+    "test:theme": "node e2e/themecheck.mjs"
   },
   "build": {
     "appId": "com.varliktakip.app",

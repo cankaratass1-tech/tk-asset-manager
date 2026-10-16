@@ -18,6 +18,9 @@ import { mapMonitorRows, fetchMonitorRowsFromFile } from "./services/monitorFile
 import { fetchLokasyonMailRowsFromFile, mapLokasyonMailRows, resolveMailForLocationName } from "./services/lokasyonMailService";
 import { computeLocationIpRows, buildLocationIpMailHtml, locationIpMailSubject } from "./services/locationIpService";
 import { mapBsodRows, fetchBsodRowsFromFile } from "./services/bsodFileService";
+import { mapResourceRows, fetchResourceRowsFromFile } from "./services/resourceFileService";
+import { computeBottlenecks } from "./services/bottleneckService";
+import DarbogazScreen from "./components/DarbogazScreen";
 import { fetchBantRowsFromFile, uploadBantFile } from "./services/bantGenisligiService";
 import { mapBatteryRows, buildBatteryMailHtml, batteryMailSubject, fetchBatteryRowsFromFile, uploadBatteryFile } from "./services/batteryFileService";
 import { buildBsodMailHtml, bsodMailSubject, bsodCoverage, lookupBsod } from "./services/bsodKnowledgeService";
@@ -40,7 +43,7 @@ import ThDepotSccmReportScreen from "./components/ThDepotSccmReportScreen";
 import AtilMonitorReportScreen from "./components/AtilMonitorReportScreen";
 import BantGenisligiScreen from "./components/BantGenisligiScreen";
 import AppFooter from "./components/AppFooter";
-import { LIGHT_PALETTE, DARK_PALETTE, AERO_PALETTE } from "./theme/palette";
+import { LIGHT_PALETTE, DARK_PALETTE, AERO_PALETTE, ITSM_PALETTE } from "./theme/palette";
 import { buildStyles } from "./theme/buildStyles";
 import Donut from "./components/Donut";
 import { backendClient, setSettingsAuth, clearSettingsAuth, getMailSuccessCount } from "./services/backendClient";
@@ -129,11 +132,12 @@ export default function App({ user, onLogout } = {}) {
   useEffect(() => {
     try {
       localStorage.setItem("varlikTakip.theme", theme);
+      document.documentElement.dataset.theme = theme;
     } catch {
       // localStorage kullanılamıyorsa sessizce geç — madde 14
     }
   }, [theme]);
-  const PALETTES = { light: LIGHT_PALETTE, dark: DARK_PALETTE, aero: AERO_PALETTE };
+  const PALETTES = { light: LIGHT_PALETTE, dark: DARK_PALETTE, aero: AERO_PALETTE, itsm: ITSM_PALETTE };
   const pal = PALETTES[theme] || LIGHT_PALETTE;
   const styles = useMemo(() => buildStyles(pal), [theme]);
   const [activeDept, setActiveDept] = useState("d1");
@@ -327,6 +331,7 @@ export default function App({ user, onLogout } = {}) {
   const [locationFilter, setLocationFilter] = useState([]);
   // Model filtresi (gereksinim #3) — tüm rapor ekranlarında standart, çoklu seçim
   const [modelFilter, setModelFilter] = useState([]);
+  const [windowsFilter, setWindowsFilter] = useState([]); // Windows sürümü filtresi (Zimmet Uyuşmazlığı)
   // Durum filtresi (bkz. konuşma: "Model Tümünün yanına Durum filtresi ekle") — Model'in yanına,
   // r.statusTag üzerinden çoklu seçim.
   const [statusFilter, setStatusFilter] = useState([]);
@@ -373,6 +378,8 @@ export default function App({ user, onLogout } = {}) {
   const [realMonitorMeta, setRealMonitorMeta] = useState(null);
   const [loadingRealMonitor, setLoadingRealMonitor] = useState(false);
   // LAKESIDE "Weekly_BSOD" raporu — sadece elle dosya seçimi (bkz. bsodFileService.js)
+  const [realResourceAll, setRealResourceAll] = useState([]); // Bottleneck: Lakeside CPU/RAM (opsiyonel import)
+  const [realResourceMeta, setRealResourceMeta] = useState(null);
   const [realBsodAll, setRealBsodAll] = useState([]);
   const [realBsodMeta, setRealBsodMeta] = useState(null);
   // Ofis Bant Genişliği — monitoring aracının CSV export'u, elle yükleniyor (bkz. konuşma).
@@ -456,7 +463,7 @@ export default function App({ user, onLogout } = {}) {
   useEffect(() => {
     setTypeFilter([]);
     setLocationFilter([]);
-    setModelFilter([]);
+    setModelFilter([]); setWindowsFilter([]);
     setCurrentPage(1);
   }, [activeDept, activeReport]);
 
@@ -665,6 +672,12 @@ export default function App({ user, onLogout } = {}) {
     });
 
   const bsodRows = useMemo(() => (realBsodAll.length ? enrichWithSccm(realBsodAll, { setLocationColumn: true }) : []), [realBsodAll, sccmByHostname]);
+  // Bottleneck (LAKESIDE): SCCM + Disk + BSOD + Battery + (opsiyonel) CPU/RAM birleşimi; şirket filtresine uyar.
+  const bottleneck = useMemo(() => {
+    if (activeReport !== "darbogaz") return { rows: [], summary: { analyzed: 0, bottleneck: 0, critical: 0, multi: 0, byCause: {}, available: {} } };
+    const res = computeBottlenecks({ sccmRows: realSccmAll, resourceRows: realResourceAll, diskRows: realDiskAll, bsodRows: realBsodAll, batteryRows: realBatteryAll });
+    return res;
+  }, [activeReport, realSccmAll, realResourceAll, realDiskAll, realBsodAll, realBatteryAll]);
   const batteryRows = useMemo(() => (realBatteryAll.length ? enrichWithSccm(realBatteryAll) : []), [realBatteryAll, sccmByHostname]);
 
   // Yeni Kurulum Kaydı formundaki LOKASYON açılır listesi — mevcut verideki lokasyonlar.
@@ -881,6 +894,13 @@ export default function App({ user, onLogout } = {}) {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "tr"));
   }, [isZimmet, isUnused, isLokasyonIp, rawRows, showModelFilter]);
 
+  // Windows sürümü seçenekleri (yalnızca Zimmet satırlarında; SCCM'de işletim sistemi sütunu varsa dolar)
+  const windowsCategories = useMemo(() => {
+    if (!isZimmet) return [];
+    const set = new Set(rawRows.map((r) => r.windowsLabel).filter(Boolean));
+    return Array.from(set).sort((a, b) => b.localeCompare(a, "tr"));
+  }, [isZimmet, rawRows]);
+
   const statusCategories = useMemo(() => {
     const set = new Set(rawRows.map((r) => r.statusTag).filter(Boolean));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "tr"));
@@ -909,6 +929,7 @@ export default function App({ user, onLogout } = {}) {
       if (lbsParentFilter.length > 0 && !lbsParentFilter.includes(r.lbsParent)) return false;
       if (locationFilter.length > 0 && !locationFilter.includes(locationOf(r))) return false;
       if (modelFilter.length > 0 && !modelFilter.includes(modelOf(r))) return false;
+      if (windowsFilter.length > 0 && !windowsFilter.includes(r.windowsLabel || "")) return false;
       if (statusFilter.length > 0 && !statusFilter.includes(r.statusTag)) return false;
       if (segment === "matched" && !r.matched) return false;
       // "Zimmet Hatalı" segmenti sadece KESİN uyuşmazlıkları göstermeli — doğrulanamayan (ör.
@@ -921,12 +942,12 @@ export default function App({ user, onLogout } = {}) {
       if (segment === "duplicateNotebook" && r.statusTag !== "Mükerrer Çift Zimmet") return false;
       if (search.trim()) {
         const q = search.trim().toLowerCase();
-        const haystack = `${r.owner} ${r.sub} ${r.serial} ${r.model} ${r.location} ${locationOf(r)}`.toLowerCase();
+        const haystack = `${r.owner} ${r.sub} ${r.serial} ${r.model} ${r.location} ${locationOf(r)} ${r.windowsSearch || ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [rawRows, segment, search, isZimmet, showSnoozed, showNotedOnly, rowMeta, typeFilter, locationFilter, modelFilter, statusFilter, usingRealFileData, lbsParentFilter]);
+  }, [rawRows, segment, search, isZimmet, showSnoozed, showNotedOnly, rowMeta, typeFilter, locationFilter, modelFilter, windowsFilter, statusFilter, usingRealFileData, lbsParentFilter]);
 
   // Sayfalama — filtrelenmiş sonuç listesi büyük olabileceği için görünüm bu dilime göre render edilir;
   // Tümünü Seç / Excel'e Aktar / Mail Gönder gibi işlemler yine filteredRows'un tamamı üzerinden çalışır
@@ -1008,7 +1029,7 @@ export default function App({ user, onLogout } = {}) {
       setTypeFilter([]);
       setLocationFilter([]);
       setLbsParentFilter([]);
-      setModelFilter([]);
+      setModelFilter([]); setWindowsFilter([]);
       setShowSnoozed(false);
       setShowNotedOnly(false);
       setCurrentPage(1);
@@ -1129,6 +1150,8 @@ export default function App({ user, onLogout } = {}) {
           "Zimmetli Kişi": r.owner,
           "Cihaz (Seri No)": r.serial,
           "Cihaz Türü": r.sub,
+          "Windows Sürümü": r.windowsLabel || "",
+          "Windows Destek": r.windowsSupportLabel || "",
           "Kullanan Kişi": r.userLabel,
           "Zimmet Türü": r.assignmentType === "OBS" ? "OBS (Müdürlük)" : r.assignmentType === "User" ? "User (Kişi)" : "—",
           "Açıklama": r.model,
@@ -2732,6 +2755,38 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     }
   };
 
+  const loadRealResourceData = async ({ silent = false } = {}) => {
+    try {
+      const { fileName, modifiedAt, rows } = await fetchResourceRowsFromFile();
+      setRealResourceAll(rows);
+      setRealResourceMeta({ fileName, modifiedAt });
+      if (!silent) showToast(`${fileName} içinden ${rows.length} CPU/RAM kaydı yüklendi`);
+    } catch (err) {
+      if (!silent) showToast(err.message || "Dosyadan veri yüklenemedi");
+    }
+  };
+
+  const handleManualResourceFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    persistImport("resource", file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
+        const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+        const rows = mapResourceRows(raw);
+        setRealResourceAll(rows);
+        setRealResourceMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
+        showToast(`${file.name} içinden ${rows.length} CPU/RAM kaydı yüklendi${rows.length === 0 ? " (CPU/RAM sütunu bulunamadı)" : ""}`);
+      } catch (err) {
+        showToast(`Dosya okunamadı: ${err.message}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const handleManualBsodFile = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -2880,6 +2935,13 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   // henüz yüklenmemiş olabilir (bkz. konuşma: "defaultta kullandığımız sccm listesinden al").
   useEffect(() => {
     if (activeReport === "sccm-ajan" && realSccmAll.length === 0) loadRealSccmData({ silent: true });
+    if (activeReport === "darbogaz") {
+      loadRealSccmData({ silent: true });
+      loadRealDiskData({ silent: true });
+      loadRealBsodData({ silent: true });
+      loadRealResourceData({ silent: true });
+      if (!batteryLoaded) loadRealBatteryData({ silent: true });
+    }
     // Atıl Monitörler: yalnızca TuruncuHat + Monitor Raporu (bilgisayar/SCCM verisi gerekmez).
     if (activeReport === "atil-monitor") {
       loadRealThData({ silent: true });
@@ -3022,6 +3084,13 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
           pointer-events: none;
         }
         .vt-tip:hover::after { opacity: 1; visibility: visible; transform: translateY(0); }
+        /* ITSM teması: satır vurgusu + klavye odağı; dar ekranda menü üste, içerik tek sütun */
+        [data-theme="itsm"] tbody tr:hover td { background: #F5F7FF; }
+        [data-theme="itsm"] button:focus-visible, [data-theme="itsm"] input:focus-visible, [data-theme="itsm"] select:focus-visible { outline: 2px solid ${pal.accent}; outline-offset: 1px; }
+        @media (max-width: 900px) {
+          .vt-shell { grid-template-columns: minmax(0, 1fr) !important; }
+          .vt-shell > aside { position: static !important; max-height: none !important; }
+        }
         @media print {
           .no-print { display: none !important; }
           body, .vt-body { background: #fff !important; padding: 0 !important; }
@@ -3230,6 +3299,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               {/* "Aero" — havacılık/glassmorphism deneme teması (bkz. konuşma), ışık/koyunun yanına
                   seçilebilir üçüncü seçenek olarak eklendi. */}
               <span onClick={() => setTheme("aero")} style={{ ...styles.themeToggleBtn, ...(theme === "aero" ? styles.themeToggleBtnActive : {}) }}>✈</span>
+              {/* "ITSM" — Lakeside marka mavisi + kompakt konsol görünümü (palette.js ITSM_PALETTE) */}
+              <span onClick={() => setTheme("itsm")} data-theme-btn="itsm" title="ITSM teması" style={{ ...styles.themeToggleBtn, ...(theme === "itsm" ? styles.themeToggleBtnActive : {}) }}>▦</span>
             </div>
             <button
               style={{ ...styles.btnGhost, display: "flex", alignItems: "center", gap: 6, ...(showSettings ? styles.deptItemActive : {}) }}
@@ -3433,7 +3504,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         goReport(id);
                         if (opts.atilStage) setAtilStage(opts.atilStage);
                         setActiveCompany(dc);
-                        setTypeFilter([]); setModelFilter([]); setStatusFilter([]); setSearch(""); setShowSnoozed(false);
+                        setTypeFilter([]); setModelFilter([]); setWindowsFilter([]); setStatusFilter([]); setSearch(""); setShowSnoozed(false);
                         if (effectsWillReset) pendingNavRef.current = { location: opts.location, segment: opts.segment, status: opts.status };
                         else { setLocationFilter(opts.location ? [opts.location] : []); setStatusFilter(opts.status ? [opts.status] : []); setSegment(opts.segment || "all"); }
                       }}
@@ -4591,7 +4662,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 </div>
               </div>
             </>
-          ) : activeReport === "yeni-kurulum" ? (
+          ) : activeReport === "yeni-kurulum" && !activeNetworkView ? (
             <NewInstallScreen
               styles={styles}
               pal={pal}
@@ -4602,9 +4673,9 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               recordMailHistory={recordMailHistory}
               showToast={showToast}
             />
-          ) : activeReport === "kapatma-onayi" ? (
+          ) : activeReport === "kapatma-onayi" && !activeNetworkView ? (
             <PendingClosureScreen styles={styles} pal={pal} showToast={showToast} thRows={realThAll} />
-          ) : activeReport === "atil-monitor" ? (
+          ) : activeReport === "atil-monitor" && !activeNetworkView ? (
             <AtilMonitorReportScreen
               key={atilStage || "varsayilan"}
               initialStage={atilStage || "atil"}
@@ -4619,7 +4690,18 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               recordMailHistory={recordMailHistory}
               deptLabel={currentDeptLabel}
             />
-          ) : activeReport === "sccm-ajan" ? (
+          ) : activeReport === "darbogaz" && !activeNetworkView ? (
+            <DarbogazScreen
+              styles={styles}
+              pal={pal}
+              rows={byCompany(bottleneck.rows, activeCompany)}
+              summary={bottleneck.summary}
+              resourceMeta={realResourceMeta}
+              onUploadResource={handleManualResourceFile}
+              isMaster={isMaster}
+              loading={loadingRealSccm}
+            />
+          ) : activeReport === "sccm-ajan" && !activeNetworkView ? (
             <SccmAjanScreen
               styles={styles}
               pal={pal}
@@ -4641,6 +4723,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               setStatusFilter={setBantStatusFilter}
               onFileSelect={handleManualBantFile}
               isMaster={isMaster}
+              showToast={showToast}
+              recordMailHistory={recordMailHistory}
             />
           ) : activeNetworkView ? (
             <>
@@ -4958,6 +5042,16 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       options={modelCategories}
                       selected={modelFilter}
                       onChange={setModelFilter}
+                      styles={styles}
+                      pal={pal}
+                    />
+                  )}
+                  {windowsCategories.length > 0 && (
+                    <MultiSelectFilter
+                      label="Windows"
+                      options={windowsCategories}
+                      selected={windowsFilter}
+                      onChange={setWindowsFilter}
                       styles={styles}
                       pal={pal}
                     />

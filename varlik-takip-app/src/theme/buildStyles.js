@@ -1,5 +1,5 @@
 export function buildStyles(p) {
-  return {
+  const s = {
     body: {
       minHeight: "100vh",
       background: `${p.bgGradient}, ${p.bg}`,
@@ -195,5 +195,32 @@ export function buildStyles(p) {
     // --- Kayan toplu işlem çubuğu (detay modu) ---
     floatingBar: { position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: 24, display: "flex", alignItems: "center", gap: 14, padding: "13px 20px", borderRadius: 14, background: p.toastBg, color: p.toastFg, boxShadow: "0 12px 30px rgba(0,0,0,.35)", zIndex: 40 },
     floatingBarLabel: { fontSize: 13.5, fontWeight: 600 },
+  };
+  if (p.itsm) Object.assign(s, itsmOverrides(p, s));
+  return s;
+}
+
+// ITSM teması: kompakt, ince çizgili, düşük gölgeli, mavi aktif şeritli konsol görünümü (bkz. palette.js ITSM_PALETTE).
+function itsmOverrides(p, s) {
+  return {
+    body: { ...s.body, padding: "12px", fontSize: 14 },
+    shell: { ...s.shell, gap: 12, gridTemplateColumns: "232px minmax(0, 1fr)" },
+    sidebar: { ...s.sidebar, backdropFilter: "none", borderRadius: 10, padding: "16px 10px", boxShadow: p.shadow },
+    brandMark: { ...s.brandMark, borderRadius: 6, background: p.accent },
+    navLabel: { ...s.navLabel, fontSize: 11, padding: "14px 10px 6px" },
+    deptItem: { ...s.deptItem, padding: "8px 10px", borderRadius: 6, fontSize: 14 },
+    deptItemActive: { ...s.deptItemActive, boxShadow: `inset 3px 0 0 ${p.accent}`, fontWeight: 600 },
+    main: { ...s.main, gap: 12 },
+    panel: { ...s.panel, backdropFilter: "none", borderRadius: 10 },
+    appFooter: { ...s.appFooter, borderRadius: 10 },
+    pageTitle: { ...s.pageTitle, fontSize: 20, fontWeight: 700, letterSpacing: "-0.01em" },
+    th: { ...s.th, fontSize: 12, fontWeight: 600, color: p.inkSoft, padding: "10px 16px", background: "#F8F9FC", borderBottom: `1px solid ${p.line}`, letterSpacing: "0.04em" },
+    td: { ...s.td, padding: "10px 16px", fontSize: 13.5 },
+    badge: { ...s.badge, borderRadius: 6, padding: "3px 9px" },
+    btnPrimary: { ...s.btnPrimary, borderRadius: 6 },
+    btnGhost: { ...s.btnGhost, borderRadius: 6 },
+    scheduleSelect: { ...s.scheduleSelect, borderRadius: 6 },
+    segmented: { ...s.segmented, borderRadius: 6 },
+    modalCard: { ...s.modalCard, borderRadius: 12 },
   };
 }

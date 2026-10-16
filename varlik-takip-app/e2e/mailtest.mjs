@@ -69,12 +69,27 @@ try {
   };
 
   const sane = (label, mails) => {
-    mails.forEach((m, i) => {
-      const body = `${m.subject}\n${stripHtml(m.html)}\n${m.text}`;
+    const bad1 = (m) => {
+      const body = `${m.subject}
+${stripHtml(m.html)}
+${m.text}`;
       const bad = ["undefined", "NaN", "[object", "null"].filter((w) => body.includes(w));
-      const thy = /thy\b|thynet/i.test(`${m.to}\n${m.from}\n${body}`);
+      const thy = /thy\b|thynet/i.test(`${m.to}
+${m.from}
+${body}`);
       const emailOk = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(m.to.replace(/^.*<|>.*$/g, "").trim());
-      check(`${label}: mail ${i + 1} sağlıklı (alıcı geçerli, konu dolu, boş/bozuk değer yok, THY izi yok)`, emailOk && m.subject.length > 3 && (stripHtml(m.html).length > 20 || m.text.length > 20) && bad.length === 0 && !thy, `to=${m.to}${bad.length ? ` bozuk: ${bad}` : ""}${thy ? " THY izi!" : ""}`);
+      const ok = emailOk && m.subject.length > 3 && (stripHtml(m.html).length > 20 || m.text.length > 20) && bad.length === 0 && !thy;
+      return { ok, detail: `to=${m.to}${bad.length ? ` bozuk: ${bad}` : ""}${thy ? " THY izi!" : ""}` };
+    };
+    // çok sayıda mail (toplu gönderim) tek kontrolde özetlenir; az sayıda ise tek tek raporlanır
+    if (mails.length > 5) {
+      const fails = mails.map(bad1).filter((r) => !r.ok);
+      check(`${label}: ${mails.length} mailin hepsi sağlıklı (alıcı geçerli, konu dolu, boş/bozuk değer yok, THY izi yok)`, fails.length === 0, fails.length ? fails[0].detail : "");
+      return;
+    }
+    mails.forEach((m, i) => {
+      const r = bad1(m);
+      check(`${label}: mail ${i + 1} sağlıklı (alıcı geçerli, konu dolu, boş/bozuk değer yok, THY izi yok)`, r.ok, r.detail);
     });
   };
   const mailButton = () => page.getByRole("button", { name: /^Mail Gönder$/ }).first();
@@ -323,6 +338,62 @@ try {
     if (rEn.mails[0]) check("Kapatma Onayı (EN): İngilizce tablo başlıkları", ["Barcode", "Serial Number", "Asset Name", "ATO Code", "Affected User"].every((h) => stripHtml(rEn.mails[0].html).includes(h)));
   } catch (e) {
     check("Kapatma Onayı: test akışı tamamlandı", false, String(e.message).split("\n")[0].slice(0, 160));
+  }
+  // ---------- Ofis Bant Genişliği ----------
+  console.log("\nOfis Bant Genişliği");
+  try {
+    await page.reload();
+    await page.waitForTimeout(3000);
+    await page.locator('text="Ofis Bant Genişliği"').first().click();
+    await page.waitForTimeout(2500);
+    const sendBtns = page.locator("[data-bant-send]");
+    await sendBtns.first().waitFor({ timeout: 20000 }).catch(() => {});
+    const nRows = await sendBtns.count();
+    check("Bant: tabloda hat satırları ve satır başına 'Gönder' var", nRows > 0, nRows + " satır" + (nRows ? "" : " | sayfa: " + (await bodyText()).replace(/s+/g, " ").slice(700, 1100)));
+
+    // önizleme
+    await page.locator("[data-bant-preview]").first().click();
+    await page.waitForTimeout(500);
+    const pv = await bodyText();
+    check("Bant: önizleme penceresi konu, alıcı ve şablonu gösteriyor", pv.includes("E-posta önizleme") && pv.includes("Konu:") && /Ofis Bant Genişliği (Uyarısı|Bilgilendirmesi)/.test(pv) && pv.includes("OFİS BANT GENİŞLİĞİ"));
+    await page.locator("text=✕").first().click();
+
+    // tek ofis, elle alıcı
+    await page.locator('input[placeholder^="Mail alıcı"]').fill("alici@test.local");
+    const code = await sendBtns.first().getAttribute("data-bant-send");
+    const r1 = await sendAndCollect(() => sendBtns.first().click());
+    check("Bant (tek ofis): mail gidiyor", r1.mails.length === 1, r1.toast);
+    if (r1.mails[0]) {
+      const m = r1.mails[0];
+      const t = stripHtml(m.html);
+      sane("Bant", r1.mails);
+      check("Bant: alıcı elle girilen adres, konu ofisi içeriyor", m.to.includes("alici@test.local") && m.subject.includes(code), m.subject);
+      check("Bant: tablo başlıkları (Hat, Bant Genişliği, Averaj, Seviye, Averaja Göre, Durum, Rapor Tarihi)", ["Hat", "Bant Genişliği", "Averaj", "Seviye", "Averaja Göre", "Durum", "Rapor Tarihi"].every((h) => t.includes(h)));
+      check("Bant: veride olmayan kapasite/kullanım oranı için not düşülmüş (uydurma değer yok)", t.includes("Kapasite ve kullanım oranı veride bulunmadığı için gösterilmedi") && !/<th[^>]*>Kapasite/.test(m.html));
+    }
+
+    // toplu: uyarılı ofislere
+    const bulkBtn = page.getByRole("button", { name: /Uyarılı ofislere mail/ });
+    const nWarn = Number(((await bulkBtn.innerText()).match(/\((\d+)\)/) || [])[1]);
+    check("Bant: uyarılı ofis sayısı okundu", nWarn > 0, String(nWarn));
+    await bulkBtn.click();
+    await page.waitForTimeout(500);
+    check("Bant (toplu): onay penceresi ofis sayısını söylüyor", new RegExp(nWarn + " ofisin " + nWarn + " tanesine").test(await bodyText()));
+    const rBulk = await sendAndCollect(() => page.getByRole("button", { name: "Onayla ve Gönder" }).click());
+    check("Bant (toplu): her uyarılı ofise ayrı mail gidiyor", rBulk.mails.length === nWarn, rBulk.mails.length + " mail ↔ " + nWarn + " ofis");
+    check("Bant (toplu): konular ofise özel ve uyarı içeriyor", rBulk.mails.every((m) => /Uyarısı/.test(m.subject)) && new Set(rBulk.mails.map((m) => m.subject)).size === rBulk.mails.length);
+    sane("Bant toplu", rBulk.mails);
+
+    // alıcı yoksa: mail gitmez, açıklayıcı uyarı
+    await page.locator('input[placeholder^="Mail alıcı"]').fill("");
+    const before = sink.messages.length;
+    await sendBtns.first().click();
+    let noneToast = "";
+    for (let k = 0; k < 20 && !/mail adresi yok/.test(noneToast) && sink.messages.length === before; k++) { await page.waitForTimeout(250); noneToast = await toastOf(); }
+    const sentOrExplained = sink.messages.length > before || /mail adresi yok/.test(noneToast);
+    check("Bant: alıcı bulunamazsa mail gitmiyor ve nedeni bildiriliyor (ya da listede adres varsa gidiyor)", sentOrExplained, noneToast || "mail gitti");
+  } catch (e) {
+    check("Bant: test akışı tamamlandı", false, String(e.message).split("\n")[0].slice(0, 160));
   }
   void BAD_WORDS;
 } finally {
