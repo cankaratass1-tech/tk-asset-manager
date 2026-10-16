@@ -547,6 +547,8 @@ export default function App({ user, onLogout } = {}) {
       location: reportId === "disk" ? "" : (r.location && r.location !== "—" ? r.location : r.office) || "",
       lbsParent: r.lbsParent || "",
       company: r.company || "",
+      // Zimmet devri tespiti için (Cihaz Aksiyon Geçmişi): disk satırlarında owner hostname olduğu için yazılmaz
+      owner: reportId === "disk" ? "" : r.ownerFull || r.owner || "",
     }));
     backendClient
       .postSnapshot({ reportId, capturedAt: new Date().toISOString(), sourceFileModifiedAt: sourceMeta.modifiedAt, devices: currDevices })

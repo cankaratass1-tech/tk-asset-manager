@@ -177,6 +177,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
 
       return {
         rowKey: `th-monitor|${th.serial}`,
+        ownerUpdatedAt: th.lastUpdated || "",
         owner: th.owner || "—",
         ownerFull: th.ownerFull || "—",
         sub: `Monitor — ${th.model || th.marka || ""}`.trim(),
@@ -273,6 +274,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
 
     return {
       rowKey: `th-pc|${th.serial}`,
+      ownerUpdatedAt: th.lastUpdated || "",
       owner: th.owner || (s ? s.owner : "—"),
       ownerFull: th.ownerFull || (s ? s.ownerFull : "—"),
       sub: s ? s.sub : `${th.deviceType === "NOTEBOOK" ? "Laptop" : "Desktop"} — ${th.model || ""}`.trim(),

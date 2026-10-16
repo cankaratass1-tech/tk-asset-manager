@@ -95,6 +95,8 @@ function Ring({ segments, size = 150, thick = 20, center, sub }) {
 
 export default function ExecutiveSummary({ data, snapshots, company, summaryToggle, onBack }) {
   const [recs, setRecs] = useState([]);
+  // Açık bulgu trendi: lejanttan bir kategoriye tıklayınca grafik yalnız o kategoriyi gösterir (tekrar tıklayınca hepsi)
+  const [focus, setFocus] = useState(null);
   useEffect(() => {
     backendClient.getNewInstalls().then((r) => setRecs(Array.isArray(r?.records) ? r.records : [])).catch(() => {});
   }, []);
@@ -137,7 +139,7 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
   const stackChart = (() => {
     const W = 640, H = 230, L = 44, Rg = 30, T = 20, B = 26;
     if (series.length < 2) return <div style={{ fontSize: 12.5, color: P.mute, padding: "30px 0" }}>Trend için en az 2 dönem verisi gerekli ({series.length}/2). Her veri yüklemesinde otomatik dönem kaydı oluşur.</div>;
-    const keys = catKeys;
+    const keys = focus && catKeys.includes(focus) ? [focus] : catKeys;
     const totals2 = series.map((s) => keys.reduce((a, k) => a + (s.perReportOpen[k === "kullanilmayan" ? "kullanilmayan" : k] || 0), 0));
     const ymax = niceMax(Math.max(...totals2) * 1.05);
     const x = (i) => L + (i * (W - L - Rg)) / (series.length - 1);
@@ -281,8 +283,15 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
 
       {/* Trend + dağılım */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 12, marginTop: 12 }}>
-        <Card title="Açık bulgu trendi" sub="Dönem dönem, kategori bazında (yığılı)" span={8}
-          right={<span style={{ fontSize: 11, color: P.sub, display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>{catKeys.map((k) => <span key={k}><b style={{ color: CAT[k].c }}>■</b> {CAT[k].k}</span>)}</span>}>
+        <Card title="Açık bulgu trendi" sub={focus ? `Dönem dönem — yalnız ${CAT[focus].k} (tekrar tıklayınca tümü)` : "Dönem dönem, kategori bazında (yığılı) — bir kategoriye tıklayarak tek başına görün"} span={8}
+          right={<span style={{ fontSize: 11, color: P.sub, display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>{catKeys.map((k) => (
+            <span key={k} role="button" tabIndex={0} data-trend-legend={k} aria-pressed={focus === k}
+              onClick={() => setFocus(focus === k ? null : k)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setFocus(focus === k ? null : k)}
+              style={{ cursor: "pointer", userSelect: "none", opacity: focus && focus !== k ? 0.4 : 1, fontWeight: focus === k ? 700 : 400, borderBottom: focus === k ? `2px solid ${CAT[k].c}` : "2px solid transparent" }}>
+              <b style={{ color: CAT[k].c }}>■</b> {CAT[k].k}
+            </span>
+          ))}</span>}>
           {stackChart}
         </Card>
         <Card title="Açık bulgu dağılımı" sub="Güncel durum" span={4}>

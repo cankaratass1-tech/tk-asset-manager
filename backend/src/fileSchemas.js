@@ -15,7 +15,7 @@ const SCHEMAS = {
     sheetIndex: 0,
     headerRow: 0,
     required: ["Seri No", "Sahibi", "Model", "Konum Kategorisi", "Owner Username"],
-    recommended: ["Cihaz Sahibinin LBS'i", "Sahibi Firma", "Asset", "Marka", "Varlık Barkodu", "Cihaz Sahibinin Maili", "Cihaz Sahibinin Sicili", "LBS Location Parent"],
+    recommended: ["Cihaz Sahibinin LBS'i", "Sahibi Firma", "Asset", "Marka", "Varlık Barkodu", "Cihaz Sahibinin Maili", "Cihaz Sahibinin Sicili", "LBS Location Parent", ["Son Güncelleme Tarihi", "Son Güncelleme", "Güncelleme Tarihi", "Son Guncelleme Tarihi", "Last Update Date", "Last Updated", "LastUpdateDate", "Modified Date"]],
   },
   sccm: {
     label: "SCCM Envanteri",

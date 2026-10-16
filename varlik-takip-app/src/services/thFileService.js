@@ -70,6 +70,8 @@ export function mapThRow(raw) {
     // "User" sayılıyordu, bu yanlıştı — depoda duran ya da sahada olan bir cihaz kişiye zimmetli
     // değildir). Filtreleme comparisonService.js'te (RELEVANT_ASSIGNMENT_TYPES) yapılıyor; burada
     // sadece ham değer olduğu gibi taşınıyor. "LBS Location Parent" yedek olarak hâlâ deneniyor.
+    // Zimmet devri tarihi için kaynak: TH'nin kendi "Son Güncelleme Tarihi" alanı (gerçek export'taki tam ad doğrulanmadı — varyantlar denenir)
+    lastUpdated: col(raw, "Son Güncelleme Tarihi", "Son Güncelleme", "Güncelleme Tarihi", "Son Guncelleme Tarihi", "Last Update Date", "Last Updated", "LastUpdateDate", "Modified Date"),
     assignmentType: col(raw, "Konum Kategorisi") || col(raw, "LBS Location Parent"),
     _raw: raw,
   };

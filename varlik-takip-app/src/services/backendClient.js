@@ -168,6 +168,7 @@ export const backendClient = {
 
   // Dönemsel çözüm istatistikleri — snapshot geçmişi (madde 2, 13).
   getSnapshots: (reportId) => request(`/snapshots${reportId ? `?reportId=${encodeURIComponent(reportId)}` : ""}`),
+  getDeviceTimeline: (key) => request(`/snapshots/device/${encodeURIComponent(key)}`),
   postSnapshot: (payload) => request("/snapshots", { method: "POST", body: JSON.stringify(payload) }),
 
   // Yeni Kurulum Kaydı — form → sistem → Excel → mail
