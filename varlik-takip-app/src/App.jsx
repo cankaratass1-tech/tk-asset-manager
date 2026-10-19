@@ -3203,7 +3203,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 )
               : DEPARTMENTS.map((d) => {
                   const count = getDeptAssetCount(d.id);
-                  const active = d.id === activeDept && !showHistory;
+                  const active = d.id === activeDept && !showHistory && !showDashboard && !showSettings && !activeNetworkView;
                   return (
                     <div key={d.id} onClick={() => goDept(d.id)} style={{ ...styles.deptItem, ...(active ? styles.deptItemActive : {}) }}>
                       <div style={styles.deptLeft}>
@@ -3232,7 +3232,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 {isOpen && (
                   <div style={styles.deptList}>
                     {cat.reports.map((r) => {
-                      const active = r.id === activeReport && !showHistory;
+                      const active = r.id === activeReport && !showHistory && !showDashboard && !showSettings && !activeNetworkView; // Ana Sayfa / Ayarlar / Network açıkken rapor seçili görünmesin
                       return (
                         <div key={r.id} onClick={() => goReport(r.id)} style={{ ...styles.deptItem, ...(active ? styles.deptItemActive : {}) }}>
                           <div style={styles.deptLeft}>

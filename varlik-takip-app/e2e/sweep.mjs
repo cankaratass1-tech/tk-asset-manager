@@ -54,6 +54,24 @@ try {
   });
   await flags("0", "0");
 
+  console.log("\nSol menü seçili durumu");
+  await report("Ana Sayfa'dayken son açılan rapor (Disk Alanı) seçili görünmüyor, yalnız Ana Sayfa seçili", async () => {
+    await home();
+    await page.locator('text="Disk Alanı"').first().click();
+    await page.waitForTimeout(1500);
+    await page.locator('text="Ana Sayfa"').first().click();
+    await page.waitForTimeout(1500);
+    const bg = (label) => page.evaluate((l) => { const el = [...document.querySelectorAll("aside div")].find((d) => d.children.length <= 1 && d.textContent.trim() === l && getComputedStyle(d).cursor === "pointer"); return el ? getComputedStyle(el).backgroundColor : "yok"; }, label);
+    const [ana, disk, inaktif] = [await bg("Ana Sayfa"), await bg("Disk Alanı"), await bg("İnaktif Cihazlar")];
+    if (disk !== inaktif) throw new Error(`Disk Alanı seçili görünüyor (${disk} ≠ pasif ${inaktif})`);
+    if (ana === inaktif) throw new Error("Ana Sayfa seçili görünmüyor");
+    // Network açıkken de rapor seçili görünmemeli
+    await page.locator('text="Disk Alanı"').first().click(); await page.waitForTimeout(1200);
+    await page.locator('text="Ofis Bant Genişliği"').first().click(); await page.waitForTimeout(1500);
+    const diskNet = await bg("Disk Alanı");
+    if (diskNet !== inaktif) throw new Error("Network açıkken Disk Alanı seçili görünüyor");
+  });
+
   console.log("\nRaporlar");
   const NEED_ROWS = new Set(["inaktif", "disk", "zimmet", "kullanilmayan", "atil-monitor", "sccm-ajan", "battery-health", "bsod", "darbogaz", "lokasyon-ip"]);
   for (const cat of REPORT_CATEGORIES) {
