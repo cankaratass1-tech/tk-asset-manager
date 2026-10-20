@@ -19,6 +19,11 @@ import { norm } from "./comparisonService";
 export const INAKTIF_ACTION_TAG = "Kullanılıyor — Zimmet Aktarımı Gerekli";
 export const needsInaktifAction = (statusTag) => statusTag === INAKTIF_ACTION_TAG;
 
+// Rozet rengi (kullanıcı isteği): cihazı kullanan biri VARSA yeşil, hiç giriş yapan YOKSA kırmızı. Başka etiketlerde null (eski mantık).
+// Not: `matched` alanının anlamı (mail hedefleme, Eşleşen/Eşleşmeyen filtresi) değişmez; yalnız görünen renk buradan gelir.
+export const INAKTIF_UNUSED_TAG = "İnaktif — Kullanılmıyor";
+export const inaktifUsageTone = (statusTag) => (statusTag === INAKTIF_ACTION_TAG ? "ok" : statusTag === INAKTIF_UNUSED_TAG ? "bad" : null);
+
 // Bu serviste artık "kanıtsız/doğrulanamayan" bir ara durum yok (TH'ye bakılmadığı için) — ama
 // TableView/DetailAside/RecordPopup ortak isInaktifUnverified import ediyor, boş küme ile
 // geriye dönük uyumlu kalsın diye burada da dışa aktarılıyor.

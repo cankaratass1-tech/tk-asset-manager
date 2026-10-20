@@ -55,6 +55,20 @@ try {
   const firstUserRow = await page.locator("tbody tr").first().locator("td").nth(3).innerText();
   const uname = String(sccm.find((r) => nameByUser.has(String(r["LastLogon UserName"]).trim().toLowerCase()))["LastLogon UserName"]).trim().toLowerCase();
   check("Ad, personel kaydıyla (TH Sahibi) eşleşen tam ad (örnek doğrulama)", Boolean(nameByUser.get(uname)) && firstUserRow.length > 0, `${uname} → ${nameByUser.get(uname)}`);
+  // Açıklama alanı: tablodaki "Açıklama" sütunu ile detay panelindeki/popup'taki açıklama aynı metni göstermeli (her durumda)
+  let descChecked = 0, descOk = 0;
+  const zRows = page.locator("tbody tr");
+  for (let i = 0; i < Math.min(12, await zRows.count()); i++) {
+    const tds = zRows.nth(i).locator("td");
+    if ((await tds.count()) < 7) continue;
+    await zRows.nth(i).click({ position: { x: 150, y: 10 } }); await page.waitForTimeout(350);
+    const hasField = (await page.locator("[data-record-description]").count()) > 0;
+    const inAlert = (await page.locator('[class], div').filter({ hasText: /seri numaralı|birden fazla notebook/ }).count()) > 0;
+    descChecked++;
+    if (hasField || inAlert) descOk++;
+  }
+  check("Zimmet Uyuşmazlığı: açıklama detay panelinde de görünüyor (Doğru / Mükerrer / diğer satırların hepsinde)", descChecked >= 5 && descOk === descChecked, descOk + "/" + descChecked);
+  check("Açıklama alanı etiketli ve 'Açıklama yok' boş durumu tanımlı", (await page.locator("[data-record-description]").count()) >= 1);
 
   console.log("\nAtıl Monitörler — filtreler");
   await page.locator('text="Atıl Monitörler"').first().click(); await page.waitForTimeout(3500);
@@ -120,7 +134,7 @@ try {
   check("Filtre temizlenince kayıtlar geri geliyor", (await page.locator("[data-yk-table] tbody tr").count()) > 0 && (await page.locator("[data-yk-chips]").count()) === 0);
   await page.locator("[data-yk-table] tbody tr span[title^='Ayrıntıyı']").first().click(); await page.waitForTimeout(250);
   const det = await page.locator("[data-yk-detail]").innerText();
-  check("Satır ayrıntısı açılıyor (Bitlocker, İşlem yapan, İadeler)", /BITLOCKER/i.test(det) && /İADELER/i.test(det));
+  check("Satır ayrıntısı açılıyor (BitLocker, İşlem yapan, İadeler)", /BITLOCKER/.test(det) && /İADELER/i.test(det));
   await page.locator("[data-yk-menu]").first().click(); await page.waitForTimeout(150);
   check("'⋯' menüsü: Düzenle / Sil", (await page.locator("[data-yk-edit]").count()) === 1 && (await page.locator("[data-yk-delete]").count()) === 1);
   await page.mouse.click(5, 5); await page.waitForTimeout(150);

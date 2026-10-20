@@ -13,7 +13,7 @@ const isPerson = (name) => name && !NOT_A_PERSON.has(name);
 export const ZIMMET_UNVERIFIED_TAGS = new Set([
   "Kullanım Kaydı Yok",
   "SCCM'de Bulunamadı",
-  "Monitor Raporunda Bulunamadı",
+  "Monitör Raporu'nda Bulunamadı",
   "Doğrulanamadı",
   // Madde 3 — SCCM'de var ama TH Excel'inde seri no yok: karşılaştırma yapılamıyor, "hatalı" değil.
   "TH Kaydı YOK",

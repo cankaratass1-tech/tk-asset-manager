@@ -110,7 +110,7 @@ try {
     await page.getByRole("button", { name: /Ayarlar/ }).click();
     await page.waitForTimeout(2000);
     const t = await txt();
-    if (!/Lokasyon Mailleri|SMTP|Veri Input|Giriş|Parola|Şifre|Kullanıcı/i.test(t)) throw new Error("ayarlar ekranı görünmedi");
+    if (!/Lokasyon E-postaları|SMTP|Veri Girişi|Giriş|Parola|Şifre|Kullanıcı/i.test(t)) throw new Error("ayarlar ekranı görünmedi");
   });
 } finally {
   await browser.close();

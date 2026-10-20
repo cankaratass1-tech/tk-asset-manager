@@ -67,7 +67,7 @@ export function sourceUpdateEvent({ ownerUpdatedAt, owner }) {
 
 export const HISTORY_CATEGORIES = [
   ["all", "Tümü"],
-  ["mail", "Mail"],
+  ["mail", "E-posta"],
   ["zimmet", "Zimmet"],
   ["rapor", "Rapor"],
   ["not", "Not / Durum"],

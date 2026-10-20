@@ -98,7 +98,7 @@ export default function TrendChart({ series, keys, meta, stacked = false, mode, 
               <div style={{ fontWeight: 700 }}>{series[hi].label}</div>
               <div>Toplam açık bulgu: <b>{fmt(totals[hi])}</b>{delta(hi) != null && <span> ({delta(hi) > 0 ? "+" : ""}{fmt(delta(hi))} önceki dönemden)</span>}</div>
               {keys.map((k) => <div key={k}><span style={{ color: meta[k].color }}>■</span> {meta[k].label}: {fmt(series[hi].perReportOpen[k] || 0)}</div>)}
-              <div style={{ opacity: 0.75, marginTop: 2 }}>Tıkla: ayrıntı</div>
+              <div style={{ opacity: 0.75, marginTop: 2 }}>Tıklayın: ayrıntı</div>
             </div>
           )}
         </div>

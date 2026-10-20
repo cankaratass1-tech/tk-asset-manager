@@ -86,7 +86,7 @@ const FIELDS = [
   { k: "returns", label: "İADELER", wide: true },
 ];
 
-const QF_LABEL = { undelivered: "Teslim bekleyen", waiting: "7+ gün bekleyen", unmailed: "Mail gönderilmemiş", unsynced: "Excel'e işlenmemiş" };
+const QF_LABEL = { undelivered: "Teslim bekleyen", waiting: "7+ gün bekleyen", unmailed: "E-posta gönderilmemiş", unsynced: "Excel'e işlenmemiş" };
 // Liste sütunları: [başlık, sıralama anahtarı]
 const YK_COLS = [["Cihaz", "device"], ["Kullanıcı / Lokasyon", "user"], ["ATO / Tarih", "ato"], ["Durum", "status"], ["İşlem", ""], ["Aksiyon", ""]];
 
@@ -105,23 +105,23 @@ const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const MAIL_TEXT = {
   tr: {
     greeting: "Merhaba,",
-    intro: "Cihazınız hazırlanmıştır. ATO kaydına Turuncuhattan kapatma onayı vermeniz durumunda&nbsp; bizden teslim alabilirsiniz.",
+    intro: "Cihazınız hazırlanmıştır. ATO kaydına TuruncuHat'tan kapatma onayı vermeniz durumunda&nbsp; bizden teslim alabilirsiniz.",
     head: ["Seri Numarası", "Barkod", "Model", "Marka", "Varlık Kataloğu", "Varlık Transfer Emri"],
     addressLabel: "Adres",
-    address: "<strong>EBİ- Corporate Club binası</strong> (Atatürk Uluslararası Havalimanı B Kapısı , (Eğitim Akademisi, Merkez yemekhane yanı))",
+    address: "<strong>EBİ- Corporate Club binası</strong> (Atatürk Uluslararası Havalimanı B Kapısı, (Eğitim Akademisi, Merkez yemekhane yanı))",
     locationLabel: "Konum",
     subjectOne: "Cihazınız Hazır — ATO Kapatma Onayı",
-    plain: "Cihazınız hazırlanmıştır. ATO kaydına Turuncuhattan kapatma onayı vermeniz durumunda bizden teslim alabilirsiniz. Adres: EBİ- Corporate Club binası. Konum: https://goo.gl/maps/boaRCuAx7Qu",
+    plain: "Cihazınız hazırlanmıştır. ATO kaydına TuruncuHat'tan kapatma onayı vermeniz durumunda bizden teslim alabilirsiniz. Adres: EBİ- Corporate Club binası. Konum: https://goo.gl/maps/boaRCuAx7Qu",
   },
   en: {
     greeting: "Hello,",
-    intro: "Your device has been prepared. Once you give the ATO record closure approval via Turuncuhat, you may collect it from us.",
+    intro: "Your device has been prepared. Once you give the ATO record closure approval via TuruncuHat, you may collect it from us.",
     head: ["Serial Number", "Barcode", "Model", "Brand", "Asset Catalog", "Asset Transfer Order"],
     addressLabel: "Address",
-    address: "<strong>EBİ- Corporate Club binası</strong> (Atatürk Uluslararası Havalimanı B Kapısı , (Eğitim Akademisi, Merkez yemekhane yanı))",
+    address: "<strong>EBİ- Corporate Club binası</strong> (Atatürk Uluslararası Havalimanı B Kapısı, (Eğitim Akademisi, Merkez yemekhane yanı))",
     locationLabel: "Location",
     subjectOne: "Your Device Is Ready — ATO Closure Approval",
-    plain: "Your device has been prepared. Once you give the ATO record closure approval via Turuncuhat, you may collect it from us. Address: EBİ- Corporate Club binası. Location: https://goo.gl/maps/boaRCuAx7Qu",
+    plain: "Your device has been prepared. Once you give the ATO record closure approval via TuruncuHat, you may collect it from us. Address: EBİ- Corporate Club binası. Location: https://goo.gl/maps/boaRCuAx7Qu",
   },
 };
 
@@ -472,7 +472,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
     const sendable = plan.filter((x) => x.to.length > 0);
     const noRecipient = plan.filter((x) => x.to.length === 0);
     if (sendable.length === 0) {
-      showToast("Alıcı yok — üstteki kutuya e-posta girin veya Ayarlar > Lokasyon Mailleri'ni doldurun");
+      showToast("Alıcı yok — üstteki kutuya e-posta girin veya Ayarlar > Lokasyon E-postaları'nı doldurun");
       return;
     }
     const T = MAIL_TEXT[mailLang] || MAIL_TEXT.tr;
@@ -499,7 +499,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
       if (sentIds.length) {
         await backendClient.markNewInstallsMailed(sentIds).catch(() => {});
         await reload();
-        setSelected(new Set()); // gönderilenler seçili kalmasın: bir sonraki "Mail Gönder" aynı kayıtlara yeniden mail atmasın
+        setSelected(new Set()); // gönderilenler seçili kalmasın: bir sonraki "E-posta Gönder" aynı kayıtlara yeniden e-posta göndermesin
         setMailPreview(lastPreview);
       }
       const failed = sendable.length - sentIds.length;
@@ -514,7 +514,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
           details,
         });
       const extra = (failed ? `, ${failed} gönderilemedi` : "") + (noRecipient.length ? `, ${noRecipient.length} kayıt için alıcı bulunamadı` : "");
-      showToast(sentIds.length === 0 ? `❌ Gönderilemedi${extra}` : `${failed || noRecipient.length ? "⚠️" : "✅"} ${sentIds.length} kayıt için ayrı ayrı mail gönderildi${extra}${lastPreview ? " — önizleme linki aşağıda" : ""}`);
+      showToast(sentIds.length === 0 ? `❌ Gönderilemedi${extra}` : `${failed || noRecipient.length ? "⚠️" : "✅"} ${sentIds.length} kayıt için ayrı ayrı e-posta gönderildi${extra}${lastPreview ? " — önizleme linki aşağıda" : ""}`);
     } finally {
       setMailBusy(false);
     }
@@ -547,17 +547,17 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
       <div style={{ ...styles.panel, padding: "20px 24px" }}>
         <p style={styles.pageTitle}>Yeni Kurulum Kaydı</p>
         <p style={styles.pageSub}>
-          Yeni kurduğun cihazı formdan gir → sistemde saklanır → "Excel'e İşle" ile mevcut kurulum Excel'ine satır eklenir → "Mail Gönder" ile bildirim hazırlanır.
+          Yeni kurduğunuz cihazı formdan girin → sistemde saklanır → "Excel'e İşle" ile mevcut kurulum Excel'ine satır eklenir → "E-posta Gönder" ile bildirim hazırlanır.
           <em> (Demo: Excel dosyası hazır varsayılıyor.)</em>
         </p>
         {records.length > 0 && (
           <div data-yk-stats style={{ ...styles.statStrip, flexWrap: "wrap", rowGap: 16 }}>
             {[
-              ["all", "toplam kayıt", counts.all, pal.ink, "Tümünü göster"],
-              ["undelivered", "teslim bekleyen", counts.undelivered, pal.warnFg || pal.bad, "Henüz teslim edilmemiş kayıtlar"],
-              ["waiting", "7+ gün bekleyen", counts.waiting, pal.bad, "Teslim edilmemiş ve kurulumdan 7 günden fazla geçmiş"],
-              ["unmailed", "mail gönderilmemiş", counts.unmailed, pal.ink, "Kullanıcıya bildirim maili henüz gitmemiş kayıtlar"],
-              ["unsynced", "Excel'e işlenmemiş", counts.unsynced, pal.ink, "Kurulum Excel'ine henüz yazılmamış kayıtlar"],
+              ["all", "Toplam Kayıt", counts.all, pal.ink, "Tümünü göster"],
+              ["undelivered", "Teslim Bekleyen", counts.undelivered, pal.warnFg || pal.bad, "Henüz teslim edilmemiş kayıtlar"],
+              ["waiting", "7+ Gün Bekleyen", counts.waiting, pal.bad, "Teslim edilmemiş ve kurulumdan 7 günden fazla geçmiş"],
+              ["unmailed", "E-posta Gönderilmemiş", counts.unmailed, pal.ink, "Kullanıcıya bildirim e-postası henüz gitmemiş kayıtlar"],
+              ["unsynced", "Excel'e İşlenmemiş", counts.unsynced, pal.ink, "Kurulum Excel'ine henüz yazılmamış kayıtlar"],
             ].map(([key, label, n, color, tip]) => (
               <div key={key} role="button" tabIndex={0} data-yk-stat={key} aria-pressed={qFilter === key} title={tip}
                 onClick={() => setQFilter(key)}
@@ -598,7 +598,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                       options={locationOptions}
                       inputStyle={inp}
                       pal={pal}
-                      placeholder={locationOptions.length ? "yazarak ara veya listeden seç" : "lokasyon"}
+                      placeholder={locationOptions.length ? "yazarak arayın veya listeden seçin" : "lokasyon"}
                     />
                   </>
                 ) : fixedOpts ? (
@@ -703,7 +703,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
               value={returnQuery}
               onChange={(e) => setReturnQuery(e.target.value)}
               style={{ ...inp, flex: "1 1 280px" }}
-              placeholder="Kişi adı yaz (SCCM'deki tam ad) — örn. Ahmet Yılmaz"
+              placeholder="Kişi adını yazın (SCCM'deki tam ad) — örn. Ahmet Yılmaz"
             />
           </div>
           {returnQuery.trim().length >= 2 && (
@@ -765,7 +765,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
             <div style={styles.settingsSectionHead}>
               <p style={styles.settingsSectionTitle}>Kayıtlar</p>
               <span data-yk-count style={{ fontSize: 13, color: pal.inkSoft }}>
-                <b style={{ color: pal.ink }}>{filteredRecords.length}</b> / {records.length} kayıt · {counts.unsynced === 0 ? "tümü Excel'e işlendi" : `${counts.unsynced} Excel'e işlenmedi`} · {counts.unmailed === 0 ? "tümü maillendi" : `${counts.unmailed} mail gönderilmedi`}
+                <b style={{ color: pal.ink }}>{filteredRecords.length}</b> / {records.length} kayıt · {counts.unsynced === 0 ? "tümü Excel'e işlendi" : `${counts.unsynced} Excel'e işlenmedi`} · {counts.unmailed === 0 ? "tümüne e-posta gönderildi" : `${counts.unmailed} e-posta gönderilmedi`}
               </span>
             </div>
           </div>
@@ -799,7 +799,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
           )}
 
           <div data-yk-actions style={{ ...styles.toolbarFiltersRow, paddingTop: 2 }}>
-            <input type="text" value={mailTo} onChange={(e) => setMailTo(e.target.value)} style={{ ...inp, flex: "1 1 260px", maxWidth: 380 }} placeholder="Mail alıcı(lar) — boşsa lokasyon mail grubu" />
+            <input type="text" value={mailTo} onChange={(e) => setMailTo(e.target.value)} style={{ ...inp, flex: "1 1 260px", maxWidth: 380 }} placeholder="E-posta alıcı(lar) — boşsa lokasyon e-posta grubu" />
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: pal.inkSoft, flex: "0 0 auto" }}>
               Dil
               <select value={mailLang} onChange={(e) => setMailLang(e.target.value)} style={{ ...inp, width: 120, flex: "0 0 auto" }}>
@@ -814,7 +814,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
             <button style={styles.btnPrimary} onClick={sendMail} disabled={mailBusy || targetRecs.length === 0}>
               {mailBusy
                 ? "Gönderiliyor…"
-                : `✉️ Mail Gönder — ${mailLang === "en" ? "EN" : "TR"} (${
+                : `✉️ E-posta Gönder — ${mailLang === "en" ? "EN" : "TR"} (${
                     selected.size > 0 ? selected.size + " seçili" : qFilter !== "all" || qText ? filteredRecords.length + " filtreli" : "tümü"
                   })`}
             </button>
@@ -833,7 +833,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
           {mailPreview && (
             <p style={{ ...styles.formHelper, margin: 0 }}>
               ✉️ Son gönderim ({mailPreview.to}) —{" "}
-              <a href={mailPreview.url} target="_blank" rel="noreferrer" style={{ color: pal.accent || pal.ok, fontWeight: 600 }}>maili tarayıcıda önizle</a>{" "}
+              <a href={mailPreview.url} target="_blank" rel="noreferrer" style={{ color: pal.accent || pal.ok, fontWeight: 600 }}>e-postayı tarayıcıda önizle</a>{" "}
               <span style={{ color: pal.inkSoft }}>(test SMTP kutusu)</span>
             </p>
           )}
@@ -907,7 +907,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                               Excel: {r.excelSyncedAt ? "işlendi" : "bekliyor"}
                             </span>
                             <span style={{ ...styles.badge, ...(r.mailSentAt ? styles.badgeOk : styles.badgeNeutral) }} title={r.mailSentAt ? new Date(r.mailSentAt).toLocaleString("tr-TR") : undefined}>
-                              Mail: {r.mailSentAt ? "gönderildi" : "gönderilmedi"}
+                              E-posta: {r.mailSentAt ? "gönderildi" : "gönderilmedi"}
                             </span>
                           </div>
                         </td>
@@ -932,9 +932,9 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
                         <tr data-yk-detail>
                           <td colSpan={YK_COLS.length + 1} style={{ ...styles.td, background: pal.fieldBg, padding: "12px 24px" }}>
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "10px 20px", fontSize: 14 }}>
-                              {[["Bitlocker", r.bitlocker], ["İşlem yapan", r.processedBy], ["Nedeni", r.reason], ["Teslim tarihi", r.deliveryDate], ["Hostname", r.hostname], ["Seri no", r.serial]].map(([k, v]) => (
+                              {[["BitLocker", r.bitlocker], ["İşlem yapan", r.processedBy], ["Nedeni", r.reason], ["Teslim tarihi", r.deliveryDate], ["Hostname", r.hostname], ["Seri no", r.serial]].map(([k, v]) => (
                                 <div key={k}>
-                                  <div style={{ fontSize: 12, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.03em" }}>{k}</div>
+                                  <div lang={k === "BitLocker" ? "en" : undefined} style={{ fontSize: 12, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.03em" }}>{k}</div>
                                   <div style={{ fontWeight: 600 }}>{v || <span style={{ color: pal.inkSoft, fontWeight: 400 }}>—</span>}</div>
                                 </div>
                               ))}

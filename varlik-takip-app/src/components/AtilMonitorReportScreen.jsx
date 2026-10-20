@@ -24,7 +24,7 @@ const buildMailHtml = (items, username) =>
       ["Seri No / Barkod", "Marka / Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"],
       items.map((r) => [[r.monitorSerial, r.barkod], [r.marka, r.model], r.asset, ownerWithTitle(r), r.hostnames, username])
     ),
-    action: stepsBox("İşleminiz için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:"),
+    action: stepsBox("İşleminiz için lütfen aşağıdaki adımları izleyerek TuruncuHat üzerinden bir kayıt oluşturunuz:"),
     notes: [REC_NOTE],
     footer: MAIL_FOOTER,
   });
@@ -71,7 +71,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
   const [typeFilter, setTypeFilter] = useState("all"); // all | User | OBS | Warehouse | other
   // Ek filtreler (yalnız veri modelinde karşılığı olan alanlar: şirket, lokasyon, marka, model, kullanım durumu). Hepsi birlikte uygulanır.
   const [facets, setFacets] = useState({ company: [], location: [], brand: [], model: [] });
-  const [usage, setUsage] = useState("all"); // all | used | unused  (Monitor Raporu'nda kullanan kişi var mı)
+  const [usage, setUsage] = useState("all"); // all | used | unused  (Monitör Raporu'nda kullanan kişi var mı)
 
   useEffect(() => {
     const t = setTimeout(() => { setSearch(searchInput); setPage(1); }, 250);
@@ -205,19 +205,19 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
   const depotIdle = stats.depotTotal - stats.depotUsed;
   const GROUP_INFO = {
     atil: {
-      what: "TuruncuHat'ta User veya OBS olarak zimmetli, ama Monitor Raporu'nda hiç satırı olmayan monitörler. Hiçbir yerde kullanılmıyor, boşta duruyor.",
+      what: "TuruncuHat'ta User veya OBS olarak zimmetli, ama Monitör Raporu'nda hiç satırı olmayan monitörler. Hiçbir yerde kullanılmıyor, boşta duruyor.",
       calc: `Kapsamdaki ${stats.inScope} monitörün ${stats.atil} tanesi.`,
     },
     outside: {
-      what: "Monitor Raporu'nda görünüyor ama kullanan kişi TuruncuHat'taki zimmetli kişiden farklı, yani kayıtlarımız dışında başkası kullanıyor. OBS (müdürlük) monitörlerini herkes kullanabildiği için bu kontrole girmez.",
-      calc: "Karşılaştırma kullanıcı adıyladır: Monitor Raporu'ndaki Username ile TuruncuHat'taki Owner Username aynı değilse bu gruba girer.",
+      what: "Monitör Raporu'nda görünüyor ama kullanan kişi TuruncuHat'taki zimmetli kişiden farklı, yani kayıtlarımız dışında başkası kullanıyor. OBS (müdürlük) monitörlerini herkes kullanabildiği için bu kontrole girmez.",
+      calc: "Karşılaştırma kullanıcı adıyladır: Monitör Raporu'ndaki Username ile TuruncuHat'taki Owner Username aynı değilse bu gruba girer.",
     },
     depotUsed: {
-      what: "TuruncuHat'ta Zimmet Depoda görünüyor ama Monitor Raporu'nda satırı var, yani biri kullanıyor. Depoda durması gerekirdi.",
+      what: "TuruncuHat'ta Zimmet Depoda görünüyor ama Monitör Raporu'nda satırı var, yani biri kullanıyor. Depoda durması gerekirdi.",
       calc: `Depoda görünen ${stats.depotTotal} monitörün ${stats.depotUsed} tanesi kullanılıyor, ${depotIdle} tanesi depoda duruyor (normal).`,
     },
     active: {
-      what: "Monitor Raporu'nda görünüyor ve kullanan kişi zimmetli kişiyle uyumlu (OBS'de herkes kullanabilir). Sorun yok.",
+      what: "Monitör Raporu'nda görünüyor ve kullanan kişi zimmetli kişiyle uyumlu (OBS'de herkes kullanabilir). Sorun yok.",
       calc: `Atıl ${stats.atil} + Bilgi dışı ${stats.outside} + Aktif ${stats.active} = Kapsamdaki ${stats.inScope}`,
     },
     inScope: {
@@ -298,12 +298,12 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
     setConfirmMailOpen(false);
     const { recipients, noMail } = mailPlan;
     if (recipients.length === 0 && noMail.length === 0) {
-      showToast?.("Seçili kayıtlarda bilgi dışı kullanım yok — mail gönderilecek kayıt bulunamadı (atıl/aktif monitörlere mail gitmez)");
+      showToast?.("Seçili kayıtlarda bilgi dışı kullanım yok — e-posta gönderilecek kayıt bulunamadı (atıl/aktif monitörlere e-posta gitmez)");
       return;
     }
     setMailBusy(true);
     let sent = 0, failed = 0;
-    const details = noMail.map((n) => ({ location: n.username, to: null, count: n.items.length, ok: false, message: "TuruncuHat'ta bu kullanıcı için mail adresi bulunamadı" }));
+    const details = noMail.map((n) => ({ location: n.username, to: null, count: n.items.length, ok: false, message: "TuruncuHat'ta bu kullanıcı için e-posta adresi bulunamadı" }));
     for (const r of recipients) {
       try {
         const res = await backendClient.sendMail({ to: r.mail, subject: MAIL_SUBJECT, text: buildMailText(r.items, r.username), html: buildMailHtml(r.items, r.username) });
@@ -320,7 +320,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
       }
     }
     setMailBusy(false);
-    if (sent > 0) setSelectedKeys(new Set()); // gönderilenler seçili kalmasın: bir sonraki gönderim aynı kayıtlara yeniden mail atmasın
+    if (sent > 0) setSelectedKeys(new Set()); // gönderilenler seçili kalmasın: bir sonraki gönderim aynı kayıtlara yeniden e-posta göndermesin
     const skipped = noMail.reduce((n, x) => n + x.items.length, 0);
     recordMailHistory?.({
       id: Date.now(),
@@ -331,9 +331,9 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
       status: failed > 0 || skipped > 0 ? (sent > 0 ? "Kısmen Başarısız" : "Gönderilemedi") : "Başarılı",
       details,
     });
-    if (sent === 0) showToast?.(`❌ Gönderilemedi — ${failed + skipped} kayıt${skipped ? ` (${skipped} kayıt için mail adresi bulunamadı)` : ""}`);
-    else if (failed > 0 || skipped > 0) showToast?.(`⚠️ ${sent} kayıt, ${recipients.length} kullanıcıya gönderildi${skipped ? `, ${skipped} kayıt için mail adresi bulunamadı` : ""}${failed ? `, ${failed} kayıt başarısız` : ""}`);
-    else showToast?.(`✅ Başarılı — ${sent} kayıt, ${recipients.length} kullanıcıya mail gönderildi`);
+    if (sent === 0) showToast?.(`❌ Gönderilemedi — ${failed + skipped} kayıt${skipped ? ` (${skipped} kayıt için e-posta adresi bulunamadı)` : ""}`);
+    else if (failed > 0 || skipped > 0) showToast?.(`⚠️ ${sent} kayıt, ${recipients.length} kullanıcıya gönderildi${skipped ? `, ${skipped} kayıt için e-posta adresi bulunamadı` : ""}${failed ? `, ${failed} kayıt başarısız` : ""}`);
+    else showToast?.(`✅ Başarılı — ${sent} kayıt, ${recipients.length} kullanıcıya e-posta gönderildi`);
   };
 
   const selectStage = (id) => {
@@ -368,8 +368,8 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
   };
 
   const STAT_LABEL = {
-    atil: "atıl (kullanılmıyor)", outside: "bilgi dışı kullanılan", depotUsed: "depoda ama kullanılan",
-    active: "aktif (sorunsuz)", inScope: "kapsamdaki (User/OBS)", depotAll: "depoda görünen", excludedScope: "kapsam dışı", all: "toplam monitör",
+    atil: "Atıl (Kullanılmıyor)", outside: "Bilgi Dışı Kullanılan", depotUsed: "Depoda Ama Kullanılan",
+    active: "Aktif (Sorunsuz)", inScope: "Kapsamdaki (User/OBS)", depotAll: "Depoda Görünen", excludedScope: "Kapsam Dışı", all: "Toplam Monitör",
   };
   const statColor = (tone) => (tone === "bad" ? pal.bad : tone === "warn" ? pal.warnFg : pal.ink);
   // Tablo sütunları: [başlık, HEADERS/toCells indeksi (sıralama), hizalama]
@@ -384,13 +384,13 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
         <p style={styles.pageTitle}>Atıl Monitörler</p>
         <p style={styles.pageSub}>
           TuruncuHat'ta User/OBS olarak zimmetli monitörlerin gerçek kullanım durumu —{" "}
-          {thMeta ? thMeta.fileName : "TuruncuHat yüklenmedi"} × {monitorMeta ? monitorMeta.fileName : "Monitor Raporu yüklenmedi"}
+          {thMeta ? thMeta.fileName : "TuruncuHat yüklenmedi"} × {monitorMeta ? monitorMeta.fileName : "Monitör Raporu yüklenmedi"}
           {loading ? " · yükleniyor…" : ""}
         </p>
         <details data-atil-help style={{ marginTop: 8, fontSize: 13, color: pal.inkSoft }}>
           <summary style={{ cursor: "pointer", color: pal.accent, fontWeight: 600, width: "fit-content" }}>Bu rapor ne yapar, nasıl okunur?</summary>
           <p style={{ margin: "8px 0 0", lineHeight: 1.6, maxWidth: 980 }}>
-            İki şeyi bulur: <b>atıl</b> monitörler (Monitor Raporu'nda hiç görünmüyor, yani kullanılmıyor) ve <b>bilgi dışı kullanılan</b> monitörler
+            İki şeyi bulur: <b>atıl</b> monitörler (Monitör Raporu'nda hiç görünmüyor, yani kullanılmıyor) ve <b>bilgi dışı kullanılan</b> monitörler
             (zimmetli kişi dışında biri kullanıyor; OBS monitörlerini herkes kullanabildiği için OBS bu kontrolün dışında).
             TuruncuHat'ta <b>Zimmet Depoda</b> görünüp kullanıldığı görülen monitörler "Depoda görünen ama kullanılan" grubundadır (depoda duran, kullanılmayanlar listelenmez).
             Üstteki sayılara tıklayarak her gruptaki monitörleri, bir kişinin adına (sahibi ya da şu an kullanan) tıklayarak o kişiyle ilgili tüm monitörleri görebilirsiniz.
@@ -399,7 +399,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
 
         {missingData && !loading ? (
           <p style={{ fontSize: 14, color: pal.inkSoft, marginTop: 16 }}>
-            Rapor için TuruncuHat ve Monitor Raporu dosyaları gerekir. Ayarlar &gt; Veri Input &gt; Dosya Kaynağı klasörünü kontrol edin.
+            Rapor için TuruncuHat ve Monitör Raporu dosyaları gerekir. Ayarlar &gt; Veri Girişi &gt; Dosya Kaynağı klasörünü kontrol edin.
           </p>
         ) : (
           <>
@@ -463,7 +463,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                   </div>
                 ))}
               </div>
-              <div style={styles.segmented} title="Monitor Raporu'nda bu monitörü kullanan bir kişi görünüyor mu?">
+              <div style={styles.segmented} title="Monitör Raporu'nda bu monitörü kullanan bir kişi görünüyor mu?">
                 {[["all", "Tümü"], ["used", "Kullanılıyor"], ["unused", "Kullanılmıyor"]].map(([id, label]) => (
                   <div key={id} onClick={() => { setUsage(id); setPage(1); }} data-atil-usage={id} style={{ ...styles.seg, ...(usage === id ? styles.segActive : {}) }}>{label}</div>
                 ))}
@@ -504,9 +504,9 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                 style={styles.btnPrimary}
                 onClick={onMailClick}
                 disabled={mailBusy || stages.outside.length === 0}
-                title="Monitörü kullanan (zimmetli olmayan) kişiye zimmet transferi maili gönderir. Seçim yoksa tüm bilgi dışı kullanımlara (onayla)"
+                title="Monitörü kullanan (zimmetli olmayan) kişiye zimmet transferi e-postası gönderir. Seçim yoksa tüm bilgi dışı kullanımlara (onayla)"
               >
-                {mailBusy ? "Gönderiliyor…" : `Bilgi Dışı Kullanıma Mail Gönder${selectedKeys.size > 0 ? ` (${selectedKeys.size} seçili)` : ""}`}
+                {mailBusy ? "Gönderiliyor…" : `Bilgi Dışı Kullanıma E-posta Gönder${selectedKeys.size > 0 ? ` (${selectedKeys.size} seçili)` : ""}`}
               </button>
             </div>
           </div>
@@ -635,12 +635,12 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
         <div style={styles.modalOverlay} onClick={() => setConfirmMailOpen(false)}>
           <div style={{ ...styles.modalCard, width: "min(440px, 100%)" }} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <p style={styles.modalTitle}>Mail Gönderimini Onayla</p>
+              <p style={styles.modalTitle}>E-posta Gönderimini Onayla</p>
               <span style={styles.modalClose} onClick={() => setConfirmMailOpen(false)}>✕</span>
             </div>
             <p style={styles.modalSub}>
-              Listede seçim yapılmadı — tüm bilgi dışı kullanımlar için mail gönderilecek: {stages.outside.length} monitör, {mailPlan.recipients.length} kullanıcı
-              {mailPlan.noMail.length > 0 ? ` (${mailPlan.noMail.length} kullanıcının mail adresi bulunamadığı için atlanacak)` : ""}.
+              Listede seçim yapılmadı — tüm bilgi dışı kullanımlar için e-posta gönderilecek: {stages.outside.length} monitör, {mailPlan.recipients.length} kullanıcı
+              {mailPlan.noMail.length > 0 ? ` (${mailPlan.noMail.length} kullanıcının e-posta adresi bulunamadığı için atlanacak)` : ""}.
             </p>
             <div style={styles.formActions}>
               <button style={styles.btnGhost} onClick={() => setConfirmMailOpen(false)}>Vazgeç</button>

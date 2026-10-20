@@ -28,7 +28,7 @@ export default function CardDetailView({
       <div style={{ ...styles.cardListHeader, gridTemplateColumns: gridCols }}>
         <div />
         <div>{serialLabel || "Seri No"}</div>
-        <div>{ownerLabel || "İsim Soyisim"}</div>
+        <div>{ownerLabel || "Ad Soyad"}</div>
         {splitModel && <div>{modelLabel || "Model"}</div>}
         <div>{locationLabel || "Lokasyon"}</div>
         <div>Durum</div>

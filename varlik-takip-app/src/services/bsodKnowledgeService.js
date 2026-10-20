@@ -71,7 +71,7 @@ const SFC = "Yönetici CMD: `DISM /Online /Cleanup-Image /RestoreHealth` ardınd
 const DUMP = "C:\\Windows\\Minidump altındaki .dmp dosyasını BlueScreenView/WhoCrashed ile açıp kusurlu sürücüyü (.sys) tespit edin — hedefli güncelleme/geri alma için.";
 const MEM = "Windows Bellek Tanılama veya MemTest86 ile RAM testi yapın (birden fazla tur).";
 const DOCK = "ThinkPad dock kullanılıyorsa: dock firmware'ini güncelleyin, docku çıkarıp deneyin, USB-C/Thunderbolt sürücüsünü güncelleyin.";
-const VERIFIER = "Tekrarlıyorsa Driver Verifier (`verifier /standard /all` — tek gecelik) ile kusurlu 3. parti sürücüyü ortaya çıkarın, sonra `verifier /reset`.";
+const VERIFIER = "Tekrarlıyorsa Driver Verifier (`verifier /standard /all` — tek gecelik) ile kusurlu üçüncü taraf sürücüyü ortaya çıkarın, sonra `verifier /reset`.";
 const DISKCHK = "Yönetici CMD: `chkdsk C: /scan`; Commercial Vantage ile SSD/NVMe SMART/sağlık durumunu kontrol edin.";
 const FASTBOOT = "Denetim Masası > Güç Seçenekleri > 'Hızlı başlatmayı aç' seçeneğini KAPATIN (kurumsal imajda bu, depolama/sürücü kaynaklı mavi ekranları sık tetikler).";
 const AVREINSTALL = "Kurumsal uç nokta güvenlik ajanını (Defender for Endpoint / CrowdStrike / SentinelOne) en güncel sürüme yükseltin; sensör bozulduysa güvenlik ekibiyle temiz kurulum yapın.";
@@ -112,10 +112,10 @@ export const BSOD_KB = {
   SYSTEM_SERVICE_EXCEPTION: {
     code: "0x0000003B",
     title: "Bir sistem servisi rutininde işlenmeyen özel durum",
-    category: "3. parti sürücü / yazılım",
+    category: "üçüncü taraf sürücü / yazılım",
     severity: "orta",
     cause:
-      "Çekirdek modunda çalışan bir bileşen (çoğunlukla 3. parti sürücü) beklenmeyen bir istisna üretti. Tipik kaynaklar: ekran/ses (Realtek/Conexant) sürücüsü, VPN istemcisi, uç nokta güvenlik ajanı (EDR/AV), disk filtre sürücüleri.",
+      "Çekirdek modunda çalışan bir bileşen (çoğunlukla üçüncü taraf sürücü) beklenmeyen bir istisna üretti. Tipik kaynaklar: ekran/ses (Realtek/Conexant) sürücüsü, VPN istemcisi, uç nokta güvenlik ajanı (EDR/AV), disk filtre sürücüleri.",
     thinkpad: "Kurumsal imajdaki güvenlik ajanı (CrowdStrike/SentinelOne/Defender ATP) veya VPN (GlobalProtect/AnyConnect) sürücüsü eski sürümdeyse sık görülür.",
     actions: [
       DUMP,
@@ -128,7 +128,7 @@ export const BSOD_KB = {
   SYSTEM_THREAD_EXCEPTION_NOT_HANDLED: {
     code: "0x0000007E",
     title: "Sistem iş parçacığı, işlenmeyen bir özel durum üretti",
-    category: "3. parti sürücü",
+    category: "üçüncü taraf sürücü",
     severity: "orta",
     cause: "Bir sistem iş parçacığı istisna üretti ve sürücü bunu yakalamadı. Mavi ekranda genelde kusurlu dosya adı yazar (ör. nvlddmkm.sys, Netwtw*.sys, igdkmd64.sys).",
     thinkpad: "En sık: Intel Wi-Fi (Netwtw04/06/08/10.sys) ve ekran sürücüsü. Ekranda dosya adı görünmüyorsa minidump'a bakın.",
@@ -142,7 +142,7 @@ export const BSOD_KB = {
   IRQL_NOT_LESS_OR_EQUAL: {
     code: "0x0000000A",
     title: "Bir sürücü, yüksek IRQL seviyesinde geçersiz bellek adresine erişti",
-    category: "3. parti sürücü / RAM",
+    category: "üçüncü taraf sürücü / RAM",
     severity: "orta",
     cause: "Klasik hatalı sürücü ya da bozuk RAM belirtisi. ThinkPad'lerde sıklıkla Intel Wi-Fi/Bluetooth, dock veya yonga seti sürücüsü.",
     thinkpad: "Yeni bir dock/adaptör veya USB cihazından sonra başladıysa onu çıkarıp test edin.",
@@ -151,7 +151,7 @@ export const BSOD_KB = {
   DRIVER_IRQL_NOT_LESS_OR_EQUAL: {
     code: "0x000000D1",
     title: "Adı belirtilen sürücü, yüksek IRQL'de geçersiz bellek adresine erişti",
-    category: "3. parti sürücü (adı dökümde)",
+    category: "üçüncü taraf sürücü (adı dökümde)",
     severity: "orta",
     cause: "IRQL_NOT_LESS_OR_EQUAL ile aynı, ancak kusurlu sürücü dökümde isimlendirilir (ör. ndis.sys/tcpip.sys → ağ, Netwtw*.sys → Intel Wi-Fi, rt*.sys → Realtek).",
     thinkpad: "ThinkPad filosunda en sık suçlu Intel Wi-Fi sürücüsü ve kurumsal VPN istemcisidir.",
@@ -260,9 +260,9 @@ export const BSOD_KB = {
   KERNEL_MODE_HEAP_CORRUPTION: {
     code: "0x0000013A",
     title: "Çekirdek modu yığın (heap) bozulması tespit edildi",
-    category: "3. parti sürücü",
+    category: "üçüncü taraf sürücü",
     severity: "orta",
-    cause: "Çekirdek bellek yığını bozuldu — neredeyse her zaman sınır dışına yazan bir 3. parti sürücü. Tipik kaynaklar: eski depolama/RAID, VPN, güvenlik filtre sürücüleri, sanal ses sürücüleri.",
+    cause: "Çekirdek bellek yığını bozuldu — neredeyse her zaman sınır dışına yazan bir üçüncü taraf sürücü. Tipik kaynaklar: eski depolama/RAID, VPN, güvenlik filtre sürücüleri, sanal ses sürücüleri.",
     thinkpad: "Kurumsal imajdaki eski depolama denetleyicisi veya güvenlik ajanı filtre sürücüsü sık sebeptir.",
     actions: [VERIFIER, DUMP, "Tespit edilen sürücüyü güncelleyin ya da (gerekmiyorsa) kaldırın.", DRV, MEM],
   },
@@ -296,12 +296,12 @@ export const BSOD_KB = {
     severity: "yüksek",
     cause: "Kernel Patch Protection, korunan bir yapının bozulduğunu gördü. Hatalı sürücü, bozuk RAM ya da uyumsuz düşük seviyeli yazılım.",
     thinkpad: "Eski sanal sürücüler (VPN, sanal makine, disk şifreleme) ve RAM en olası sebepler.",
-    actions: [MEM, DRV, "Düşük seviyeli 3. parti yazılımları (VPN/şifreleme/sanallaştırma) güncelleyin veya kaldırın.", SFC, FW],
+    actions: [MEM, DRV, "Düşük seviyeli üçüncü taraf yazılımları (VPN/şifreleme/sanallaştırma) güncelleyin veya kaldırın.", SFC, FW],
   },
   KMODE_EXCEPTION_NOT_HANDLED: {
     code: "0x0000001E",
     title: "Çekirdek modu programı işlenmeyen bir özel durum üretti",
-    category: "3. parti sürücü",
+    category: "üçüncü taraf sürücü",
     severity: "orta",
     cause: "Bir çekirdek modu bileşeni yakalanmayan bir istisna üretti; genellikle hatalı/eski sürücü, bazen RAM.",
     thinkpad: "Mavi ekranda genelde kusurlu .sys adı görünür; görünmüyorsa minidump'a bakın.",
@@ -362,7 +362,7 @@ export const BSOD_KB = {
   PAGE_FAULT_IN_NONPAGED_AREA: {
     code: "0x00000050",
     title: "Var olmayan bir bellek adresine erişildi (sayfalanamaz alan)",
-    category: "RAM / 3. parti sürücü",
+    category: "RAM / üçüncü taraf sürücü",
     severity: "orta",
     cause: "Bir bileşen, geçerli olmayan sistem belleğine başvurdu. En sık: arızalı/yanlış oturmuş RAM; ardından hatalı bir aygıt sürücüsü; nadiren bozuk NTFS/sayfa dosyası.",
     thinkpad: "Önce RAM testi. Dökümde bir .sys adı varsa o sürücüyü güncelleyin (ThinkPad'de sık: Intel Wi-Fi, depolama, güvenlik/VPN filtre sürücüsü).",
@@ -419,18 +419,18 @@ export const BSOD_KB = {
   REFERENCE_BY_POINTER: {
     code: "0x00000018",
     title: "Bir çekirdek nesnesinin referans sayacı hatalı yönetildi",
-    category: "3. parti sürücü",
+    category: "üçüncü taraf sürücü",
     severity: "orta",
-    cause: "Bir sürücü, bir nesnenin referans sayacını yanlış artırdı/azalttı (nesne hâlâ kullanılırken serbest bırakıldı). Neredeyse her zaman hatalı bir 3. parti sürücü — sık kaynaklar: antivirüs/EDR, VPN, dosya sistemi filtre sürücüleri.",
+    cause: "Bir sürücü, bir nesnenin referans sayacını yanlış artırdı/azalttı (nesne hâlâ kullanılırken serbest bırakıldı). Neredeyse her zaman hatalı bir üçüncü taraf sürücü — sık kaynaklar: antivirüs/EDR, VPN, dosya sistemi filtre sürücüleri.",
     thinkpad: "Kurumsal güvenlik/VPN ajanını güncelleyin. Driver Verifier ile kusurlu sürücüyü ortaya çıkarın.",
     actions: [DUMP, AVREINSTALL, VERIFIER, DRV, SFC],
   },
   BAD_POOL_CALLER: {
     code: "0x000000C2",
     title: "Bir iş parçacığı, geçersiz bir çekirdek bellek (pool) isteği yaptı",
-    category: "3. parti sürücü",
+    category: "üçüncü taraf sürücü",
     severity: "orta",
-    cause: "Bir sürücü, zaten serbest bırakılmış belleği ikinci kez serbest bıraktı ya da hatalı boyut/etiketle havuz isteği yaptı. Klasik 3. parti sürücü hatası (eski ağ, depolama, güvenlik veya sanal aygıt sürücüleri).",
+    cause: "Bir sürücü, zaten serbest bırakılmış belleği ikinci kez serbest bıraktı ya da hatalı boyut/etiketle havuz isteği yaptı. Klasik üçüncü taraf sürücü hatası (eski ağ, depolama, güvenlik veya sanal aygıt sürücüleri).",
     thinkpad: "Dökümdeki havuz etiketi kusurlu sürücüyü işaret eder. ThinkPad'de sık: Intel Wi-Fi, güvenlik ajanı filtre sürücüsü, eski RST.",
     actions: [DUMP, VERIFIER, "Tespit edilen sürücüyü güncelleyin ya da gerekmiyorsa kaldırın.", DRV, MEM],
   },
@@ -484,9 +484,9 @@ export const BSOD_KB = {
   DRIVER_CORRUPTED_EXPOOL: {
     code: "0x000000C5",
     title: "Bir sürücü, yüksek IRQL'de bozulmuş havuz belleğine erişti",
-    category: "3. parti sürücü / RAM",
+    category: "üçüncü taraf sürücü / RAM",
     severity: "orta",
-    cause: "Bir sürücü çekirdek havuz belleğini bozdu ve ardından buna erişildi. BAD_POOL_CALLER ile aynı aileden; hatalı 3. parti sürücü veya RAM.",
+    cause: "Bir sürücü çekirdek havuz belleğini bozdu ve ardından buna erişildi. BAD_POOL_CALLER ile aynı aileden; hatalı üçüncü taraf sürücü veya RAM.",
     thinkpad: "Driver Verifier ile kusurlu sürücüyü bulun; RAM testi yapın.",
     actions: [VERIFIER, DUMP, MEM, DRV],
   },

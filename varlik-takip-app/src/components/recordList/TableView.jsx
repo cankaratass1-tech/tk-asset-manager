@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { isZimmetUnverified } from "../../services/zimmetService";
-import { isInaktifUnverified } from "../../services/inaktifComparisonService";
+import { isInaktifUnverified, inaktifUsageTone } from "../../services/inaktifComparisonService";
 import { ownerTitleOf } from "../../services/ownerName";
 
 // Klasik tablo görünümü — Zimmet'te durum/not/ertele kontrolleri artık tabloda değil,
@@ -184,7 +184,7 @@ export default function TableView({
                 {isZimmet ? (
                   <span
                     style={{ display: "block", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                    title="Tamamını görmek için satıra tıkla"
+                    title="Tamamını görmek için satıra tıklayın"
                   >
                     {r.model}
                   </span>
@@ -217,8 +217,8 @@ export default function TableView({
                   // (bkz. konuşma — inaktifComparisonService.js) — "Doğrulanamadı"/"TuruncuHat'ta
                   // Bulunamadı" kanıt değil, nötr (gri) gösterilir; diğer raporlar (Disk Alanı vb.)
                   // statusTag taşımadığı için aşağıdaki eski Eşleşti/Eşleşmedi rozetine düşer.
-                  <span style={{ ...styles.badge, ...(r.matched ? styles.badgeOk : isInaktifUnverified(r.statusTag) ? styles.badgeNeutral : styles.badgeBad) }}>
-                    <span style={{ ...styles.badgeDot, background: r.matched ? pal.ok : isInaktifUnverified(r.statusTag) ? pal.inkSoft : pal.bad }} />
+                  <span style={{ ...styles.badge, ...(inaktifUsageTone(r.statusTag) === "ok" ? styles.badgeOk : inaktifUsageTone(r.statusTag) === "bad" ? styles.badgeBad : r.matched ? styles.badgeOk : isInaktifUnverified(r.statusTag) ? styles.badgeNeutral : styles.badgeBad) }}>
+                    <span style={{ ...styles.badgeDot, background: inaktifUsageTone(r.statusTag) === "ok" ? pal.ok : inaktifUsageTone(r.statusTag) === "bad" ? pal.bad : r.matched ? pal.ok : isInaktifUnverified(r.statusTag) ? pal.inkSoft : pal.bad }} />
                     {r.statusTag}
                   </span>
                 ) : (
@@ -265,8 +265,8 @@ export default function TableView({
                                 {pr.statusTag}
                               </span>
                             ) : pr.statusTag ? (
-                              <span style={{ ...styles.badge, ...(pr.matched ? styles.badgeOk : isInaktifUnverified(pr.statusTag) ? styles.badgeNeutral : styles.badgeBad), flexShrink: 0 }}>
-                                <span style={{ ...styles.badgeDot, background: pr.matched ? pal.ok : isInaktifUnverified(pr.statusTag) ? pal.inkSoft : pal.bad }} />
+                              <span style={{ ...styles.badge, ...(inaktifUsageTone(pr.statusTag) === "ok" ? styles.badgeOk : inaktifUsageTone(pr.statusTag) === "bad" ? styles.badgeBad : pr.matched ? styles.badgeOk : isInaktifUnverified(pr.statusTag) ? styles.badgeNeutral : styles.badgeBad), flexShrink: 0 }}>
+                                <span style={{ ...styles.badgeDot, background: inaktifUsageTone(pr.statusTag) === "ok" ? pal.ok : inaktifUsageTone(pr.statusTag) === "bad" ? pal.bad : pr.matched ? pal.ok : isInaktifUnverified(pr.statusTag) ? pal.inkSoft : pal.bad }} />
                                 {pr.statusTag}
                               </span>
                             ) : (

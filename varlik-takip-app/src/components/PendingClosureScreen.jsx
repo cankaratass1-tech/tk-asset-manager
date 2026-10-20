@@ -33,10 +33,10 @@ const MAIL_TEXT = {
   tr: {
     subject: "Kapatma Onayı Bekleniyor — TuruncuHat",
     greeting: "Merhabalar,",
-    intro: "Lokasyonunuzda zimmet için açılan ve kapatma onayı bekleyen turuncuhat kayıtları bulunmaktadır.",
-    body: 'Turuncuhat prosedürü gereği ilgili kayda onay vermeniz önem arz etmektedir. Süreçlerin ilerleyebilmesi açısından teslim edilmiş/hazırlanmış zimmet kayıtlarına Turuncuhat üzerinden kapatma onayı verilmesi arz/rica olunur. Kaydı incelemek ve onaylamak için ilgili işlem kaydını açıp "Kapatma Onayı" butonuna tıklamanız rica olunur. Ekte yer alan adımları takip ederek işleminizi kolaylıkla tamamlayabilirsiniz.',
-    plain: "Lokasyonunuzda zimmet için açılan ve kapatma onayı bekleyen turuncuhat kayıtları bulunmaktadır. Turuncuhat üzerinden ilgili kayda kapatma onayı vermeniz rica olunur.",
-    head: ["Barkod", "Seri No", "Varlık Adı", "ATO Code", "Etkilenen Kullanıcı"],
+    intro: "Lokasyonunuzda zimmet için açılan ve kapatma onayı bekleyen TuruncuHat kayıtları bulunmaktadır.",
+    body: 'TuruncuHat prosedürü gereği ilgili kayda onay vermeniz önem arz etmektedir. Süreçlerin ilerleyebilmesi açısından teslim edilmiş/hazırlanmış zimmet kayıtlarına TuruncuHat üzerinden kapatma onayı verilmesi arz/rica olunur. Kaydı incelemek ve onaylamak için ilgili işlem kaydını açıp "Kapatma Onayı" butonuna tıklamanız rica olunur. Ekte yer alan adımları takip ederek işleminizi kolaylıkla tamamlayabilirsiniz.',
+    plain: "Lokasyonunuzda zimmet için açılan ve kapatma onayı bekleyen TuruncuHat kayıtları bulunmaktadır. TuruncuHat üzerinden ilgili kayda kapatma onayı vermeniz rica olunur.",
+    head: ["Barkod", "Seri No", "Varlık Adı", "ATO Kodu", "Etkilenen Kullanıcı"],
   },
   en: {
     subject: "Closure Approval Pending — TuruncuHat",
@@ -82,7 +82,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
   const [pageSize, setPageSize] = useState(25);
   const [sendingId, setSendingId] = useState(null); // tek satır gönderimi (satır bazlı buton)
   const [bulkSending, setBulkSending] = useState(false); // toplu gönderim (üst bar)
-  const [mailTo, setMailTo] = useState(""); // boşsa lokasyon mail grubu kullanılır
+  const [mailTo, setMailTo] = useState(""); // boşsa lokasyon e-posta grubu kullanılır
   const [mailLang, setMailLang] = useState("tr"); // "tr" | "en" — Yeni Kurulum Kaydı'ndaki dil seçimiyle aynı
   // KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli (bkz. konuşma) — bu liste ARTIK Excel'den
   // değil, admin'in Ayarlar'dan elle yönettiği sabit e-posta listesinden geliyor (bkz.
@@ -191,16 +191,16 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
     // KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli (bkz. konuşma) — bu yüzden manuel
     // e-posta sorma adımına bile gelinmeden en başta engelleniyor.
     if (th && isUstYonetimEmail(ustYonetimEmails, th.ownerMail)) {
-      showToast && showToast("⛔ Üst yönetim — bu kişiye hatırlatma maili gönderilmez");
+      showToast && showToast("⛔ Üst yönetim — bu kişiye hatırlatma e-postası gönderilmez");
       return;
     }
     let to = (th && th.ownerMail) || "";
     if (!to) {
-      const entered = window.prompt(`"${r.userInfo || r.serial}" için TuruncuHat'ta mail adresi bulunamadı — alıcı e-posta girin:`, "");
+      const entered = window.prompt(`"${r.userInfo || r.serial}" için TuruncuHat'ta e-posta adresi bulunamadı — alıcı e-posta girin:`, "");
       if (!entered || !entered.trim()) return;
       to = entered.trim();
       if (isUstYonetimEmail(ustYonetimEmails, to)) {
-        showToast && showToast("⛔ Üst yönetim — bu kişiye hatırlatma maili gönderilmez");
+        showToast && showToast("⛔ Üst yönetim — bu kişiye hatırlatma e-postası gönderilmez");
         return;
       }
     }
@@ -246,7 +246,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
     });
     const sendableRecs = targetRecs.filter((r) => !ustYonetimSkipped.includes(r));
     if (sendableRecs.length === 0) {
-      showToast && showToast(`⛔ Seçili ${targetRecs.length} kaydın tamamı üst yönetime ait — mail gönderilmedi`);
+      showToast && showToast(`⛔ Seçili ${targetRecs.length} kaydın tamamı üst yönetime ait — e-posta gönderilmedi`);
       setBulkSending(false);
       return;
     }
@@ -257,7 +257,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
     const manual = manualAll.filter((e) => !isUstYonetimEmail(ustYonetimEmails, e));
     const manualBlocked = manualAll.length - manual.length;
     if (manualAll.length > 0 && manual.length === 0) {
-      showToast && showToast("⛔ Girilen adres(ler) üst yönetime ait — mail gönderilmedi");
+      showToast && showToast("⛔ Girilen adres(ler) üst yönetime ait — e-posta gönderilmedi");
       setBulkSending(false);
       return;
     }
@@ -296,7 +296,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
         });
         // Maili bulunamayan kişiler için elle sor (kişi başına bir kez).
         for (const person of missing) {
-          const entered = window.prompt(`"${person}" için TuruncuHat'ta mail adresi bulunamadı — alıcı e-posta girin (boş bırakırsan bu kayıtlar atlanır):`, "");
+          const entered = window.prompt(`"${person}" için TuruncuHat'ta e-posta adresi bulunamadı — alıcı e-posta girin (boş bırakırsanız bu kayıtlar atlanır):`, "");
           const email = (entered || "").trim();
           if (email && isUstYonetimEmail(ustYonetimEmails, email)) {
             showToast && showToast(`⛔ "${person}" için girilen adres üst yönetime ait — atlandı`);
@@ -309,7 +309,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
           }
         }
         if (groups.size === 0) {
-          showToast && showToast("Alıcı yok — üstteki kutuya e-posta girin, TuruncuHat'ta mail adresi eksik olabilir");
+          showToast && showToast("Alıcı yok — üstteki kutuya e-posta girin, TuruncuHat'ta e-posta adresi eksik olabilir");
           setBulkSending(false);
           return;
         }
@@ -327,7 +327,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
         if (sentRecords.length > 0) await backendClient.markClosureReminderSent(sentRecords.map((r) => r.id));
         showToast &&
           showToast(
-            `${failCount === 0 ? "✅" : "⚠️"} ${groups.size} kişiye ayrı mail gönderildi — ${sentRecords.length}/${sendableRecs.length} kayıt${
+            `${failCount === 0 ? "✅" : "⚠️"} ${groups.size} kişiye ayrı e-posta gönderildi — ${sentRecords.length}/${sendableRecs.length} kayıt${
               failCount ? `, ${failCount} gönderim başarısız` : ""
             }${ustYonetimSkipped.length ? ` · ${ustYonetimSkipped.length} üst yönetim kaydı hariç tutuldu` : ""}`
           );
@@ -347,7 +347,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
     <div style={{ ...styles.panel, padding: "20px 24px" }}>
       <p style={styles.pageTitle}>Kapatma Onayı Bekleyen Kayıtlar</p>
       <p style={styles.pageSub}>
-        "Yeni Kurulum Kaydı"nda kullanıcıya cihazı hazır olduğu ve ATO kaydına TuruncuHat'tan kapatma onayı vermesi gerektiği maili atılmış, ancak henüz teslim alınmamış kayıtlar.
+        "Yeni Kurulum Kaydı"nda kullanıcıya cihazı hazır olduğu ve ATO kaydına TuruncuHat'tan kapatma onayı vermesi gerektiği e-postası atılmış, ancak henüz teslim alınmamış kayıtlar.
       </p>
 
       {loading ? (
@@ -407,14 +407,14 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
             )}
           </div>
 
-          {/* Toplu hatırlatma — Dil seçimi + tek birincil buton (Yeni Kurulum Kaydı'ndaki "Mail Gönder" barıyla aynı). */}
+          {/* Toplu hatırlatma — Dil seçimi + tek birincil buton (Yeni Kurulum Kaydı'ndaki "E-posta Gönder" barıyla aynı). */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
             <input
               type="text"
               value={mailTo}
               onChange={(e) => setMailTo(e.target.value)}
               style={{ ...inp, flex: "0 1 320px" }}
-              placeholder="Mail alıcı(lar) — boşsa lokasyon mail grubu"
+              placeholder="E-posta alıcı(lar) — boşsa lokasyon e-posta grubu"
             />
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: pal.inkSoft, flex: "0 0 auto" }}>
               Dil
@@ -433,7 +433,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
           </div>
 
           {pending.length === 0 ? (
-            <p style={styles.pageSub}>Şu an kapatma onayı bekleyen kayıt yok — tüm mail atılan cihazlar teslim edilmiş.</p>
+            <p style={styles.pageSub}>Şu an kapatma onayı bekleyen kayıt yok — tüm e-posta gönderilen cihazlar teslim edilmiş.</p>
           ) : filtered.length === 0 ? (
             <p style={styles.pageSub}>Bu aramayla eşleşen kayıt yok.</p>
           ) : (
@@ -447,10 +447,10 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
                     <th style={styles.th}>Barkod</th>
                     <th style={styles.th}>Seri No</th>
                     <th style={styles.th}>Varlık Adı</th>
-                    <th style={styles.th}>ATO Code</th>
+                    <th style={styles.th}>ATO Kodu</th>
                     <th style={styles.th}>Etkilenen Kullanıcı</th>
                     <th style={styles.th}>Lokasyon</th>
-                    <th style={styles.th}>Mail Gönderim Tarihi</th>
+                    <th style={styles.th}>E-posta Gönderim Tarihi</th>
                     <th style={styles.th}>Kaç Gündür Bekliyor</th>
                     <th style={styles.th}>Hatırlatma</th>
                     <th style={styles.th}>Aksiyon</th>
@@ -489,7 +489,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
                           )}
                         </td>
                         <td style={{ ...styles.td, whiteSpace: "nowrap" }}>
-                          {/* KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli (bkz. konuşma) — gönder
+                          {/* KRİTİK: üst yönetime hiçbir şekilde e-posta gitmemeli (bkz. konuşma) — gönder
                               butonu bu satırlarda hiç render edilmiyor, sadece bilgilendirici bir
                               rozet gösteriliyor. Diğerlerinde: bize dönüş yapmayanlar için tekrar
                               hatırlatma — aynı buton, ilk gönderimden sonra "Tekrar Hatırlat" etiketine
@@ -497,7 +497,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
                           {ustYonetim ? (
                             <span
                               style={{ ...styles.badge, background: `${pal.bad}1e`, color: pal.bad }}
-                              title="Üst yönetim — bu kişiye kapatma onayı hatırlatma maili gönderilmez"
+                              title="Üst yönetim — bu kişiye kapatma onayı hatırlatma e-postası gönderilmez"
                             >
                               🔒 Üst Yönetim
                             </span>
@@ -509,7 +509,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
                               title={
                                 r.closureReminderSentAt
                                   ? `Son hatırlatma ${new Date(r.closureReminderSentAt).toLocaleDateString("tr-TR")} — dönüş gelmediyse tekrar gönder (${mailLang === "en" ? "EN" : "TR"})`
-                                  : `Kapatma onayı hatırlatma maili gönder (${mailLang === "en" ? "EN" : "TR"})`
+                                  : `Kapatma onayı hatırlatma e-posta gönder (${mailLang === "en" ? "EN" : "TR"})`
                               }
                             >
                               {sendingId === r.id

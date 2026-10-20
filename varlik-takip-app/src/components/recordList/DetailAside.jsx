@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { isZimmetUnverified } from "../../services/zimmetService";
-import { isInaktifUnverified, needsInaktifAction } from "../../services/inaktifComparisonService";
+import { isInaktifUnverified, needsInaktifAction, inaktifUsageTone } from "../../services/inaktifComparisonService";
 import { deviceKeyOf } from "../../services/deviceActionService";
 import DeviceActionHistory from "./DeviceActionHistory";
 import { useStickyTop } from "../../hooks/useStickyTop";
 import ItemizedAlert from "./ItemizedAlert";
-import { inaktifActionItems, zimmetAlertItems } from "./alertItems";
+import { inaktifActionItems, zimmetAlertItems, descriptionShownInAlert } from "./alertItems";
+import DescriptionRow from "./DescriptionRow";
 
 const smallBtnStyle = (pal) => ({
   fontSize: 12,
@@ -112,12 +113,12 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
   if (!row) {
     return (
       <aside ref={asideRef} style={{ ...styles.detailAside, top: asideTop }}>
-        <div style={styles.detailEmpty}>Detayını görmek için soldaki listeden bir kayıt seç</div>
+        <div style={styles.detailEmpty}>Detayını görmek için soldaki listeden bir kayıt seçin</div>
       </aside>
     );
   }
 
-  const initials = row.owner !== "—" ? row.owner.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase() : "?";
+  const initials = row.owner !== "—" ? row.owner.split(" ").map((p) => p[0]).slice(0, 2).join("").toLocaleUpperCase("tr-TR") : "?";
 
   return (
     <aside ref={asideRef} style={{ ...styles.detailAside, top: asideTop }}>
@@ -229,13 +230,15 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
             <span>{row.assignmentType === "OBS" ? "OBS (Müdürlük)" : row.assignmentType === "User" ? "User (Kişi)" : "—"}</span>
           </div>
         )}
+        {isZimmet && !descriptionShownInAlert(row) && <DescriptionRow text={row.model} styles={styles} pal={pal} />}
+        {!isZimmet && row.matched && row.matchDetail && <DescriptionRow text={row.matchDetail} styles={styles} pal={pal} />}
         <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}>
           <span style={{ color: pal.inkSoft }}>Durum</span>
           {(() => {
             const unverified = isZimmet ? isZimmetUnverified(row.statusTag) : isInaktifUnverified(row.statusTag);
             return (
-              <span style={{ ...styles.badge, ...(row.matched ? styles.badgeOk : unverified ? styles.badgeNeutral : styles.badgeBad) }}>
-                <span style={{ ...styles.badgeDot, background: row.matched ? pal.ok : unverified ? pal.inkSoft : pal.bad }} />
+              <span style={{ ...styles.badge, ...(!isZimmet && inaktifUsageTone(row.statusTag) === "ok" ? styles.badgeOk : !isZimmet && inaktifUsageTone(row.statusTag) === "bad" ? styles.badgeBad : row.matched ? styles.badgeOk : unverified ? styles.badgeNeutral : styles.badgeBad) }}>
+                <span style={{ ...styles.badgeDot, background: !isZimmet && inaktifUsageTone(row.statusTag) === "ok" ? pal.ok : !isZimmet && inaktifUsageTone(row.statusTag) === "bad" ? pal.bad : row.matched ? pal.ok : unverified ? pal.inkSoft : pal.bad }} />
                 {row.statusTag ? row.statusTag : row.matched ? "Eşleşti" : "Eşleşmedi"}
               </span>
             );

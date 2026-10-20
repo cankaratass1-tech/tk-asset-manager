@@ -80,7 +80,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
         <button style={styles.btnPrimary} onClick={() => setSubmitted(query.trim())}>Ara</button>
       </div>
       {!hasOs && rows.length > 0 && (
-        <p style={{ fontSize: 12, color: pal.inkSoft, margin: "6px 0 0" }}>Windows sürümü verisi bulunamadı — SCCM export'unda işletim sistemi sütunu olmayabilir (Ayarlar &gt; Veri Input yüklemesinde uyarı çıkar).</p>
+        <p style={{ fontSize: 12, color: pal.inkSoft, margin: "6px 0 0" }}>Windows sürümü verisi bulunamadı — SCCM export'unda işletim sistemi sütunu olmayabilir (Ayarlar &gt; Veri Girişi yüklemesinde uyarı çıkar).</p>
       )}
 
       {submitted && !listMode && !overview && <p style={{ ...styles.pageSub, marginTop: 14 }}>Bir şey yazın ve Ara'ya basın.</p>}

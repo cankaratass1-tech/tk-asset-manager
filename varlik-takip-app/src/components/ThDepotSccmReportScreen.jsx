@@ -112,7 +112,7 @@ export default function ThDepotSccmReportScreen({ styles, pal, thRows, sccmRows,
 
       {missingData && !loading ? (
         <p style={{ fontSize: 13, color: pal.inkSoft }}>
-          Rapor için hem TuruncuHat hem SCCM dosyası gerekir. Ayarlar &gt; Veri Input &gt; Dosya Kaynağı klasörünü kontrol edin.
+          Rapor için hem TuruncuHat hem SCCM dosyası gerekir. Ayarlar &gt; Veri Girişi &gt; Dosya Kaynağı klasörünü kontrol edin.
         </p>
       ) : (
         <>

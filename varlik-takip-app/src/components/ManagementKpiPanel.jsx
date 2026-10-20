@@ -131,7 +131,7 @@ export default function ManagementKpiPanel({
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <select style={styles.scheduleSelect} value={report} onChange={(e) => setReport(e.target.value)}>
-            {/* Sadece snapshot geçmişi olan (yani gerçek veriyle çalışan) raporlar listelenir —
+            {/* Sadece kayıt geçmişi olan (yani gerçek veriyle çalışan) raporlar listelenir —
                 dinamik, elle eklenmiş sabit bir liste değil (bkz. konuşma). */}
             {Object.keys(snapshots || {}).sort((a, b) => reportLabel(a).localeCompare(reportLabel(b), "tr")).map((id) => (
               <option key={id} value={id}>{reportLabel(id)}</option>

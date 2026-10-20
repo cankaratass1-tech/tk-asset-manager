@@ -48,3 +48,6 @@ export function zimmetAlertItems(row) {
   }
   return null;
 }
+
+// Zimmet satırının açıklaması (row.model), kişi uyuşmazlığında itemize olmayan yedek uyarı kutusunda zaten gösteriliyorsa ayrıca gösterilmez
+export const descriptionShownInAlert = (row) => !(row.personMatched ?? row.matched) && !zimmetAlertItems(row);

@@ -30,7 +30,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
 
   // Kapatma onayı: mail gitmiş, teslim edilmemiş; 7 günü geçenler "gecikmiş"
   const closure = useMemo(() => {
-    const pending = recs.filter((r) => r.mailSentAt && String(r.status || "").toUpperCase() !== "TESLİM EDİLDİ");
+    const pending = recs.filter((r) => r.mailSentAt && String(r.status || "").toLocaleUpperCase("tr-TR") !== "TESLİM EDİLDİ");
     const overdue = pending.filter((r) => (Date.now() - Date.parse(r.mailSentAt)) / 86400000 > 7).length;
     return { pending: pending.length, overdue };
   }, [recs]);
@@ -40,7 +40,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
     const items = [
       cards.disk.value != null && { id: "disk", sev: "high", n: cards.disk.value, title: "Kritik disk alanı", desc: "Boş alanı ≤10 GB olan diskler", to: "disk", opts: { segment: "critical" } },
       { id: "zimmet", sev: "high", n: cards.zimmet.value, title: "Hatalı zimmet", desc: "Zimmetli kişi ile cihazı kullanan farklı / mükerrer", to: "zimmet", opts: { segment: "unmatched" } },
-      { id: "closure", sev: closure.overdue > 0 ? "high" : "mid", n: closure.overdue || closure.pending, title: closure.overdue > 0 ? "Kapatma onayı geciken kayıtlar" : "Kapatma onayı bekleyen kayıtlar", desc: closure.overdue > 0 ? `7 günü geçti (toplam ${closure.pending} bekleyen)` : "Kullanıcı Turuncuhat'tan onay verecek", to: "kapatma-onayi" },
+      { id: "closure", sev: closure.overdue > 0 ? "high" : "mid", n: closure.overdue || closure.pending, title: closure.overdue > 0 ? "Kapatma onayı geciken kayıtlar" : "Kapatma onayı bekleyen kayıtlar", desc: closure.overdue > 0 ? `7 günü geçti (toplam ${closure.pending} bekleyen)` : "Kullanıcı TuruncuHat'tan onay verecek", to: "kapatma-onayi" },
       { id: "monitor", sev: "mid", n: cards.zimmet.monitor, title: "Monitör uyuşmazlığı", desc: "Kişi başkasına zimmetli monitörü kullanıyor", to: "zimmet", opts: { segment: "monitorIssue" } },
       { id: "bilgidisi", sev: "mid", n: cards.atil.bilgiDisi, title: "Bilgi dışı kullanılan monitör", desc: "Zimmetli kişi dışında biri kullanıyor", to: "atil-monitor", opts: { atilStage: "outside" } },
       { id: "inaktif", sev: "mid", n: cards.inaktif.value, title: "İnaktif cihaz sahibi", desc: "Kayıtlı sahibi inaktif olan cihazlar", to: "inaktif" },
@@ -244,7 +244,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 12, color: pal.inkSoft, margin: "12px 0 0" }}>Bir cihaz birden fazla kategoride yer alabilir. Bir satıra tıklayınca o bulguların raporu açılır.</p>
+          <p style={{ fontSize: 12, color: pal.inkSoft, margin: "12px 0 0" }}>Bir cihaz birden fazla kategoride yer alabilir. Bir satıra tıklayınca o bulguların rapor açılır.</p>
         </div>
         <div style={{ ...card, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>

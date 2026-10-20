@@ -54,11 +54,11 @@ export default function DenseGridView({
           <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={styles.checkbox} />
         </div>
         <div style={{ ...styles.denseTh, ...styles.denseThSortable }} onClick={() => setSortAsc((v) => !v)}>
-          {isZimmet ? "ZİMMETLİ KİŞİ" : (ownerLabel || "CİHAZ SAHİBİ").toUpperCase()} {sortAsc ? "↓" : "↑"}
+          {isZimmet ? "ZİMMETLİ KİŞİ" : (ownerLabel || "CİHAZ SAHİBİ").toLocaleUpperCase("tr-TR")} {sortAsc ? "↓" : "↑"}
         </div>
-        <div style={styles.denseTh}>{(serialLabel || "SERİ NO").toUpperCase()}</div>
-        <div style={styles.denseTh}>{isZimmet ? "TÜR" : (modelLabel || "MODEL").toUpperCase()}</div>
-        <div style={styles.denseTh}>{isZimmet ? "KULLANAN" : (locationLabel || "LOKASYON").toUpperCase()}</div>
+        <div style={styles.denseTh}>{(serialLabel || "SERİ NO").toLocaleUpperCase("tr-TR")}</div>
+        <div style={styles.denseTh}>{isZimmet ? "TÜR" : (modelLabel || "MODEL").toLocaleUpperCase("tr-TR")}</div>
+        <div style={styles.denseTh}>{isZimmet ? "KULLANAN" : (locationLabel || "LOKASYON").toLocaleUpperCase("tr-TR")}</div>
         <div style={styles.denseTh}>DURUM</div>
         {isZimmet && <div style={styles.denseTh}>İŞLEM</div>}
       </div>
@@ -119,7 +119,7 @@ export default function DenseGridView({
                   <div style={styles.opsCell}>
                     <span
                       onClick={() => cycleStatus(deviceKeyOf(r))}
-                      title="Durumu değiştirmek için tıkla"
+                      title="Durumu değiştirmek için tıklayın"
                       style={{ ...styles.statusPill, background: statusColor.bg, color: statusColor.fg }}
                     >
                       {status}

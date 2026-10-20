@@ -367,7 +367,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
               </div>
             </div>
           ) : (
-            <p style={{ ...styles.pageSub, margin: 0 }}>En az 2 dönem verisi gerekli — snapshot geçmişi biriktikçe dolacak.</p>
+            <p style={{ ...styles.pageSub, margin: 0 }}>En az 2 dönem verisi gerekli — kayıt geçmişi biriktikçe dolacak.</p>
           )}
         </Card>
       </div>

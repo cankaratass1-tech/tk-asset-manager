@@ -53,7 +53,7 @@ try {
   await page.waitForSelector("[data-action-history] [data-history-event]", { timeout: 15000 });
   const inline = page.locator("[data-history-preview] [data-history-event]");
   check("Panelde yalnız son 3 kayıt gösteriliyor (aşağı doğru uzamıyor)", (await inline.count()) === 3, `${await inline.count()}`);
-  check("'Tümünü gör' bağlantısı var ve kayıt sayısı başlıkta", (await page.locator("[data-history-open]").count()) === 1 && /Cihaz Aksiyon Geçmişi \(\d+\)/i.test(await page.locator("[data-action-history]").innerText()));
+  check("'Tümünü gör' bağlantısı var ve kayıt sayısı başlıkta", (await page.locator("[data-history-open]").count()) === 1 && /cihaz aksiyon geçmişi \(\d+\)/.test((await page.locator("[data-action-history]").innerText()).toLocaleLowerCase("tr-TR")));
   check("Çipler panelde değil, popup'ta", (await page.locator("[data-history-chip]").count()) === 0);
   await page.locator("[data-history-open]").click();
   await page.waitForSelector("[data-history-modal]");
@@ -71,7 +71,7 @@ try {
   check("Günlere göre gruplama başlıkları var", (await panel.locator("[data-history-day]").count()) >= 2);
 
   const chip = (id) => panel.locator(`[data-history-chip="${id}"]`);
-  check("Çipler: Tümü / Zimmet / Rapor / Not-Durum (mail yoksa Mail çipi yok)", (await chip("all").count()) === 1 && (await chip("zimmet").count()) === 1 && (await chip("rapor").count()) === 1 && (await chip("not").count()) === 1 && (await chip("mail").count()) === 0);
+  check("Çipler: Tümü / Zimmet / Rapor / Not-Durum (e-posta yoksa E-posta çipi yok)", (await chip("all").count()) === 1 && (await chip("zimmet").count()) === 1 && (await chip("rapor").count()) === 1 && (await chip("not").count()) === 1 && (await chip("mail").count()) === 0);
   await chip("zimmet").click();
   await page.waitForTimeout(300);
   const nz = await panel.locator('[data-history-event="zimmet"]').count();

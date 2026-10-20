@@ -80,7 +80,7 @@ try {
     check(rep.id, "hata ekranı (UI-001) yok", !text.includes("UI-001"));
 
     if (rep.kind === "table") {
-      const total = num((text.match(/(\d[\d.]*)\s*\n\s*toplam kayıt/) || [])[1]);
+      const total = num((text.match(/(\d[\d.]*)\s*\n\s*toplam kayıt/i) || [])[1]);
       check(rep.id, "toplam kayıt sayısı okundu", total > 0, `toplam=${total}`);
 
       // sayfa boyutu "Tümü" → satır sayısı toplamla aynı olmalı
@@ -140,12 +140,12 @@ try {
         const wb = XLSX.read(readFileSync(await dl.path()));
         const exported = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).length;
         check(rep.id, "Excel çıktısı satır sayısı = ekrandaki sayı", exported === n, `excel=${exported}, ekran=${n}`);
-        const mailBtn = page.getByRole("button", { name: /Bilgi Dışı Kullanıma Mail Gönder/ });
-        check(rep.id, "'Bilgi Dışı Kullanıma Mail Gönder' butonu var", (await mailBtn.count()) > 0);
+        const mailBtn = page.getByRole("button", { name: /Bilgi Dışı Kullanıma E-posta Gönder/ });
+        check(rep.id, "'Bilgi Dışı Kullanıma E-posta Gönder' butonu var", (await mailBtn.count()) > 0);
         await mailBtn.first().click();
         await page.waitForTimeout(400);
         const confirmText = await bodyText();
-        check(rep.id, "seçim yokken mail için onay penceresi açılıyor", confirmText.includes("Mail Gönderimini Onayla") && /\d+ monitör, \d+ kullanıcı/.test(confirmText));
+        check(rep.id, "seçim yokken e-posta için onay penceresi açılıyor", confirmText.includes("E-posta Gönderimini Onayla") && /\d+ monitör, \d+ kullanıcı/.test(confirmText));
         await page.getByRole("button", { name: "Vazgeç" }).first().click();
       }
       if (rep.id === "yeni-kurulum") {

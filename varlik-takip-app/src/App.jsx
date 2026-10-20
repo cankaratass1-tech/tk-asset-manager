@@ -346,7 +346,7 @@ export default function App({ user, onLogout } = {}) {
   // Sayfalama (kullanıcı isteği): tüm raporlarda standart, varsayılan 25, sayfa numaralarıyla gezilebilir
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
-  const [mailGroupsText, setMailGroupsText] = useState(""); // yapıştırılan "Lokasyon<TAB>mail" satırları — İnaktif Cihazlar mail dağıtımı
+  const [mailGroupsText, setMailGroupsText] = useState(""); // yapıştırılan "Lokasyon<TAB>mail" satırları — İnaktif Cihazlar e-posta dağıtımı
   const [savingMailGroups, setSavingMailGroups] = useState(false);
   const [fileSourceConfig, setFileSourceConfig] = useState({ folderPath: "" });
   const [testingFileSource, setTestingFileSource] = useState(false);
@@ -1211,7 +1211,7 @@ export default function App({ user, onLogout } = {}) {
           "Lokasyon (SCCM)": r.sccmLocation || "—",
           "Üst Lokasyon (SCCM)": r.sccmLbsParent || "—",
           "Son Kullanıcı (SCCM)": r.sccmUser || "—",
-          "Kullanıcı Mail (SCCM)": r.sccmUserMail || "—",
+          "Kullanıcı E-posta (SCCM)": r.sccmUserMail || "—",
           "Crash Tarihi": r.crashDate || "",
           "BSOD Kodu": r.bsodName || "",
           "Hex": r.bsodHex || "",
@@ -1230,7 +1230,7 @@ export default function App({ user, onLogout } = {}) {
         "Hostname (tam)": r.hostname || "",
         "Lokasyon (SCCM)": r.sccmLocation || "—",
         "Son Kullanıcı (SCCM)": r.sccmUser || "—",
-        "Kullanıcı Mail (SCCM)": r.sccmUserMail || "—",
+        "Kullanıcı E-posta (SCCM)": r.sccmUserMail || "—",
         "Batarya Sağlığı %": r.batteryHealth != null ? r.batteryHealth : "Veri Yok",
         "Döngü Sayısı": r.cycleCount != null ? r.cycleCount : "",
         "Tasarım Kapasitesi": r.designCapacity != null ? r.designCapacity : "",
@@ -1434,7 +1434,7 @@ export default function App({ user, onLogout } = {}) {
       greeting: "Merhabalar,",
       intro: "Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi inaktif durumda. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.",
       bodyHtml: dataTable(devHead("Kayıtlı Sahibi (Eski)"), rows.map((r) => devRow(r, ownerWithTitle(r), [r.actualUser, r.lastLogonTime].filter(Boolean).join(" · ")))),
-      action: stepsBox("Turuncuhat üzerinden kayıt oluşturunuz:"),
+      action: stepsBox("TuruncuHat üzerinden kayıt oluşturunuz:"),
       notes: [REC_NOTE],
       footer: MAIL_FOOTER,
     });
@@ -1460,7 +1460,7 @@ export default function App({ user, onLogout } = {}) {
       bodyHtml: hasTransfer
         ? transferTable + (hasDup ? mailSection("Mükerrer çift zimmet", `<p style="margin:0 0 8px;">Ayrıca, ${DUP_INTRO.charAt(0).toLowerCase()}${DUP_INTRO.slice(1)}</p>` + dupTable) : "")
         : dupTable,
-      action: stepsBox("İşleminiz için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:"),
+      action: stepsBox("İşleminiz için lütfen aşağıdaki adımları izleyerek TuruncuHat üzerinden bir kayıt oluşturunuz:"),
       notes: [REC_NOTE],
       footer: MAIL_FOOTER,
     });
@@ -1485,7 +1485,7 @@ export default function App({ user, onLogout } = {}) {
     const mismatchRows = targetRows.filter((r) => isZimmetMailable(r));
 
     if (mismatchRows.length === 0) {
-      showToast("Seçili/filtrelenmiş kayıtlarda Zimmet Hatalı, Mükerrer Çift Zimmet ya da Monitör Uyuşmazlığı yok — gönderilecek kayıt bulunamadı (sorunsuz kayıtlara hiçbir zaman mail gitmez)");
+      showToast("Seçili/filtrelenmiş kayıtlarda Zimmet Hatalı, Mükerrer Çift Zimmet ya da Monitör Uyuşmazlığı yok — gönderilecek kayıt bulunamadı (sorunsuz kayıtlara hiçbir zaman e-posta gitmez)");
       return;
     }
 
@@ -1502,7 +1502,7 @@ export default function App({ user, onLogout } = {}) {
 
     let sent = 0, failed = 0, duplicateSent = 0, extraIncluded = 0;
     const skipped = noMailRows.length;
-    const details = noMailRows.map((r) => ({ location: r.userFull || r.userLabel || r.hostname, to: null, count: 1, ok: false, message: "SCCM'de bu kullanıcı için mail adresi bulunamadı" }));
+    const details = noMailRows.map((r) => ({ location: r.userFull || r.userLabel || r.hostname, to: null, count: 1, ok: false, message: "SCCM'de bu kullanıcı için e-posta adresi bulunamadı" }));
 
     for (const [to, rows] of byActualUser) {
       const label = rows[0].userFull || rows[0].userLabel || "Bilinmeyen kullanıcı";
@@ -1532,7 +1532,7 @@ export default function App({ user, onLogout } = {}) {
           duplicateSent += rows.filter((r) => r.statusTag === "Mükerrer Çift Zimmet").length;
           extraIncluded += mailRows.length - rows.length;
           details.push({ location: label, to, count: rows.length, ok: true, message: "Gönderildi" });
-          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `${r.statusTag === "Mükerrer Çift Zimmet" ? "Mükerrer çift zimmet" : r.monitorIssue && r.statusTag !== "Zimmet Hatalı" ? "Monitör uyuşmazlığı" : "Zimmet uyuşmazlığı"} maili gönderildi (${label})`, mailSubject: subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
+          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `${r.statusTag === "Mükerrer Çift Zimmet" ? "Mükerrer çift zimmet" : r.monitorIssue && r.statusTag !== "Zimmet Hatalı" ? "Monitör uyuşmazlığı" : "Zimmet uyuşmazlığı"} e-postası gönderildi (${label})`, mailSubject: subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
           details.push({ location: label, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
@@ -1555,17 +1555,17 @@ export default function App({ user, onLogout } = {}) {
 
     const dupNote =
       (duplicateSent > 0 ? ` (${duplicateSent} kaydı mükerrer çift zimmet bildirimiydi)` : "") +
-      (extraIncluded > 0 ? ` (+${extraIncluded} ilgili kayıt, aynı kişiye ait olduğu için aynı maile eklendi)` : "");
+      (extraIncluded > 0 ? ` (+${extraIncluded} ilgili kayıt, aynı kişiye ait olduğu için aynı e-postaya eklendi)` : "");
     if (sent === 0 && failed === 0 && skipped > 0) {
-      showToast(`❌ Gönderilemedi — ${skipped} kayıt için SCCM'de kullanıcı maili bulunamadı`);
+      showToast(`❌ Gönderilemedi — ${skipped} kayıt için SCCM'de kullanıcı e-postası bulunamadı`);
     } else if (skipped > 0) {
-      showToast(`⚠️ ${sent} kayıt gönderildi (${byActualUser.size} kullanıcıya)${dupNote}, ${skipped} kayıt için mail adresi bulunamadı${failed > 0 ? `, ${failed} kayıt başarısız` : ""}`);
+      showToast(`⚠️ ${sent} kayıt gönderildi (${byActualUser.size} kullanıcıya)${dupNote}, ${skipped} kayıt için e-posta adresi bulunamadı${failed > 0 ? `, ${failed} kayıt başarısız` : ""}`);
     } else if (failed > 0 && sent === 0) {
       showToast(`❌ Gönderilemedi — ${failed} kayıt başarısız`);
     } else if (failed > 0) {
       showToast(`⚠️ ${sent} kayıt gönderildi, ${failed} kayıt başarısız`);
     } else {
-      showToast(`✅ Başarılı — ${sent} kayıt, ${byActualUser.size} kullanıcıya mail gönderildi${dupNote}`);
+      showToast(`✅ Başarılı — ${sent} kayıt, ${byActualUser.size} kullanıcıya e-posta gönderildi${dupNote}`);
     }
   };
 
@@ -1596,7 +1596,7 @@ Toplam Disk Alanı: ${totalSpace}
 Lokasyon: ${location}
 Seri No: ${serial}
 OU Adı: ${ouName}
-Bitlocker Durumu: ${bitlocker}
+BitLocker Durumu: ${bitlocker}
 
 Disk alanının bu seviyede kalması durumunda cihazınızda aşağıdaki sorunlarla karşılaşabilirsiniz:
 •\tWindows ve güvenlik güncellemeleri indirilemez, cihazınız güncel olmayan ve güvenlik açıklarına maruz bir durumda kalır
@@ -1606,7 +1606,7 @@ Disk alanının bu seviyede kalması durumunda cihazınızda aşağıdaki sorunl
 •\tİleri düzeyde, işletim sistemi kararsız hale gelip cihaz tamamen kullanılamaz duruma gelebilir
 Olası veri kaybı ve iş kesintisini önlemek için lütfen en kısa sürede işlem yapınız.
 
-Lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden kayıt oluşturunuz:
+Lütfen aşağıdaki adımları izleyerek TuruncuHat üzerinden kayıt oluşturunuz:
 turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → Açılan pencerede Servis kısmına tıklayıp arama bölümünden Lenovo yazıp seçin → Sonrasında diğer gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz.
 
 Kayıt açıklama kısmına yukarıdaki cihaz bilgilerini (Hostname, Seri No vb.) eklemeniz, işleminizin daha hızlı değerlendirilmesine yardımcı olacaktır.
@@ -1627,7 +1627,7 @@ Total Disk Space: ${totalSpace}
 Location: ${location}
 Serial Number: ${serial}
 OU Name: ${ouName}
-Bitlocker Enabled: ${bitlocker}
+BitLocker Enabled: ${bitlocker}
 
 If the disk space remains at this level, you may experience the following issues on your device:
 •\tWindows and security updates cannot be downloaded, leaving your device outdated and exposed to security vulnerabilities
@@ -1637,7 +1637,7 @@ If the disk space remains at this level, you may experience the following issues
 •\tIn severe cases, the operating system may become unstable and the device may become completely unusable
 Please take action as soon as possible to prevent potential data loss and business disruption.
 
-Please follow the steps below to create a ticket via Turuncuhat:
+Please follow the steps below to create a ticket via TuruncuHat:
 turuncuhat.mhy.com.tr → Create → User Incident → Click Service (search Lenovo then select) → Fill in the other necessary fields, then click Save and Exit.
 
 Including the device information above (Hostname, Serial Number, etc.) in the ticket description will help expedite the process.
@@ -1653,7 +1653,7 @@ IT Support`;
     const free = d.model;
     const L = (tr) => ({
       tr,
-      label: tr ? ["Hostname", "Cihaz", "Boş C Disk Alanı", "Toplam Disk Alanı", "Lokasyon", "Seri No", "OU Adı", "Bitlocker Durumu"] : ["Hostname", "Device", "Free Space", "Total Disk Space", "Location", "Serial Number", "OU Name", "Bitlocker Enabled"],
+      label: tr ? ["Hostname", "Cihaz", "Boş C Disk Alanı", "Toplam Disk Alanı", "Lokasyon", "Seri No", "OU Adı", "BitLocker Durumu"] : ["Hostname", "Device", "Free Space", "Total Disk Space", "Location", "Serial Number", "OU Name", "Bitlocker Enabled"],
     });
     const info = (lab) => infoTable([
       [lab[0], `<strong>${escapeHtml(hostname)}</strong>`],
@@ -1678,7 +1678,7 @@ IT Support`;
         "Yeni dosya kaydetme, e-posta indirme ve senkronizasyon işlemleri başarısız olabilir",
         "İleri düzeyde, işletim sistemi kararsız hale gelip cihaz tamamen kullanılamaz duruma gelebilir",
       ]),
-      action: "<strong>Olası veri kaybı ve iş kesintisini önlemek için lütfen en kısa sürede işlem yapınız.</strong>" + stepsBox("Lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden kayıt oluşturunuz:", "turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → Açılan pencerede Servis kısmına tıklayıp arama bölümünden Lenovo yazıp seçin → Sonrasında diğer gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz."),
+      action: "<strong>Olası veri kaybı ve iş kesintisini önlemek için lütfen en kısa sürede işlem yapınız.</strong>" + stepsBox("Lütfen aşağıdaki adımları izleyerek TuruncuHat üzerinden kayıt oluşturunuz:", "turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → Açılan pencerede Servis kısmına tıklayıp arama bölümünden Lenovo yazıp seçin → Sonrasında diğer gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz."),
       notes: [REC_NOTE],
       footer: "Regards, IT Support",
     });
@@ -1694,7 +1694,7 @@ IT Support`;
         "Saving new files, downloading emails, and synchronization tasks may fail",
         "In severe cases, the operating system may become unstable and the device may become completely unusable",
       ]),
-      action: "<strong>Please take action as soon as possible to prevent potential data loss and business disruption.</strong>" + stepsBox("Please follow the steps below to create a ticket via Turuncuhat:", "turuncuhat.mhy.com.tr → Create → User Incident → Click Service (search Lenovo then select) → Fill in the other necessary fields, then click Save and Exit."),
+      action: "<strong>Please take action as soon as possible to prevent potential data loss and business disruption.</strong>" + stepsBox("Please follow the steps below to create a ticket via TuruncuHat:", "turuncuhat.mhy.com.tr → Create → User Incident → Click Service (search Lenovo then select) → Fill in the other necessary fields, then click Save and Exit."),
       notes: ["Including the device information above (Hostname, Serial Number, etc.) in the ticket description will help expedite the process."],
       footer: "Regards, IT Support",
     });
@@ -1712,7 +1712,7 @@ IT Support`;
       const to = sccm?.mail;
       if (!to) {
         skipped++;
-        const reason = sccm ? "SCCM'de eşleşme var ama mail adresi yok" : "SCCM'de bu hostname bulunamadı";
+        const reason = sccm ? "SCCM'de eşleşme var ama e-posta adresi yok" : "SCCM'de bu hostname bulunamadı";
         details.push({ location: d.owner, to: null, count: 1, ok: false, message: reason });
         skippedRows.push({
           Hostname: d.owner,
@@ -1732,7 +1732,7 @@ IT Support`;
         if (result.ok) {
           sent++;
           details.push({ location: d.owner, to, count: 1, ok: true, message: "Gönderildi" });
-          logDeviceAction(d, { type: "Mail", description: `Kritik disk alanı maili gönderildi`, mailSubject: `Kritik Disk Alanı Uyarısı — ${d.owner}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" });
+          logDeviceAction(d, { type: "Mail", description: `Kritik disk alanı e-postası gönderildi`, mailSubject: `Kritik Disk Alanı Uyarısı — ${d.owner}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" });
         } else {
           failed++;
           details.push({ location: d.owner, to, count: 1, ok: false, message: result.message || "Gönderilemedi" });
@@ -1763,15 +1763,15 @@ IT Support`;
     }
 
     if (sent === 0 && failed === 0 && skipped > 0) {
-      showToast(`❌ Gönderilemedi — ${skipped} cihaz için SCCM'de mail adresi bulunamadı`);
+      showToast(`❌ Gönderilemedi — ${skipped} cihaz için SCCM'de e-posta adresi bulunamadı`);
     } else if (skipped > 0) {
-      showToast(`⚠️ ${sent} mail gönderildi, ${skipped} cihaz için mail adresi yok${failed > 0 ? `, ${failed} başarısız` : ""}`);
+      showToast(`⚠️ ${sent} e-posta gönderildi, ${skipped} cihaz için e-posta adresi yok${failed > 0 ? `, ${failed} başarısız` : ""}`);
     } else if (failed > 0 && sent === 0) {
-      showToast(`❌ Gönderilemedi — ${failed} mail başarısız`);
+      showToast(`❌ Gönderilemedi — ${failed} e-posta başarısız`);
     } else if (failed > 0) {
-      showToast(`⚠️ ${sent} mail gönderildi, ${failed} başarısız`);
+      showToast(`⚠️ ${sent} e-posta gönderildi, ${failed} başarısız`);
     } else {
-      showToast(`✅ Başarılı — ${sent} cihaza kritik disk alanı maili gönderildi`);
+      showToast(`✅ Başarılı — ${sent} cihaza kritik disk alanı e-postası gönderildi`);
     }
   };
 
@@ -1796,7 +1796,7 @@ IT Support`;
       const subject = unusedDeviceMailSubject(rows);
       if (!to) {
         skipped += rows.length;
-        details.push({ location: loc, to: null, count: rows.length, ok: false, message: "Lokasyon Mail Listesi'nde bu lokasyon için mail adresi bulunamadı" });
+        details.push({ location: loc, to: null, count: rows.length, ok: false, message: "Lokasyon E-posta Listesi'nde bu lokasyon için e-posta adresi bulunamadı" });
         continue;
       }
       const lines = rows.map((r) => `- ${r.hostname || r.serial} — ${r.deviceModel || ""} (${r.deviceAge != null ? r.deviceAge + " yıl" : "yaş bilinmiyor"})`).join("\n");
@@ -1810,7 +1810,7 @@ IT Support`;
         if (result.ok) {
           sent += rows.length;
           details.push({ location: loc, to, count: rows.length, ok: true, message: "Gönderildi" });
-          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `Kullanılmayan cihaz maili gönderildi (${loc})`, mailSubject: `${subject} — ${loc}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
+          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `Kullanılmayan cihaz e-postası gönderildi (${loc})`, mailSubject: `${subject} — ${loc}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
           details.push({ location: loc, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
@@ -1832,15 +1832,15 @@ IT Support`;
     });
 
     if (sent === 0 && failed === 0 && skipped > 0) {
-      showToast(`❌ Gönderilemedi — ${skipped} kayıt için lokasyon mail eşleşmesi yok (Ayarlar'dan ekleyin)`);
+      showToast(`❌ Gönderilemedi — ${skipped} kayıt için lokasyon e-posta eşleşmesi yok (Ayarlar'dan ekleyin)`);
     } else if (skipped > 0) {
-      showToast(`⚠️ ${sent} kayıt gönderildi, ${skipped} kayıt için mail eşleşmesi yok${failed > 0 ? `, ${failed} başarısız` : ""}`);
+      showToast(`⚠️ ${sent} kayıt gönderildi, ${skipped} kayıt için e-posta eşleşmesi yok${failed > 0 ? `, ${failed} başarısız` : ""}`);
     } else if (failed > 0 && sent === 0) {
       showToast(`❌ Gönderilemedi — ${failed} kayıt başarısız`);
     } else if (failed > 0) {
       showToast(`⚠️ ${sent} kayıt gönderildi, ${failed} başarısız`);
     } else {
-      showToast(`✅ Başarılı — ${sent} kayıt için kullanılmayan cihaz maili gönderildi`);
+      showToast(`✅ Başarılı — ${sent} kayıt için kullanılmayan cihaz e-postası gönderildi`);
     }
   };
 
@@ -1870,7 +1870,7 @@ IT Support`;
       const to = r.mail;
       if (!to) {
         skipped += 1;
-        details.push({ location: r.hostname, to: null, count: 1, ok: false, message: "SCCM'de bu cihaz için kullanıcı maili bulunamadı" });
+        details.push({ location: r.hostname, to: null, count: 1, ok: false, message: "SCCM'de bu cihaz için kullanıcı e-postası bulunamadı" });
         continue;
       }
       try {
@@ -1883,7 +1883,7 @@ IT Support`;
         if (result.ok) {
           sent += 1;
           details.push({ location: r.hostname, to, count: 1, ok: true, message: "Gönderildi" });
-          logDeviceAction(r, { type: "Mail", description: `Lokasyon/IP uyuşmazlığı maili gönderildi (${r.hostname})`, mailSubject: buildLocationIpMail(r).subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" });
+          logDeviceAction(r, { type: "Mail", description: `Lokasyon/IP uyuşmazlığı e-postası gönderildi (${r.hostname})`, mailSubject: buildLocationIpMail(r).subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" });
         } else {
           failed += 1;
           details.push({ location: r.hostname, to, count: 1, ok: false, message: result.message || "Gönderilemedi" });
@@ -1905,15 +1905,15 @@ IT Support`;
     });
 
     if (sent === 0 && failed === 0 && skipped > 0) {
-      showToast(`❌ Gönderilemedi — ${skipped} cihaz için SCCM'de kullanıcı maili yok`);
+      showToast(`❌ Gönderilemedi — ${skipped} cihaz için SCCM'de kullanıcı e-postası yok`);
     } else if (skipped > 0) {
-      showToast(`⚠️ ${sent} mail gönderildi, ${skipped} cihaz için mail adresi yok${failed > 0 ? `, ${failed} başarısız` : ""}`);
+      showToast(`⚠️ ${sent} e-posta gönderildi, ${skipped} cihaz için e-posta adresi yok${failed > 0 ? `, ${failed} başarısız` : ""}`);
     } else if (failed > 0 && sent === 0) {
-      showToast(`❌ Gönderilemedi — ${failed} mail başarısız`);
+      showToast(`❌ Gönderilemedi — ${failed} e-posta başarısız`);
     } else if (failed > 0) {
-      showToast(`⚠️ ${sent} mail gönderildi, ${failed} başarısız`);
+      showToast(`⚠️ ${sent} e-posta gönderildi, ${failed} başarısız`);
     } else {
-      showToast(`✅ Başarılı — ${sent} kişiye lokasyon/IP uyuşmazlığı maili gönderildi`);
+      showToast(`✅ Başarılı — ${sent} kişiye lokasyon/IP uyuşmazlığı e-postası gönderildi`);
     }
   };
 
@@ -1987,7 +1987,7 @@ IT Support`;
           to: null,
           count: noRoute.length,
           ok: false,
-          message: "SCCM'de kullanıcı maili bulunamadı — alıcı kutusu da boş",
+          message: "SCCM'de kullanıcı e-postası bulunamadı — alıcı kutusu da boş",
         });
       }
     }
@@ -2003,7 +2003,7 @@ IT Support`;
     });
 
     if (sent === 0 && failed === 0 && skipped > 0) {
-      showToast(`❌ Gönderilemedi — ${skipped} kayıt için SCCM'de kullanıcı maili yok. Üstteki kutuya yedek adres girebilirsin.`);
+      showToast(`❌ Gönderilemedi — ${skipped} kayıt için SCCM'de kullanıcı e-postası yok. Üstteki kutuya yedek adres girebilirsiniz.`);
     } else if (skipped > 0) {
       showToast(`⚠️ ${sent} kayıt ${byLoc.size} kişiye gönderildi · ${skipped} kayıt eşleşmedi${failed ? ` · ${failed} başarısız` : ""}`);
     } else if (failed > 0 && sent === 0) {
@@ -2011,7 +2011,7 @@ IT Support`;
     } else if (failed > 0) {
       showToast(`⚠️ ${sent} kayıt gönderildi · ${failed} başarısız`);
     } else {
-      showToast(`✅ ${sent} kayıt · ${byLoc.size} kişiye${noRoute.length ? " + 1 yedek" : ""} mail gönderildi`);
+      showToast(`✅ ${sent} kayıt · ${byLoc.size} kişiye${noRoute.length ? " + 1 yedek" : ""} e-posta gönderildi`);
     }
   };
 
@@ -2027,7 +2027,7 @@ IT Support`;
       subjectFn: bsodMailSubject,
       reportLabel: "BSOD",
       reportId: "bsod",
-      actionDesc: "BSOD çözüm adımları maili gönderildi",
+      actionDesc: "BSOD çözüm adımları e-postası gönderildi",
       textFn: (rows) => `BSOD raporu: ${rows.length} olay, ${new Set(rows.map((r) => r.hostShort)).size} cihaz. Ayrıntı ve çözüm adımları HTML gövdededir.`,
     });
   };
@@ -2094,7 +2094,7 @@ IT Support`;
         status: "Başarılı",
         details: null,
       });
-      showToast(`Mail gönderme demo — ${targetRows.length} kayıt için mail hazırlandı, Gönderim Geçmişi'ne eklendi`);
+      showToast(`E-posta gönderme demo — ${targetRows.length} kayıt için e-posta hazırlandı, Gönderim Geçmişi'ne eklendi`);
       return;
     }
 
@@ -2128,7 +2128,7 @@ IT Support`;
       const to = resolveMailForLocationName(realLokasyonMailAll, loc);
       if (!to) {
         skipped += rows.length;
-        details.push({ location: loc, to: null, count: rows.length, ok: false, message: "Lokasyon Mail Listesi'nde bu lokasyon için mail adresi bulunamadı" });
+        details.push({ location: loc, to: null, count: rows.length, ok: false, message: "Lokasyon E-posta Listesi'nde bu lokasyon için e-posta adresi bulunamadı" });
         continue;
       }
       const lines = rows.map((r) => `- ${ownerWithTitle(r)} — ${r.serial} (${r.model})`).join("\n");
@@ -2142,7 +2142,7 @@ IT Support`;
         if (result.ok) {
           sent += rows.length;
           details.push({ location: loc, to, count: rows.length, ok: true, message: "Gönderildi" });
-          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `İnaktif Cihazlar maili gönderildi (${loc})`, mailSubject: `İnaktif Cihazlar Raporu — ${loc}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
+          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `İnaktif Cihazlar e-postası gönderildi (${loc})`, mailSubject: `İnaktif Cihazlar Raporu — ${loc}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
           details.push({ location: loc, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
@@ -2158,7 +2158,7 @@ IT Support`;
       const label = rows[0].actualUserFull || rows[0].actualUser || "Bilinmeyen kullanıcı";
       if (!to) {
         skipped += rows.length;
-        details.push({ location: label, to: null, count: rows.length, ok: false, message: "SCCM'de bu kullanıcı için mail adresi bulunamadı" });
+        details.push({ location: label, to: null, count: rows.length, ok: false, message: "SCCM'de bu kullanıcı için e-posta adresi bulunamadı" });
         continue;
       }
       const lines = rows.map((r) => `- ${r.serial} (${r.model}) — eski kayıtlı sahibi: ${ownerWithTitle(r)}`).join("\n");
@@ -2166,13 +2166,13 @@ IT Support`;
         const result = await backendClient.sendMail({
           to,
           subject: "Zimmet Aktarımı Gerekli — Kullandığınız Cihaz(lar)",
-          text: `Aşağıdaki cihaz(lar)ı kullandığınız tespit edildi, zimmetin size aktarılması için Turuncuhat üzerinden kayıt açmanız rica olunur:\n\n${lines}`,
+          text: `Aşağıdaki cihaz(lar)ı kullandığınız tespit edildi, zimmetin size aktarılması için TuruncuHat üzerinden kayıt açmanız rica olunur:\n\n${lines}`,
           html: buildInaktifUsageMailHtml(rows),
         });
         if (result.ok) {
           sent += rows.length;
           details.push({ location: label, to, count: rows.length, ok: true, message: "Gönderildi" });
-          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `Zimmet aktarımı maili gönderildi (${label})`, mailSubject: "Zimmet Aktarımı Gerekli — Kullandığınız Cihaz(lar)", user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
+          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `Zimmet aktarımı e-postası gönderildi (${label})`, mailSubject: "Zimmet Aktarımı Gerekli — Kullandığınız Cihaz(lar)", user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
           details.push({ location: label, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
@@ -2193,17 +2193,17 @@ IT Support`;
       details,
     });
 
-    const groupSummary = `${byLocation.size} lokasyon grubu${byActualUser.size > 0 ? `, ${byActualUser.size} kullanıcıya zimmet aktarım maili` : ""}`;
+    const groupSummary = `${byLocation.size} lokasyon grubu${byActualUser.size > 0 ? `, ${byActualUser.size} kullanıcıya zimmet aktarım e-postası` : ""}`;
     if (sent === 0 && failed === 0 && skipped > 0) {
-      showToast(`❌ Gönderilemedi — ${skipped} kayıt için mail adresi/eşleşmesi bulunamadı (lokasyon grupları için Ayarlar'dan mail eşleşmesi ekleyin)`);
+      showToast(`❌ Gönderilemedi — ${skipped} kayıt için e-posta adresi/eşleşmesi bulunamadı (lokasyon grupları için Ayarlar'dan e-posta eşleşmesi ekleyin)`);
     } else if (skipped > 0) {
-      showToast(`⚠️ ${sent} kayıt gönderildi, ${skipped} kayıt için mail adresi/eşleşmesi bulunamadı${failed > 0 ? `, ${failed} kayıt başarısız` : ""}`);
+      showToast(`⚠️ ${sent} kayıt gönderildi, ${skipped} kayıt için e-posta adresi/eşleşmesi bulunamadı${failed > 0 ? `, ${failed} kayıt başarısız` : ""}`);
     } else if (failed > 0 && sent === 0) {
       showToast(`❌ Gönderilemedi — ${failed} kayıt başarısız`);
     } else if (failed > 0) {
       showToast(`⚠️ ${sent} kayıt gönderildi, ${failed} kayıt başarısız`);
     } else {
-      showToast(`✅ Başarılı — ${sent} kayıt için mail gönderildi (${groupSummary})`);
+      showToast(`✅ Başarılı — ${sent} kayıt için e-posta gönderildi (${groupSummary})`);
     }
   };
 
@@ -2235,26 +2235,26 @@ IT Support`;
 
   const sendTestMail = async () => {
     if (!testMailTo.trim()) {
-      showToast("Önce bir alıcı e-posta adresi gir");
+      showToast("Önce bir alıcı e-posta adresi girin");
       return;
     }
     setSendingTestMail(true);
     try {
       const result = await backendClient.sendMail({
         to: testMailTo.trim(),
-        subject: "Varlık Takip — Test Maili",
-        text: "Bu, Varlık Takip uygulamasının SMTP ayarlarını doğrulamak için gönderdiği bir test mailidir.",
+        subject: "Varlık Takip — Test E-postası",
+        text: "Bu, Varlık Takip uygulamasının SMTP ayarlarını doğrulamak için gönderdiği bir test e-postasıdır.",
         // Diğer maillerle aynı çerçeve (başlık bandı + logo): logonun gerçek mailde görünüp görünmediğini de buradan denetleyebilirsiniz
         html: mailShell({
           eyebrow: "SMTP TESTİ",
           title: "TEST MAİLİ",
           greeting: "Merhaba,",
-          intro: "Bu, Varlık Takip uygulamasının SMTP ayarlarını doğrulamak için gönderdiği bir test mailidir. Bu maili başlık bandında logoyla birlikte görüyorsanız mail ayarları ve şablon düzgün çalışıyor demektir.",
+          intro: "Bu, Varlık Takip uygulamasının SMTP ayarlarını doğrulamak için gönderdiği bir test e-postasıdır. Bu e-postayı başlık bandında logoyla birlikte görüyorsanız e-posta ayarları ve şablon düzgün çalışıyor demektir.",
           footer: MAIL_FOOTER,
         }),
       });
       setBackendReachable(true);
-      showToast(result.ok ? `Test maili gönderildi (${testMailTo.trim()})` : result.message);
+      showToast(result.ok ? `Test e-postası gönderildi (${testMailTo.trim()})` : result.message);
     } catch (err) {
       setBackendReachable(false);
       showToast(err.message);
@@ -2265,7 +2265,7 @@ IT Support`;
 
   const saveFileSourceConfig = async () => {
     if (!fileSourceConfig.folderPath.trim()) {
-      showToast("Önce klasör yolunu gir");
+      showToast("Önce klasör yolunu girin");
       return;
     }
     try {
@@ -2329,7 +2329,7 @@ IT Support`;
       });
       setScheduleConfig((prev) => ({ ...prev, recipients: recipients.join(", ") }));
       setScheduleStatus({ lastRunAt: saved.lastRunAt, knownCount: saved.knownCount || 0 });
-      showToast(scheduleConfig.enabled && recipients.length === 0 ? "⚠️ Kaydedildi — ama alıcı e-posta girilmediği için tarama mail atmayacak" : "✅ Otomatik tarama ayarları kaydedildi");
+      showToast(scheduleConfig.enabled && recipients.length === 0 ? "⚠️ Kaydedildi — ama alıcı e-posta girilmediği için tarama e-posta göndermeyecek" : "✅ Otomatik tarama ayarları kaydedildi");
     } catch (err) {
       showToast(`❌ Kaydedilemedi — ${err.message}`);
     } finally {
@@ -2383,7 +2383,7 @@ IT Support`;
 
   const testFileSourceConnection = async () => {
     if (!fileSourceConfig.folderPath.trim()) {
-      showToast("Önce klasör yolunu gir");
+      showToast("Önce klasör yolunu girin");
       return;
     }
     setTestingFileSource(true);
@@ -2403,7 +2403,7 @@ IT Support`;
 
   const pickFolder = async () => {
     if (!window.varlikTakipDesktop?.pickFolder) {
-      showToast("Klasör seçme sadece masaüstü uygulamasında (.exe) çalışır — geliştirme modunda yolu elle yazmalısın");
+      showToast("Klasör seçme sadece masaüstü uygulamasında (.exe) çalışır — geliştirme modunda yolu elle yazmalısınız");
       return;
     }
     const folder = await window.varlikTakipDesktop.pickFolder();
@@ -2818,7 +2818,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
           return;
         }
         setMailGroupsText(lines.join("\n"));
-        showToast(`${lines.length} eşleşme dosyadan okundu — kaydetmeden önce aşağıda gözden geçirebilirsin`);
+        showToast(`${lines.length} eşleşme dosyadan okundu — kaydetmeden önce aşağıda gözden geçirebilirsiniz`);
       } catch (err) {
         showToast(`Dosya okunamadı: ${err.message}`);
       }
@@ -3020,7 +3020,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
   const testDataSourceConnection = async () => {
     if (!dataSourceConfig.url.trim()) {
-      showToast("Önce rapor/API URL'sini gir");
+      showToast("Önce rapor/API URL'sini girin");
       return;
     }
     setTestingConnection(true);
@@ -3171,7 +3171,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               : !USE_MOCK_DATA
               ? (
                   <p style={{ fontSize: 13, color: pal.inkSoft, margin: "6px 4px", lineHeight: 1.5 }}>
-                    Henüz veri yüklenmedi. Ayarlar &gt; Veri Input bölümünden dosyaları seçin.
+                    Henüz veri yüklenmedi. Ayarlar &gt; Veri Girişi bölümünden dosyaları seçin.
                   </p>
                 )
               : DEPARTMENTS.map((d) => {
@@ -3301,11 +3301,11 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0,
                   }}
                 >
-                  {(user.username || "?").slice(0, 1).toUpperCase()}
+                  {(user.username || "?").slice(0, 1).toLocaleUpperCase("tr-TR")}
                 </div>
                 <div
                   className="vt-tip"
-                  data-tip="Şifre değiştirmek için tıkla"
+                  data-tip="Şifre değiştirmek için tıklayın"
                   style={{ display: "flex", flexDirection: "column", lineHeight: 1.25, cursor: "pointer", maxWidth: 140 }}
                   onClick={() => setChangePasswordOpen(true)}
                 >
@@ -3557,7 +3557,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       <div style={{ ...styles.kpiCard, cursor: "pointer" }} onClick={() => goDashboardReport("zimmet")} title="Zimmet Uyuşmazlığı raporuna git">
                         {/* Sadece KESİN uyuşmazlık (overallZimmet.bad) — doğrulanamayan (noRecord)
                             kayıtlar buraya karışmaz, aksi halde TH bazlı tasarımda binlerce
-                            "SCCM'de/Monitor'da bulunamadı" kaydı sanki gerçek sorunmuş gibi
+                            "SCCM'de/Monitör Raporu'nda bulunamadı" kaydı sanki gerçek sorunmuş gibi
                             görünürdü (bkz. konuşma). Doğrulanamayan sayısı alt satırda ayrı gösterilir. */}
                         {rollingMiniSummary(last2wZimmet)}
                         <span style={{ ...styles.kpiValue, color: overallZimmet.bad ? pal.bad : pal.ink }}>{overallZimmet.bad}</span>
@@ -3839,12 +3839,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
                     <p style={styles.pageTitle}>Ayarlar</p>
-                    <p style={styles.pageSub}>Lokasyon mailleri, SMTP ve veri girişi ayarları</p>
+                    <p style={styles.pageSub}>Lokasyon e-postaları, SMTP ve veri girişi ayarları</p>
                   </div>
                   <button style={styles.btnGhost} onClick={handleSettingsLogout}>Çıkış Yap</button>
                 </div>
                 <div style={{ ...styles.segmented, marginTop: 16 }}>
-                  {[["lokasyon", "Lokasyon Mailleri"], ["smtp", "SMTP"], ["veri", "Veri Input"], ["gelismis", "Gizli/Gelişmiş Raporlar"]].map(([id, label]) => (
+                  {[["lokasyon", "Lokasyon E-postaları"], ["smtp", "SMTP"], ["veri", "Veri Girişi"], ["gelismis", "Gizli/Gelişmiş Raporlar"]].map(([id, label]) => (
                     <div key={id} onClick={() => setSettingsTab(id)} style={{ ...styles.seg, ...(settingsTab === id ? styles.segActive : {}) }}>
                       {label}
                     </div>
@@ -3868,7 +3868,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               {settingsTab === "smtp" && (
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
                 <p style={styles.pageTitle}>SMTP</p>
-                <p style={styles.pageSub}>Rapor ve uyuşmazlık maillerinin gönderileceği SMTP sunucu bilgileri ve test maili</p>
+                <p style={styles.pageSub}>Rapor ve uyuşmazlık e-postalarının gönderileceği SMTP sunucu bilgileri ve test e-postası</p>
 
                 <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${pal.line}` }}>
                 <div style={styles.settingsSectionHead}>
@@ -3878,7 +3878,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   </span>
                 </div>
                 <p style={styles.pageSub}>
-                  Uyuşmazlık ve rapor maillerinin gönderileceği SMTP sunucu bilgileri. Kaydet ve Test Et,
+                  Uyuşmazlık ve rapor e-postalarının gönderileceği SMTP sunucu bilgileri. Kaydet ve Test Et,
                   yerel backend servisine (`backend/`) gider — şifre orada AES-256 ile şifrelenip diske yazılır,
                   test gerçek bir SMTP `verify()` çağrısıdır. Backend çalışmıyorsa altta net bir hata görürsün.
                 </p>
@@ -3917,7 +3917,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     <label style={styles.formLabel}>Şifre</label>
                     <input
                       type="password"
-                      placeholder={savedSecretHints.smtpPassword ? "•••••••• (kayıtlı — değiştirmek için yeniden gir)" : "••••••••"}
+                      placeholder={savedSecretHints.smtpPassword ? "•••••••• (kayıtlı — değiştirmek için yeniden girin)" : "••••••••"}
                       autoComplete="new-password"
                       value={smtpConfig.password}
                       onChange={(e) => setSmtpConfig((prev) => ({ ...prev, password: e.target.value }))}
@@ -3948,19 +3948,19 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 </div>
                 <p style={styles.formHelper}>
                   Şifre tarayıcıda hiç saklanmıyor — sadece backend'e gönderilip orada AES-256-GCM ile şifreli
-                  diske yazılıyor. Bağlantı testi zorunlu değildir — test etmeden de kaydedebilirsin.
+                  diske yazılıyor. Bağlantı testi zorunlu değildir — test etmeden de kaydedebilirsiniz.
                 </p>
                 <div style={styles.formActions}>
                   <button style={styles.btnPrimary} onClick={saveSmtpConfig}>Kaydet</button>
                   <button style={styles.btnGhost} onClick={testSmtpConnection} disabled={testingSmtp}>
-                    {testingSmtp ? "Test ediliyor..." : "Bağlantıyı Test Et (opsiyonel)"}
+                    {testingSmtp ? "Test ediliyor..." : "Bağlantıyı Test Et (isteğe bağlı)"}
                   </button>
                 </div>
 
                 <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${pal.line}` }}>
-                  <p style={styles.formLabel}>Test Maili Gönder</p>
+                  <p style={styles.formLabel}>Test E-postası Gönder</p>
                   <p style={{ ...styles.formHelper, margin: "2px 0 10px" }}>
-                    Kayıtlı SMTP ayarlarıyla gerçekten bir mail gönderir (nodemailer üzerinden) — önce Kaydet'e basmış olman gerekir.
+                    Kayıtlı SMTP ayarlarıyla gerçekten bir e-posta gönderir (nodemailer üzerinden) — önce Kaydet'e basmış olmanız gerekir.
                   </p>
                   <div style={styles.formActions}>
                     <input
@@ -3971,7 +3971,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       style={{ ...styles.formInput, width: 240 }}
                     />
                     <button style={styles.btnGhost} onClick={sendTestMail} disabled={sendingTestMail}>
-                      {sendingTestMail ? "Gönderiliyor..." : "Test Maili Gönder"}
+                      {sendingTestMail ? "Gönderiliyor..." : "Test E-postası Gönder"}
                     </button>
                   </div>
                 </div>
@@ -3982,35 +3982,35 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               {settingsTab === "lokasyon" && (
               <>
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
-                <p style={styles.pageTitle}>Lokasyon Mailleri</p>
-                <p style={styles.pageSub}>İnaktif ve Kullanılmayan Cihazlar raporlarının lokasyon bazlı mail dağıtımı ve departman bildirim tercihleri</p>
+                <p style={styles.pageTitle}>Lokasyon E-postaları</p>
+                <p style={styles.pageSub}>İnaktif ve Kullanılmayan Cihazlar raporlarının lokasyon bazlı e-posta dağıtımı ve departman bildirim tercihleri</p>
 
                 <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${pal.line}` }}>
                 <div style={{ ...styles.panel, padding: "14px 16px", marginBottom: 16, background: pal.fieldBg }}>
                   <p style={{ ...styles.formLabel, marginBottom: 4 }}>
-                    📄 Lokasyon Mail Listesi <span style={{ fontWeight: 400, color: pal.inkSoft }}>— İnaktif Cihazlar ve Kullanılmayan Cihazlar için TEK kaynak</span>
+                    📄 Lokasyon E-posta Listesi <span style={{ fontWeight: 400, color: pal.inkSoft }}>— İnaktif Cihazlar ve Kullanılmayan Cihazlar için TEK kaynak</span>
                   </p>
                   <p style={{ ...styles.pageSub, margin: 0 }}>
                     {realLokasyonMailMeta
-                      ? `${realLokasyonMailMeta.fileName} — ${realLokasyonMailAll.length} lokasyon kaydı yüklü (${new Date(realLokasyonMailMeta.modifiedAt).toLocaleString("tr-TR")}). Eşleştirme "Açık Lokasyon Adı" üzerinden, gönderilen adres "Mail Adresi" sütunundan alınır — aşağıdaki metin kutusu bu iki rapor için ARTIK KULLANILMIYOR.`
-                      : "Henüz yüklenmedi — İnaktif Cihazlar veya Kullanılmayan Cihazlar raporuna girildiğinde otomatik yüklenir, ya da aşağıdan manuel yükleyebilirsin."}
+                      ? `${realLokasyonMailMeta.fileName} — ${realLokasyonMailAll.length} lokasyon kaydı yüklü (${new Date(realLokasyonMailMeta.modifiedAt).toLocaleString("tr-TR")}). Eşleştirme "Açık Lokasyon Adı" üzerinden, gönderilen adres "E-posta Adresi" sütunundan alınır — aşağıdaki metin kutusu bu iki rapor için ARTIK KULLANILMIYOR.`
+                      : "Henüz yüklenmedi — İnaktif Cihazlar veya Kullanılmayan Cihazlar raporuna girildiğinde otomatik yüklenir, ya da aşağıdan elle yükleyebilirsiniziz."}
                   </p>
                   <div
                     style={{ ...styles.chipToggle, display: "inline-block", marginTop: 8 }}
                     onClick={loadingRealLokasyonMail ? undefined : loadRealLokasyonMailData}
                   >
-                    {loadingRealLokasyonMail ? "Yükleniyor..." : "📄 SharePoint'ten Lokasyon Mail Listesini Yükle"}
+                    {loadingRealLokasyonMail ? "Yükleniyor..." : "📄 SharePoint'ten Lokasyon E-posta Listesini Yükle"}
                   </div>
                 </div>
                 <div style={styles.settingsSectionHead}>
-                  <p style={styles.settingsSectionTitle}>Diğer Raporlar — Lokasyon Mail Grupları (eski)</p>
+                  <p style={styles.settingsSectionTitle}>Diğer Raporlar — Lokasyon E-posta Grupları (eski)</p>
                   <span style={{ ...styles.demoTag, ...(backendReachable ? styles.badgeOk : {}) }}>
                     {backendReachable === null ? "Kontrol ediliyor..." : backendReachable ? "Backend Bağlı" : "Backend Çalışmıyor"}
                   </span>
                 </div>
                 <p style={styles.pageSub}>
                   Bu liste artık İnaktif Cihazlar ve Kullanılmayan Cihazlar için kullanılmıyor (onlar yukarıdaki
-                  Lokasyon Mail Listesi'nden besleniyor) — hâlâ BSOD, Kapatma Onayı Bekleyen Kayıtlar ve Yeni
+                  Lokasyon E-posta Listesi'nden besleniyor) — hâlâ BSOD, Kapatma Onayı Bekleyen Kayıtlar ve Yeni
                   Kurulum Kaydı ekranlarının lokasyon/mail eşleşmesinde kullanılıyor. Excel'den iki sütunu
                   (lokasyon, mail) kopyalayıp aşağıya yapıştırabilirsin — her satır bir eşleşmedir, sütunlar
                   arasında tab, virgül veya noktalı virgül olabilir. İstersen bunun yerine bir Excel/CSV dosyası
@@ -4085,13 +4085,13 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               {settingsTab === "veri" && (
               <>
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
-                <p style={styles.pageTitle}>Veri Input</p>
+                <p style={styles.pageTitle}>Veri Girişi</p>
                 <p style={styles.pageSub}>Rapor verilerinin geldiği kaynaklar: API bağlantısı, SharePoint Excel klasörü, TuruncuHat / Monitor dosyaları, Kullanılmayan Cihazlar &amp; LakeSide batarya ve zamanlanmış otomatik tarama</p>
               </div>
 
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
                 <p style={styles.settingsSectionTitle}>Zamanlanmış Otomatik Tarama</p>
-                <p style={styles.pageSub}>Belirlediğin sıklıkla sistem otomatik tarama yapıp yeni uyuşmazlıkları özetler</p>
+                <p style={styles.pageSub}>Belirlediğiniz sıklıkla sistem otomatik tarama yapıp yeni uyuşmazlıkları özetler</p>
                 <div style={styles.scheduleRow}>
                   <label style={styles.scheduleLabel}>
                     <input
@@ -4134,12 +4134,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   type="text"
                   value={scheduleConfig.recipients}
                   onChange={(e) => setScheduleConfig((prev) => ({ ...prev, recipients: e.target.value }))}
-                  placeholder="Alıcı e-posta(lar) — virgülle ayır"
+                  placeholder="Alıcı e-posta(lar) — virgülle ayırın"
                   style={{ ...styles.formInput, marginTop: 10, maxWidth: 420 }}
                   disabled={!scheduleConfig.enabled}
                 />
                 <p style={{ ...styles.formHelper, margin: "4px 0 0" }}>
-                  Mükerrer Çift Zimmet ve Lokasyon Hostname/IP Uyuşmazlığı için — sadece bir önceki taramadan bu yana YENİ çıkanlar mail edilir, ilk taramada sadece mevcut durum baz alınır.
+                  Mükerrer Çift Zimmet ve Lokasyon Hostname/IP Uyuşmazlığı için — sadece bir önceki taramadan bu yana YENİ çıkanlar e-posta edilir, ilk taramada sadece mevcut durum baz alınır.
                 </p>
                 <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14, flexWrap: "wrap" }}>
                   <button style={styles.btnPrimary} onClick={saveAnomalySchedule} disabled={savingSchedule}>
@@ -4160,7 +4160,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 <p style={styles.settingsSectionTitle}>Üst Yönetim İstisna Listesi</p>
                 <p style={styles.pageSub}>
                   Buradaki e-posta adreslerine Kapatma Onayı Bekleyen Kayıtlar (ve ileride eklenecek benzer
-                  hatırlatma akışları) KESİNLİKLE mail göndermez — Excel'den okunmaz, sadece burada elle
+                  hatırlatma akışları) KESİNLİKLE e-posta göndermez — Excel'den okunmaz, sadece burada elle
                   yönetilir. Her satıra bir e-posta.
                 </p>
                 <textarea
@@ -4223,7 +4223,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       <label style={styles.formLabel}>API Anahtarı</label>
                       <input
                         type="password"
-                        placeholder={savedSecretHints.dsApiKey ? "•••••••• (kayıtlı — değiştirmek için yeniden gir)" : "••••••••"}
+                        placeholder={savedSecretHints.dsApiKey ? "•••••••• (kayıtlı — değiştirmek için yeniden girin)" : "••••••••"}
                         autoComplete="new-password"
                         value={dataSourceConfig.apiKey}
                         onChange={(e) => setDataSourceConfig((prev) => ({ ...prev, apiKey: e.target.value }))}
@@ -4247,7 +4247,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         <label style={styles.formLabel}>Şifre</label>
                         <input
                           type="password"
-                          placeholder={savedSecretHints.dsPassword ? "•••••••• (kayıtlı — değiştirmek için yeniden gir)" : "••••••••"}
+                          placeholder={savedSecretHints.dsPassword ? "•••••••• (kayıtlı — değiştirmek için yeniden girin)" : "••••••••"}
                           autoComplete="new-password"
                           value={dataSourceConfig.password}
                           onChange={(e) => setDataSourceConfig((prev) => ({ ...prev, password: e.target.value }))}
@@ -4269,7 +4269,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         />
                       </div>
                       <div style={styles.formField}>
-                        <label style={styles.formLabel}>Workstation (opsiyonel)</label>
+                        <label style={styles.formLabel}>Workstation (isteğe bağlı)</label>
                         <input
                           type="text"
                           placeholder=""
@@ -4339,10 +4339,10 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 )}
 
                 <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${pal.line}` }}>
-                  <p style={styles.formLabel}>Klasör senkronu yerine dosyayı elle seç</p>
+                  <p style={styles.formLabel}>Klasör senkronu yerine dosyayı elle seçin</p>
                   <p style={styles.formHelper}>
                     SharePoint/OneDrive klasör senkronu henüz kurulamadıysa, aynı Excel dosyalarını doğrudan
-                    bilgisayarından seçip yükleyebilirsin — backend'e ya da klasör yoluna gerek kalmaz.
+                    bilgisayarından seçip yükleyebilirsiniz — backend'e ya da klasör yoluna gerek kalmaz.
                   </p>
                   <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
                     <label style={{ ...styles.btnGhost, cursor: "pointer" }}>
@@ -4370,11 +4370,11 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 </div>
 
                 <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${pal.line}` }}>
-                  <p style={styles.formLabel}>TuruncuHat ve Monitor Raporu (üçlü karşılaştırma)</p>
+                  <p style={styles.formLabel}>TuruncuHat ve Monitör Raporu (üçlü karşılaştırma)</p>
                   <p style={styles.formHelper}>
                     TuruncuHat, İnaktif Cihazlar ile aynı sistemden gelir (Seri No, Sahibi, LBS, Sahibi Firma).
-                    Monitor Raporu ayrı bir dosyadır (Hostname, Username, Monitor Serial Number, Monitor Model).
-                    Lokasyon Mail Listesi: Lokasyon Kodu, Açık Lokasyon Adı, Mail Adresi, IP_Address (Lokasyon Hostname/IP raporu ve İnaktif mailleri için).
+                    Monitör Raporu ayrı bir dosyadır (Hostname, Username, Monitor Serial Number, Monitor Model).
+                    Lokasyon E-posta Listesi: Lokasyon Kodu, Açık Lokasyon Adı, E-posta Adresi, IP_Address (Lokasyon Hostname/IP raporu ve İnaktif e-postaları için).
                   </p>
                   <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
                     <label style={{ ...styles.btnGhost, cursor: "pointer" }}>
@@ -4382,11 +4382,11 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       <input type="file" accept=".xlsx,.csv" onChange={handleManualThFile} style={{ display: "none" }} />
                     </label>
                     <label style={{ ...styles.btnGhost, cursor: "pointer" }}>
-                      Monitor Raporu Seç…
+                      Monitör Raporu Seç…
                       <input type="file" accept=".xlsx,.csv" onChange={handleManualMonitorFile} style={{ display: "none" }} />
                     </label>
                     <label style={{ ...styles.btnGhost, cursor: "pointer" }}>
-                      Lokasyon Mail Listesi Seç…
+                      Lokasyon E-posta Listesi Seç…
                       <input type="file" accept=".xlsx,.csv" onChange={handleManualLokasyonMailFile} style={{ display: "none" }} />
                     </label>
                   </div>
@@ -4395,7 +4395,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       {realThMeta && <>TuruncuHat: <strong>{realThMeta.fileName}</strong> ({realThAll.length} kayıt)</>}
                       {realThMeta && realMonitorMeta && " · "}
                       {realMonitorMeta && <>Monitor: <strong>{realMonitorMeta.fileName}</strong> ({realMonitorAll.length} kayıt)</>}
-                      {realLokasyonMailMeta && <> · Lokasyon Mail Listesi: <strong>{realLokasyonMailMeta.fileName}</strong> ({realLokasyonMailAll.length} kayıt)</>}
+                      {realLokasyonMailMeta && <> · Lokasyon E-posta Listesi: <strong>{realLokasyonMailMeta.fileName}</strong> ({realLokasyonMailAll.length} kayıt)</>}
                     </p>
                   )}
                 </div>
@@ -4405,7 +4405,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   <p style={styles.formHelper}>
                     LakeSide'ın haftalık BSOD (mavi ekran) Excel'i (Crash Date · Machine Name · Application Name · BSOD Count).
                     Her stop code için olası neden + Lenovo ThinkPad / kurumsal Windows imajı çözüm adımları uygulamaya gömülüdür;
-                    "BSOD" raporunda listelenir ve "Mail Gönder" ile çözüm taslağı olarak iletilir.
+                    "BSOD" raporunda listelenir ve "E-posta Gönder" ile çözüm taslağı olarak iletilir.
                   </p>
                   <label style={{ ...styles.btnGhost, cursor: "pointer", display: "inline-flex", marginTop: 8 }}>
                     Weekly_BSOD_*.xlsx Seç…
@@ -4497,7 +4497,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             <>
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
                 <p style={styles.pageTitle}>Gönderim Geçmişi</p>
-                <p style={styles.pageSub}>Kim, ne zaman, hangi rapor için mail gönderdi. İnaktif Cihazlar ve Disk Alanı gerçek gönderim sonucunu yansıtır; Zimmet Uyuşmazlığı henüz demo modundadır.</p>
+                <p style={styles.pageSub}>Kim, ne zaman, hangi rapor için e-posta gönderdi. İnaktif Cihazlar ve Disk Alanı gerçek gönderim sonucunu yansıtır; Zimmet Uyuşmazlığı henüz demo modundadır.</p>
               </div>
               <div style={styles.detailLayoutRow}>
                 <div style={styles.panel} className="print-area">
@@ -4510,7 +4510,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         </svg>
                         <input
                           type="text"
-                          placeholder="Kişi, cihaz veya mail ara..."
+                          placeholder="Kişi, cihaz veya e-posta ara..."
                           value={historySearch}
                           onChange={(e) => setHistorySearch(e.target.value)}
                           style={styles.searchInput}
@@ -4577,7 +4577,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         <tr>
                           <td style={{ ...styles.td, textAlign: "center", color: pal.inkSoft }} colSpan={5}>
                             {mailHistory.length === 0
-                              ? "Henüz mail gönderilmedi — bir rapor ekranında \"Mail Gönder\" butonuna basınca burada görünecek"
+                              ? "Henüz e-posta gönderilmedi — bir rapor ekranında \"E-posta Gönder\" butonuna basınca burada görünecek"
                               : "Filtreyle eşleşen kayıt yok"}
                           </td>
                         </tr>
@@ -4733,24 +4733,24 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       : "Henüz SCCM envanter dosyası yüklenmedi — aşağıdan yükleyin"
                     : isLokasyonIp
                     ? realSccmMeta && realLokasyonMailMeta
-                      ? `SCCM (${realSccmMeta.fileName}) × Lokasyon Mail Listesi (${realLokasyonMailMeta.fileName}) — hostname'in işaret ettiği ofis ile cihazın gerçek 172.x IP'si karşılaştırılıyor. Sadece lokasyon kodu bilinen ve 172.x IP'si olan cihazlar listelenir.`
-                      : "Henüz SCCM ve/veya Lokasyon Mail Listesi dosyası yüklenmedi — aşağıdan yükleyin"
+                      ? `SCCM (${realSccmMeta.fileName}) × Lokasyon E-posta Listesi (${realLokasyonMailMeta.fileName}) — hostname'in işaret ettiği ofis ile cihazın gerçek 172.x IP'si karşılaştırılıyor. Sadece lokasyon kodu bilinen ve 172.x IP'si olan cihazlar listelenir.`
+                      : "Henüz SCCM ve/veya Lokasyon E-posta Listesi dosyası yüklenmedi — aşağıdan yükleyin"
                     : isUnused
                     ? realThMeta
                       ? `TuruncuHat (OBS zimmetli) × SCCM karşılaştırması — SCCM'de hiç kaydı olmayan veya son girişi ${staleDays} günden eski cihazlar "kullanılmıyor" sayılır. Eşik Ayarlar'dan değiştirilebilir.`
                       : "Henüz TuruncuHat envanteri yüklenmedi — aşağıdan yükleyin"
                     : isBsod
                     ? realBsodMeta
-                      ? `LakeSide BSOD — ${realBsodMeta.fileName} · ${realBsodAll.length} olay · ${bsodRows.filter((r) => r.sccmMatched).length} kayıt SCCM ile eşleşti. Her stop code için neden + ThinkPad/kurumsal çözüm adımları gömülü; mail lokasyon bazlı (SCCM EnvanterLokasyon → Lokasyon Mail Grupları) gönderilir.`
+                      ? `LakeSide BSOD — ${realBsodMeta.fileName} · ${realBsodAll.length} olay · ${bsodRows.filter((r) => r.sccmMatched).length} kayıt SCCM ile eşleşti. Her stop code için neden + ThinkPad/kurumsal çözüm adımları gömülü; e-posta lokasyon bazlı (SCCM EnvanterLokasyon → Lokasyon E-posta Grupları) gönderilir.`
                       : "Henüz Weekly_BSOD Excel'i yüklenmedi — aşağıdan seçin"
                     : isBattery
                     ? realBatteryMeta
-                      ? `LakeSide Battery Health — ${realBatteryMeta.fileName} · ${realBatteryAll.length} cihaz · ${batteryRows.filter((r) => r.sccmMatched).length} kayıt SCCM ile eşleşti. Eşik: %60 altı "Değişmeli", %80 altı "İzlenmeli"; mail lokasyon bazlı gönderilir.`
+                      ? `LakeSide Battery Health — ${realBatteryMeta.fileName} · ${realBatteryAll.length} cihaz · ${batteryRows.filter((r) => r.sccmMatched).length} kayıt SCCM ile eşleşti. Eşik: %60 altı "Değişmeli", %80 altı "İzlenmeli"; e-posta lokasyon bazlı gönderilir.`
                       : "Henüz Battery Health Excel'i yüklenmedi — aşağıdan seçin"
                     : usingRealFileData && (usingRealInaktif ? realInaktifMeta : realDiskMeta)
                     ? `Gerçek veri — ${(usingRealInaktif ? realInaktifMeta : realDiskMeta).fileName} (${new Date((usingRealInaktif ? realInaktifMeta : realDiskMeta).modifiedAt).toLocaleString("tr-TR")})`
                     : REPORTS_WITH_REAL_DATA.has(activeReport)
-                    ? "Henüz veri yüklenmedi — Ayarlar > Veri Input bölümünden dosyayı seçin"
+                    ? "Henüz veri yüklenmedi — Ayarlar > Veri Girişi bölümünden dosyayı seçin"
                     : "Bu rapor için henüz bir veri kaynağı tanımlı değil"}
                 </p>
                 </div>
@@ -4814,7 +4814,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     )}
                     <input
                       type="text"
-                      placeholder="Eşleşmeyen cihazlar için yedek mail alıcısı (opsiyonel)"
+                      placeholder="Eşleşmeyen cihazlar için yedek e-posta alıcısı (isteğe bağlı)"
                       value={bsodMailTo}
                       onChange={(e) => setBsodMailTo(e.target.value)}
                       style={{ ...styles.searchInput, border: `1px solid ${pal.line}`, borderRadius: 8, padding: "8px 11px", minWidth: 260, background: pal.fieldBg }}
@@ -4833,7 +4833,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     )}
                     <input
                       type="text"
-                      placeholder="Eşleşmeyen cihazlar için yedek mail alıcısı (opsiyonel)"
+                      placeholder="Eşleşmeyen cihazlar için yedek e-posta alıcısı (isteğe bağlı)"
                       value={bsodMailTo}
                       onChange={(e) => setBsodMailTo(e.target.value)}
                       style={{ ...styles.searchInput, border: `1px solid ${pal.line}`, borderRadius: 8, padding: "8px 11px", minWidth: 260, background: pal.fieldBg }}
@@ -4847,26 +4847,26 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     title="Tümünü göster"
                   >
                     <span style={styles.statNum}>{rawRows.length}</span>
-                    <span style={styles.statLabel}>toplam kayıt</span>
+                    <span style={styles.statLabel}>Toplam Kayıt</span>
                   </div>
                   {!isUnused && !isBsod && !isBattery && !isDiskReport && (
                   <div
                     style={{ ...styles.stat, ...styles.statClickable, ...(segment === "matched" ? styles.statActive : {}) }}
                     onClick={() => setSegment("matched")}
-                    title={isZimmet ? "Zimmet doğru olanları göster" : "Eşleşenleri göster"}
+                    title={isZimmet ? "Zimmet doğru olanları göster" : activeReport === "inaktif" ? "Kullanılmayan cihazları göster" : "Eşleşenleri göster"}
                   >
-                    <span style={{ ...styles.statNum, color: pal.ok }}>{matchedCount}</span>
-                    <span style={styles.statLabel}>{isZimmet ? "zimmet doğru" : "eşleşen"}</span>
+                    <span style={{ ...styles.statNum, color: activeReport === "inaktif" ? pal.bad : pal.ok }}>{matchedCount}</span>
+                    <span style={styles.statLabel}>{isZimmet ? "Zimmet Doğru" : activeReport === "inaktif" ? "Kullanılmıyor" : "Eşleşen"}</span>
                   </div>
                   )}
                   {!isUnused && !isBsod && !isBattery && !isDiskReport && (
                   <div
                     style={{ ...styles.stat, ...styles.statClickable, ...(segment === "unmatched" ? styles.statActive : {}) }}
                     onClick={() => setSegment("unmatched")}
-                    title={isZimmet ? "Zimmet hatalı olanları göster" : "Eşleşmeyenleri göster"}
+                    title={isZimmet ? "Zimmet hatalı olanları göster" : activeReport === "inaktif" ? "Kullanımdaki cihazları göster" : "Eşleşmeyenleri göster"}
                   >
-                    <span style={{ ...styles.statNum, color: pal.bad }}>{unmatchedCount}</span>
-                    <span style={styles.statLabel}>{isZimmet ? "zimmet hatalı" : "eşleşmeyen"}</span>
+                    <span style={{ ...styles.statNum, color: activeReport === "inaktif" ? pal.ok : pal.bad }}>{unmatchedCount}</span>
+                    <span style={styles.statLabel}>{isZimmet ? "Zimmet Hatalı" : activeReport === "inaktif" ? "Kullanımda" : "Eşleşmeyen"}</span>
                   </div>
                   )}
                   {/* Disk Alanı — kullanıcı isteği: "Tümü/Eşleşen/Eşleşmeyen" anlamsız (bu raporda
@@ -4879,7 +4879,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     title="Kritik (≤10 GB) diskleri göster"
                   >
                     <span style={{ ...styles.statNum, color: pal.bad }}>{rawRows.filter((r) => r.diskLevel === "critical").length}</span>
-                    <span style={styles.statLabel}>kritik (≤10 GB)</span>
+                    <span style={styles.statLabel}>Kritik (≤10 GB)</span>
                   </div>
                   )}
                   {isDiskReport && (
@@ -4889,7 +4889,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     title="Uyarı (≤20 GB) diskleri göster"
                   >
                     <span style={{ ...styles.statNum, color: pal.warnFg || pal.bad }}>{rawRows.filter((r) => r.diskLevel === "warning").length}</span>
-                    <span style={styles.statLabel}>uyarı (≤20 GB)</span>
+                    <span style={styles.statLabel}>Uyarı (≤20 GB)</span>
                   </div>
                   )}
                   {isDiskReport && (
@@ -4899,43 +4899,43 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     title="Normal (>20 GB) diskleri göster"
                   >
                     <span style={{ ...styles.statNum, color: pal.ok }}>{rawRows.filter((r) => r.diskLevel === "normal").length}</span>
-                    <span style={styles.statLabel}>normal (&gt;20 GB)</span>
+                    <span style={styles.statLabel}>Normal (&gt;20 GB)</span>
                   </div>
                   )}
                   {isBattery && (
                   <div style={styles.stat}>
                     <span style={{ ...styles.statNum, color: pal.bad }}>{rawRows.filter((r) => r.batteryHealth != null && r.batteryHealth < 60).length}</span>
-                    <span style={styles.statLabel}>değişmeli (&lt;%60)</span>
+                    <span style={styles.statLabel}>Değişmeli (&lt;%60)</span>
                   </div>
                   )}
                   {isBattery && (
                   <div style={styles.stat}>
                     <span style={{ ...styles.statNum, color: pal.warnFg || pal.bad }}>{rawRows.filter((r) => r.batteryHealth != null && r.batteryHealth >= 60 && r.batteryHealth < 80).length}</span>
-                    <span style={styles.statLabel}>izlenmeli (&lt;%80)</span>
+                    <span style={styles.statLabel}>İzlenmeli (&lt;%80)</span>
                   </div>
                   )}
                   {isBsod && (
                   <div style={styles.stat}>
                     <span style={{ ...styles.statNum, color: pal.accent }}>{new Set(rawRows.map((r) => r.hostShort)).size}</span>
-                    <span style={styles.statLabel}>etkilenen cihaz</span>
+                    <span style={styles.statLabel}>Etkilenen Cihaz</span>
                   </div>
                   )}
                   {isBsod && (
                   <div style={styles.stat}>
                     <span style={{ ...styles.statNum, color: pal.bad }}>{new Set(rawRows.map((r) => r.bsodName)).size}</span>
-                    <span style={styles.statLabel}>farklı hata tipi</span>
+                    <span style={styles.statLabel}>Farklı Hata Tipi</span>
                   </div>
                   )}
                   {isUnused && (
                   <div style={styles.stat}>
                     <span style={{ ...styles.statNum, color: pal.bad }}>{rawRows.filter((r) => r.sccmStatus === "SCCM'de Yok").length}</span>
-                    <span style={styles.statLabel}>SCCM'de yok</span>
+                    <span style={styles.statLabel}>SCCM'de Yok</span>
                   </div>
                   )}
                   {isUnused && (
                   <div style={styles.stat}>
                     <span style={{ ...styles.statNum, color: pal.warnFg || pal.bad }}>{rawRows.filter((r) => r.statusTag === "Kullanılmıyor — Son Giriş Çok Eski").length}</span>
-                    <span style={styles.statLabel}>giriş çok eski</span>
+                    <span style={styles.statLabel}>Giriş Çok Eski</span>
                   </div>
                   )}
                   {isZimmet && snoozedCount > 0 && (
@@ -4945,7 +4945,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       title={showSnoozed ? "Ertelenenleri gizle" : "Ertelenenleri göster"}
                     >
                       <span style={{ ...styles.statNum, color: pal.inkSoft }}>{snoozedCount}</span>
-                      <span style={styles.statLabel}>ertelenen</span>
+                      <span style={styles.statLabel}>Ertelenen</span>
                     </div>
                   )}
                   {isZimmet && (notedCount > 0 || showNotedOnly) && (
@@ -4955,7 +4955,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       title={showNotedOnly ? "Not filtresini kaldır" : "Sadece notlanmış kayıtları göster"}
                     >
                       <span style={{ ...styles.statNum, color: pal.accent }}>📝 {notedCount}</span>
-                      <span style={styles.statLabel}>notlanmış</span>
+                      <span style={styles.statLabel}>Notlanmış</span>
                     </div>
                   )}
                 </div>
@@ -5065,8 +5065,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       // Kullanılmayan Cihazlar'da her satır zaten "kullanılmıyor" (matched:false) —
                       // Eşleşen/Eşleşmeyen ayrımı anlamsız, gösterilmez.
                       ...(isUnused || isBsod || isBattery || isDiskReport ? [] : [
-                        { id: "matched", label: isZimmet ? "Zimmet Doğru" : "Eşleşen" },
-                        { id: "unmatched", label: isZimmet ? "Zimmet Hatalı" : "Eşleşmeyen" },
+                        { id: "matched", label: isZimmet ? "Zimmet Doğru" : activeReport === "inaktif" ? "Kullanılmıyor" : "Eşleşen" },
+                        { id: "unmatched", label: isZimmet ? "Zimmet Hatalı" : activeReport === "inaktif" ? "Kullanımda" : "Eşleşmeyen" },
                       ]),
                       // Gereksinim: "bunu raporda ayırabilmem gerekiyor" — TH+Monitor Raporu
                       // yüklüyse, sadece KESİN monitör uyuşmazlığı tespit edilen satırları ayrı
@@ -5172,7 +5172,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       <path d="M22 2L11 13" />
                       <path d="M22 2l-7 20-4-9-9-4z" />
                     </svg>
-                    Mail Gönder
+                    E-posta Gönder
                   </button>
                 </div>
                 </div>
@@ -5363,17 +5363,17 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
         </div>
       )}
 
-      <MailPreviewModal preview={mailPreviewData} onClose={() => setMailPreviewData(null)} styles={styles} noRecipientText="— (SCCM'de bu cihaz için kullanıcı maili bulunamadı)" />
+      <MailPreviewModal preview={mailPreviewData} onClose={() => setMailPreviewData(null)} styles={styles} noRecipientText="— (SCCM'de bu cihaz için kullanıcı e-postası bulunamadı)" />
 
       {confirmMailOpen && (
         <div style={styles.modalOverlay} onClick={() => setConfirmMailOpen(false)}>
           <div style={{ ...styles.modalCard, width: "min(420px, 100%)" }} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <p style={styles.modalTitle}>Mail Gönderimini Onayla</p>
+              <p style={styles.modalTitle}>E-posta Gönderimini Onayla</p>
               <span style={styles.modalClose} onClick={() => setConfirmMailOpen(false)}>✕</span>
             </div>
             <p style={styles.modalSub}>
-              {`Listede seçim yapılmadı — filtrelenmiş ${resolveTargetRows().length} kaydın tamamı için mail gönderilecek.`}
+              {`Listede seçim yapılmadı — filtrelenmiş ${resolveTargetRows().length} kaydın tamamı için e-posta gönderilecek.`}
             </p>
             <div style={styles.formActions}>
               <button style={styles.btnGhost} onClick={() => setConfirmMailOpen(false)}>Vazgeç</button>

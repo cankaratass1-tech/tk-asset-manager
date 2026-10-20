@@ -84,7 +84,7 @@ ${body}`);
     // çok sayıda mail (toplu gönderim) tek kontrolde özetlenir; az sayıda ise tek tek raporlanır
     if (mails.length > 5) {
       const fails = mails.map(bad1).filter((r) => !r.ok);
-      check(`${label}: ${mails.length} mailin hepsi sağlıklı (alıcı geçerli, konu dolu, boş/bozuk değer yok, THY izi yok)`, fails.length === 0, fails.length ? fails[0].detail : "");
+      check(`${label}: ${mails.length} e-postanın hepsi sağlıklı (alıcı geçerli, konu dolu, boş/bozuk değer yok, THY izi yok)`, fails.length === 0, fails.length ? fails[0].detail : "");
       return;
     }
     mails.forEach((m, i) => {
@@ -92,7 +92,7 @@ ${body}`);
       check(`${label}: mail ${i + 1} sağlıklı (alıcı geçerli, konu dolu, boş/bozuk değer yok, THY izi yok)`, r.ok, r.detail);
     });
   };
-  const mailButton = () => page.getByRole("button", { name: /^Mail Gönder$/ }).first();
+  const mailButton = () => page.getByRole("button", { name: /^E-posta Gönder$/ }).first();
 
   // ---------- Zimmet Uyuşmazlığı ----------
   console.log("\nZimmet Uyuşmazlığı");
@@ -101,25 +101,25 @@ ${body}`);
   await segment("Zimmet Hatalı");
   await selectRows(1);
   let r = await sendAndCollect(() => mailButton().click());
-  check("Zimmet Hatalı: seçili kayda mail gidiyor (onaysız)", r.mails.length >= 1, r.toast);
+  check("Zimmet Hatalı: seçili kayda e-posta gidiyor (onaysız)", r.mails.length >= 1, r.toast);
   check("Zimmet Hatalı: gönderimden sonra seçim temizlendi (onay kutusu boş)", r.mails.length >= 1 && !(await page.locator("tbody tr input[type=checkbox]").first().isChecked()));
   if (r.mails[0]) {
     const t = stripHtml(r.mails[0].html);
     // bildirim, seçilen kayıt sayısını doğru vermeli; aynı kişiye ait ek (mükerrer) kayıtlar ayrı not edilmeli
     const extraInMail = /birden fazla notebook/.test(t);
-    check("Zimmet Hatalı: bildirim seçilen kayıt sayısını veriyor (1 kayıt) ve ek kayıtları ayrı belirtiyor", /1 kayıt/.test(r.toast) && (!extraInMail || /\+\d+ ilgili kayıt, aynı kişiye ait olduğu için aynı maile eklendi/.test(r.toast)), r.toast);
+    check("Zimmet Hatalı: bildirim seçilen kayıt sayısını veriyor (1 kayıt) ve ek kayıtları ayrı belirtiyor", /1 kayıt/.test(r.toast) && (!extraInMail || /\+\d+ ilgili kayıt, aynı kişiye ait olduğu için aynı e-postaya eklendi/.test(r.toast)), r.toast);
     sane("Zimmet Hatalı", r.mails);
     check("Zimmet Hatalı: şablon metni (kayıtlı sahibi farklı… son giriş kayıtlarına göre siz kullanıyorsunuz)", /kayıtlı sahibi farklı bir kişi görünüyor/.test(t) && /son giriş kayıtlarına göre bu cihaz\(lar\)ı siz kullanıyorsunuz/.test(t) && !/fiilen/.test(t));
     check("Zimmet Hatalı: tablo sütunları (Seri No … Last Logon)", ["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"].every((h) => t.includes(h)));
     check("Zimmet Hatalı: kayıtlı sahibi unvanıyla yazılmış (Ad Soyad (… Takimi))", /\(.*Takimi\)/.test(t));
-    check("Zimmet Hatalı: Turuncuhat talimatı (mhy.com.tr)", t.includes("turuncuhat.mhy.com.tr"));
+    check("Zimmet Hatalı: TuruncuHat talimatı (mhy.com.tr)", t.includes("turuncuhat.mhy.com.tr"));
   }
 
   await page.locator("input[type=checkbox]").first().uncheck().catch(() => {});
   await segment("Mükerrer Çift Zimmet");
   await selectRows(1);
   r = await sendAndCollect(() => mailButton().click());
-  check("Mükerrer Çift Zimmet: seçili kayda mail gidiyor", r.mails.length >= 1, r.toast);
+  check("Mükerrer Çift Zimmet: seçili kayda e-posta gidiyor", r.mails.length >= 1, r.toast);
   if (r.mails[0]) {
     sane("Mükerrer", r.mails);
     const t = stripHtml(r.mails[0].html);
@@ -132,7 +132,7 @@ ${body}`);
   await segment("Monitör Uyuşmazlığı");
   await selectRows(1);
   r = await sendAndCollect(() => mailButton().click());
-  check("Monitör Uyuşmazlığı: seçili kayda mail gidiyor (artık 'gönderilecek kayıt yok' demiyor)", r.mails.length >= 1, r.toast);
+  check("Monitör Uyuşmazlığı: seçili kayda e-posta gidiyor (artık 'gönderilecek kayıt yok' demiyor)", r.mails.length >= 1, r.toast);
   if (r.mails[0]) {
     sane("Monitör Uyuşmazlığı", r.mails);
     const t = stripHtml(r.mails[0].html);
@@ -148,10 +148,10 @@ ${body}`);
   await mailButton().click();
   await page.waitForTimeout(500);
   const modal = await bodyText();
-  check("Seçim yokken: onay penceresi açılıyor ('Listede seçim yapılmadı')", modal.includes("Mail Gönderimini Onayla") && modal.includes("Listede seçim yapılmadı"));
+  check("Seçim yokken: onay penceresi açılıyor ('Listede seçim yapılmadı')", modal.includes("E-posta Gönderimini Onayla") && modal.includes("Listede seçim yapılmadı"));
   await page.getByRole("button", { name: "Vazgeç" }).first().click();
   await page.waitForTimeout(1500);
-  check("Seçim yokken: Vazgeç'e basınca mail gitmiyor", sink.messages.length === before);
+  check("Seçim yokken: Vazgeç'e basınca e-posta gitmiyor", sink.messages.length === before);
 
   // ---------- Atıl Monitörler ----------
   console.log("\nAtıl Monitörler");
@@ -159,9 +159,9 @@ ${body}`);
   await page.locator("[data-atil-stage=outside]").click();
   await page.waitForTimeout(800);
   await selectRows(1);
-  r = await sendAndCollect(() => page.getByRole("button", { name: /Bilgi Dışı Kullanıma Mail Gönder/ }).first().click());
-  check("Atıl Monitörler: seçili bilgi dışı kullanıma mail gidiyor", r.mails.length >= 1, r.toast);
-  check("Atıl Monitörler: gönderimden sonra seçim temizlendi (buton 'seçili' göstermiyor)", r.mails.length >= 1 && (await page.getByRole("button", { name: /Bilgi Dışı Kullanıma Mail Gönder$/ }).count()) === 1);
+  r = await sendAndCollect(() => page.getByRole("button", { name: /Bilgi Dışı Kullanıma E-posta Gönder/ }).first().click());
+  check("Atıl Monitörler: seçili bilgi dışı kullanıma e-posta gidiyor", r.mails.length >= 1, r.toast);
+  check("Atıl Monitörler: gönderimden sonra seçim temizlendi (buton 'seçili' göstermiyor)", r.mails.length >= 1 && (await page.getByRole("button", { name: /Bilgi Dışı Kullanıma E-posta Gönder$/ }).count()) === 1);
   if (r.mails[0]) {
     sane("Atıl Monitörler", r.mails);
     const t = stripHtml(r.mails[0].html);
@@ -185,7 +185,7 @@ ${body}`);
         for (let i = 0; i < (await trs.count()) && picked < 2; i++) {
           if (!/eşleşiyor/.test(await trs.nth(i).innerText())) { await trs.nth(i).locator("input[type=checkbox]").check(); picked++; }
         }
-        check("Lokasyon/IP: listede uyuşmazlık satırı var (mail için)", picked === 2, `${picked} satır`);
+        check("Lokasyon/IP: listede uyuşmazlık satırı var (e-posta için)", picked === 2, `${picked} satır`);
         // Önizleme (ilk seçili uyuşmazlık kaydı) — gönderilen mailin ilkiyle birebir aynı olmalı
         await page.locator("[data-locip-preview]").click();
         await page.waitForSelector("[data-mail-preview]");
@@ -197,11 +197,11 @@ ${body}`);
       r = await sendAndCollect(() => mailButton().click());
       if (name.startsWith("Lokasyon") && r.mails[0]) {
         const sentText = stripHtml(r.mails[0].html).replace(/\s+/g, " ").trim();
-        check("Lokasyon/IP: önizleme konusu ile gönderilen mailin konusu aynı", previewSubject !== "" && r.mails[0].subject === previewSubject, `${previewSubject} ↔ ${r.mails[0].subject}`);
-        check("Lokasyon/IP: önizleme içeriği ile gönderilen mail içeriği aynı", previewText.length > 100 && sentText.replace(/[^\p{L}\p{N}]/gu, "") === previewText.replace(/[^\p{L}\p{N}]/gu, ""), `${previewText.length} ↔ ${sentText.length} karakter`);
-        check("Lokasyon/IP: gönderilen mail Bant mailiyle aynı çerçeveyi kullanıyor (lacivert başlık bandı, çerçeveli gövde)", /#243a5e/.test(r.mails[0].html) && /LOKASYON \/ IP UYUŞMAZLIĞI/.test(r.mails[0].html) && /border:1px solid #d0d7de/.test(r.mails[0].html));
+        check("Lokasyon/IP: önizleme konusu ile gönderilen e-postanın konusu aynı", previewSubject !== "" && r.mails[0].subject === previewSubject, `${previewSubject} ↔ ${r.mails[0].subject}`);
+        check("Lokasyon/IP: önizleme içeriği ile gönderilen e-posta içeriği aynı", previewText.length > 100 && sentText.replace(/[^\p{L}\p{N}]/gu, "") === previewText.replace(/[^\p{L}\p{N}]/gu, ""), `${previewText.length} ↔ ${sentText.length} karakter`);
+        check("Lokasyon/IP: gönderilen e-posta Bant e-postasıyla aynı çerçeveyi kullanıyor (lacivert başlık bandı, çerçeveli gövde)", /#243a5e/.test(r.mails[0].html) && /LOKASYON \/ IP UYUŞMAZLIĞI/.test(r.mails[0].html) && /border:1px solid #d0d7de/.test(r.mails[0].html));
       }
-      check(`${name}: seçili kayıtlara mail gidiyor`, r.mails.length >= 1, r.toast || "mail gelmedi ve bildirim yok");
+      check(`${name}: seçili kayıtlara e-posta gidiyor`, r.mails.length >= 1, r.toast || "e-posta gelmedi ve bildirim yok");
       if (r.mails.length >= 1) check(`${name}: gönderimden sonra seçim temizlendi`, !(await page.locator("tbody tr input[type=checkbox]").first().isChecked()));
       sane(name, r.mails);
     } catch (e) {
@@ -223,17 +223,17 @@ ${body}`);
     await page.reload();
     await page.waitForTimeout(3000);
     await openReport("Yeni Kurulum Kaydı");
-    const recRows = page.locator("tr", { hasText: /Mail: gönderilmedi/ });
+    const recRows = page.locator("tr", { hasText: /E-posta: gönderilmedi/ });
     const nUnsent = await recRows.count();
-    check("Yeni Kurulum: mail gönderilmemiş kayıtlar listede", nUnsent >= 3, `${nUnsent} kayıt`);
+    check("Yeni Kurulum: e-posta gönderilmemiş kayıtlar listede", nUnsent >= 3, `${nUnsent} kayıt`);
 
     // 1) tek kayıt, elle alıcı, Türkçe
     const first = recRows.first();
     const firstText = await first.innerText();
     await first.locator("input[type=checkbox]").check();
-    await page.locator('input[placeholder^="Mail alıcı"]').fill("alici@test.local");
-    let r1 = await sendAndCollect(() => page.getByRole("button", { name: /Mail Gönder — TR \(1 seçili\)/ }).click());
-    check("Yeni Kurulum (TR, 1 kayıt): mail gidiyor", r1.mails.length === 1, r1.toast);
+    await page.locator('input[placeholder^="E-posta alıcı"]').fill("alici@test.local");
+    let r1 = await sendAndCollect(() => page.getByRole("button", { name: /E-posta Gönder — TR \(1 seçili\)/ }).click());
+    check("Yeni Kurulum (TR, 1 kayıt): e-posta gidiyor", r1.mails.length === 1, r1.toast);
     if (r1.mails[0]) {
       const m = r1.mails[0];
       const t = stripHtml(m.html);
@@ -247,20 +247,20 @@ ${body}`);
       check("Yeni Kurulum (TR): kaydın ATO numarası tabloda (Varlık Transfer Emri)", !!ato && t.includes(ato), ato);
       check("Yeni Kurulum (TR): tek cihaz (bilgi alanında tek 'Seri Numarası') ve Ofis Bant düzeni (lacivert başlık bandı)", (m.html.match(/Seri Numarası/g) || []).length === 1 && m.html.includes("background:#243a5e") && t.includes("YENİ KURULUM"));
     }
-    const sentBadge = await page.locator("tr", { hasText: /Mail: gönderildi/ }).count();
-    check("Yeni Kurulum: gönderilen kaydın rozeti Mail gönderildi oldu", sentBadge >= 1);
+    const sentBadge = await page.locator("tr", { hasText: /E-posta: gönderildi/ }).count();
+    check("Yeni Kurulum: gönderilen kaydın rozeti E-posta gönderildi oldu", sentBadge >= 1);
     // gönderimden sonra seçim temizlenmeli: buton "(1 seçili)" değil "(tümü)" göstermeli — aksi halde aynı kayıt yeniden gider
-    check("Yeni Kurulum: gönderimden sonra seçim temizlendi (buton '(tümü)' gösteriyor)", (await page.getByRole("button", { name: /Mail Gönder — TR \(tümü\)/ }).count()) === 1);
+    check("Yeni Kurulum: gönderimden sonra seçim temizlendi (buton '(tümü)' gösteriyor)", (await page.getByRole("button", { name: /E-posta Gönder — TR \(tümü\)/ }).count()) === 1);
 
     // 2) İngilizce, 1 kayıt (sayfa yenilenir: önceki gönderimdeki seçim ekranda kalıyor — gözlem notu)
     await page.reload();
     await page.waitForTimeout(3000);
     await openReport("Yeni Kurulum Kaydı");
-    await page.locator("tr", { hasText: /Mail: gönderilmedi/ }).first().locator("input[type=checkbox]").check();
-    await page.locator('input[placeholder^="Mail alıcı"]').fill("alici@test.local");
+    await page.locator("tr", { hasText: /E-posta: gönderilmedi/ }).first().locator("input[type=checkbox]").check();
+    await page.locator('input[placeholder^="E-posta alıcı"]').fill("alici@test.local");
     await page.locator("select").filter({ has: page.locator('option[value="en"]') }).selectOption("en");
-    const r2 = await sendAndCollect(() => page.getByRole("button", { name: /Mail Gönder — EN/ }).click());
-    check("Yeni Kurulum (EN): mail gidiyor", r2.mails.length === 1, r2.toast);
+    const r2 = await sendAndCollect(() => page.getByRole("button", { name: /E-posta Gönder — EN/ }).click());
+    check("Yeni Kurulum (EN): e-posta gidiyor", r2.mails.length === 1, r2.toast);
     if (r2.mails[0]) {
       const t = stripHtml(r2.mails[0].html);
       sane("Yeni Kurulum EN", r2.mails);
@@ -271,17 +271,17 @@ ${body}`);
     await page.reload();
     await page.waitForTimeout(3000);
     await openReport("Yeni Kurulum Kaydı");
-    const boxes = page.locator("tr", { hasText: /Mail: gönderilmedi/ });
+    const boxes = page.locator("tr", { hasText: /E-posta: gönderilmedi/ });
     check("Yeni Kurulum (2 kayıt senaryosu): yeterli gönderilmemiş kayıt kaldı", (await boxes.count()) >= 2, `${await boxes.count()} kayıt`);
     if ((await boxes.count()) >= 2) {
       await boxes.nth(0).locator("input[type=checkbox]").check();
       await boxes.nth(1).locator("input[type=checkbox]").check();
-      await page.locator('input[placeholder^="Mail alıcı"]').fill("alici@test.local");
-      const r3 = await sendAndCollect(() => page.getByRole("button", { name: /Mail Gönder — TR \(2 seçili\)/ }).click());
-      check("Yeni Kurulum (2 kayıt): her kayıt için AYRI mail gidiyor (2 mail)", r3.mails.length === 2, r3.toast);
+      await page.locator('input[placeholder^="E-posta alıcı"]').fill("alici@test.local");
+      const r3 = await sendAndCollect(() => page.getByRole("button", { name: /E-posta Gönder — TR \(2 seçili\)/ }).click());
+      check("Yeni Kurulum (2 kayıt): her kayıt için AYRI e-posta gidiyor (2 mail)", r3.mails.length === 2, r3.toast);
       if (r3.mails.length === 2) {
-        check("Yeni Kurulum (2 kayıt): her mail tekil konu ve tek cihaz bilgisi", r3.mails.every((m) => m.subject === "Cihazınız Hazır — ATO Kapatma Onayı" && (m.html.match(/Seri Numarası/g) || []).length === 1), r3.mails.map((m) => m.subject).join(" | "));
-        check("Yeni Kurulum (2 kayıt): iki mail farklı ATO numarası taşıyor", new Set(r3.mails.map((m) => (stripHtml(m.html).match(/ATO-[\w-]+/) || [""])[0])).size === 2);
+        check("Yeni Kurulum (2 kayıt): her e-posta tekil konu ve tek cihaz bilgisi", r3.mails.every((m) => m.subject === "Cihazınız Hazır — ATO Kapatma Onayı" && (m.html.match(/Seri Numarası/g) || []).length === 1), r3.mails.map((m) => m.subject).join(" | "));
+        check("Yeni Kurulum (2 kayıt): iki e-posta farklı ATO numarası taşıyor", new Set(r3.mails.map((m) => (stripHtml(m.html).match(/ATO-[\w-]+/) || [""])[0])).size === 2);
         sane("Yeni Kurulum 2 kayıt", r3.mails);
       }
     }
@@ -294,7 +294,7 @@ ${body}`);
   try {
     const recs = (await api("/api/newinstalls")).records || [];
     const pending = recs.filter((r) => r.mailSentAt && String(r.status).toUpperCase() !== "TESLİM EDİLDİ");
-    check("Kapatma Onayı: bekleyen kayıt var (mail gitmiş, teslim edilmemiş)", pending.length >= 3, `${pending.length} kayıt`);
+    check("Kapatma Onayı: bekleyen kayıt var (e-posta gitmiş, teslim edilmemiş)", pending.length >= 3, `${pending.length} kayıt`);
     // üst yönetim kuralı: bekleyen bir kaydın TH sahibinin mailini üst yönetim listesine ekle
     const thFile = readdirSync(join(be.dataDir, "imports")).find((n) => n.startsWith("TH_"));
     const thWb = XLSX.read(readFileSync(join(be.dataDir, "imports", thFile)));
@@ -318,22 +318,22 @@ ${body}`);
     const sendBtns = page.getByRole("button", { name: /✉️ Gönder \(TR\)/ });
     check("Kapatma Onayı: gönderilebilir satırlar var", (await sendBtns.count()) >= 1, `${await sendBtns.count()} buton`);
     const rSingle = await sendAndCollect(() => sendBtns.first().click());
-    check("Kapatma Onayı (tek satır, TR): mail gidiyor", rSingle.mails.length === 1, rSingle.toast);
+    check("Kapatma Onayı (tek satır, TR): e-posta gidiyor", rSingle.mails.length === 1, rSingle.toast);
     if (rSingle.mails[0]) {
       const m = rSingle.mails[0];
       const t = stripHtml(m.html);
       sane("Kapatma Onayı tek", rSingle.mails);
       check("Kapatma Onayı: konu 'Kapatma Onayı Bekleniyor — TuruncuHat'", m.subject === "Kapatma Onayı Bekleniyor — TuruncuHat", m.subject);
-      check("Kapatma Onayı: şablon metni ve tablo başlıkları", /kapatma onayı bekleyen turuncuhat kayıtları/.test(t) && ["Barkod", "Seri No", "Varlık Adı", "ATO Code", "Etkilenen Kullanıcı"].every((h) => t.includes(h)));
+      check("Kapatma Onayı: şablon metni ve tablo başlıkları", /kapatma onayı bekleyen TuruncuHat kayıtları/.test(t) && ["Barkod", "Seri No", "Varlık Adı", "ATO Kodu", "Etkilenen Kullanıcı"].every((h) => t.includes(h)));
       check("Kapatma Onayı: alıcı ÜST YÖNETİM DEĞİL", m.to.replace(/^.*<|>.*$/g, "").trim().toLowerCase() !== ustMail, m.to);
-      check("Kapatma Onayı: alıcı TuruncuHat'taki kişi maili (mhy.com.tr)", /@mhy\.com\.tr/.test(m.to), m.to);
+      check("Kapatma Onayı: alıcı TuruncuHat'taki kişi e-postası (mhy.com.tr)", /@mhy\.com\.tr/.test(m.to), m.to);
     }
 
     // toplu: seçim yok → "tümü"; üst yönetim kaydı hariç, her kişiye ayrı mail
     const bulk = page.getByRole("button", { name: /Hatırlatma Gönder — TR \(tümü\)/ });
     const rBulk = await sendAndCollect(() => bulk.click());
-    check("Kapatma Onayı (toplu, tümü): kişi başına ayrı mail gidiyor", rBulk.mails.length >= 1, rBulk.toast);
-    check("Kapatma Onayı (toplu): üst yönetim adresine hiç mail gitmedi", rBulk.mails.every((m) => !m.to.toLowerCase().includes(ustMail)), `${rBulk.mails.length} mail`);
+    check("Kapatma Onayı (toplu, tümü): kişi başına ayrı e-posta gidiyor", rBulk.mails.length >= 1, rBulk.toast);
+    check("Kapatma Onayı (toplu): üst yönetim adresine hiç e-posta gitmedi", rBulk.mails.every((m) => !m.to.toLowerCase().includes(ustMail)), `${rBulk.mails.length} mail`);
     // beklenen: üst yönetim hariç, TuruncuHat'ta maili olan bekleyen kayıtların benzersiz alıcı sayısı (maili olmayanlar için
     // uygulama elle adres sorar — testte prompt kapatıldığı için atlanır)
     const nowPending = ((await api("/api/newinstalls")).records || []).filter((r) => r.mailSentAt && String(r.status).toUpperCase() !== "TESLİM EDİLDİ");
@@ -344,7 +344,7 @@ ${body}`);
     check("Kapatma Onayı (toplu): her alıcıya tek mail (aynı kişi birleşiyor)", uniqueTo.size === rBulk.mails.length, `${rBulk.mails.length} mail, ${uniqueTo.size} alıcı`);
 
     // üst yönetim adresi elle yazılırsa engellenir
-    await page.locator('input[placeholder^="Mail alıcı"]').fill(ustMail);
+    await page.locator('input[placeholder^="E-posta alıcı"]').fill(ustMail);
     const beforeUst = sink.messages.length;
     await page.getByRole("button", { name: /Hatırlatma Gönder — TR/ }).click();
     let ustToast = "";
@@ -352,13 +352,13 @@ ${body}`);
       await page.waitForTimeout(250);
       ustToast = await toastOf();
     }
-    check("Kapatma Onayı: üst yönetim adresi elle girilirse mail gönderilmiyor", sink.messages.length === beforeUst && /üst yönetime ait/.test(ustToast), ustToast || "bildirim görünmedi");
-    await page.locator('input[placeholder^="Mail alıcı"]').fill("");
+    check("Kapatma Onayı: üst yönetim adresi elle girilirse e-posta gönderilmiyor", sink.messages.length === beforeUst && /üst yönetime ait/.test(ustToast), ustToast || "bildirim görünmedi");
+    await page.locator('input[placeholder^="E-posta alıcı"]').fill("");
 
     // İngilizce toplu: kayıtlar zaten hatırlatıldı ama tekrar gönderilebilir
     await page.locator("select").filter({ has: page.locator('option[value="en"]') }).selectOption("en");
     const rEn = await sendAndCollect(() => page.getByRole("button", { name: /Hatırlatma Gönder — EN/ }).click());
-    check("Kapatma Onayı (EN): İngilizce mail gidiyor", rEn.mails.length >= 1 && rEn.mails.every((m) => m.subject === "Closure Approval Pending — TuruncuHat"), rEn.mails[0]?.subject || rEn.toast);
+    check("Kapatma Onayı (EN): İngilizce e-posta gidiyor", rEn.mails.length >= 1 && rEn.mails.every((m) => m.subject === "Closure Approval Pending — TuruncuHat"), rEn.mails[0]?.subject || rEn.toast);
     if (rEn.mails[0]) check("Kapatma Onayı (EN): İngilizce tablo başlıkları", ["Barcode", "Serial Number", "Asset Name", "ATO Code", "Affected User"].every((h) => stripHtml(rEn.mails[0].html).includes(h)));
   } catch (e) {
     check("Kapatma Onayı: test akışı tamamlandı", false, String(e.message).split("\n")[0].slice(0, 160));
@@ -383,10 +383,10 @@ ${body}`);
     await page.locator("text=✕").first().click();
 
     // tek ofis, elle alıcı
-    await page.locator('input[placeholder^="Mail alıcı"]').fill("alici@test.local");
+    await page.locator('input[placeholder^="E-posta alıcı"]').fill("alici@test.local");
     const code = await sendBtns.first().getAttribute("data-bant-send");
     const r1 = await sendAndCollect(() => sendBtns.first().click());
-    check("Bant (tek ofis): mail gidiyor", r1.mails.length === 1, r1.toast);
+    check("Bant (tek ofis): e-posta gidiyor", r1.mails.length === 1, r1.toast);
     if (r1.mails[0]) {
       const m = r1.mails[0];
       const t = stripHtml(m.html);
@@ -404,18 +404,18 @@ ${body}`);
     await page.waitForTimeout(500);
     check("Bant (toplu): onay penceresi ofis sayısını söylüyor", new RegExp(nWarn + " ofisin " + nWarn + " tanesine").test(await bodyText()));
     const rBulk = await sendAndCollect(() => page.getByRole("button", { name: "Onayla ve Gönder" }).click());
-    check("Bant (toplu): her uyarılı ofise ayrı mail gidiyor", rBulk.mails.length === nWarn, rBulk.mails.length + " mail ↔ " + nWarn + " ofis");
+    check("Bant (toplu): her uyarılı ofise ayrı e-posta gidiyor", rBulk.mails.length === nWarn, rBulk.mails.length + " mail ↔ " + nWarn + " ofis");
     check("Bant (toplu): konular ofise özel ve uyarı içeriyor", rBulk.mails.every((m) => /Uyarısı/.test(m.subject)) && new Set(rBulk.mails.map((m) => m.subject)).size === rBulk.mails.length);
     sane("Bant toplu", rBulk.mails);
 
     // alıcı yoksa: mail gitmez, açıklayıcı uyarı
-    await page.locator('input[placeholder^="Mail alıcı"]').fill("");
+    await page.locator('input[placeholder^="E-posta alıcı"]').fill("");
     const before = sink.messages.length;
     await sendBtns.first().click();
     let noneToast = "";
-    for (let k = 0; k < 20 && !/mail adresi yok/.test(noneToast) && sink.messages.length === before; k++) { await page.waitForTimeout(250); noneToast = await toastOf(); }
-    const sentOrExplained = sink.messages.length > before || /mail adresi yok/.test(noneToast);
-    check("Bant: alıcı bulunamazsa mail gitmiyor ve nedeni bildiriliyor (ya da listede adres varsa gidiyor)", sentOrExplained, noneToast || "mail gitti");
+    for (let k = 0; k < 20 && !/e-posta adresi yok/.test(noneToast) && sink.messages.length === before; k++) { await page.waitForTimeout(250); noneToast = await toastOf(); }
+    const sentOrExplained = sink.messages.length > before || /e-posta adresi yok/.test(noneToast);
+    check("Bant: alıcı bulunamazsa e-posta gitmiyor ve nedeni bildiriliyor (ya da listede adres varsa gidiyor)", sentOrExplained, noneToast || "e-posta gitti");
   } catch (e) {
     check("Bant: test akışı tamamlandı", false, String(e.message).split("\n")[0].slice(0, 160));
   }
@@ -427,6 +427,6 @@ ${body}`);
 }
 
 const failed = results.filter((x) => !x.ok);
-console.log(`\nSonuç: ${results.length - failed.length}/${results.length} mail kontrolü geçti${failed.length ? `, ${failed.length} BAŞARISIZ` : ""}`);
+console.log(`\nSonuç: ${results.length - failed.length}/${results.length} e-posta kontrolü geçti${failed.length ? `, ${failed.length} BAŞARISIZ` : ""}`);
 failed.forEach((f) => console.log(`  ✗ ${f.name}${f.detail ? ` — ${f.detail}` : ""}`));
 process.exit(failed.length ? 1 : 0);

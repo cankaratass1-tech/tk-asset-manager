@@ -112,7 +112,7 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
   const last = series[series.length - 1], prev = series[series.length - 2];
 
   const closure = useMemo(() => {
-    const pending = recs.filter((r) => r.mailSentAt && String(r.status || "").toUpperCase() !== "TESLİM EDİLDİ");
+    const pending = recs.filter((r) => r.mailSentAt && String(r.status || "").toLocaleUpperCase("tr-TR") !== "TESLİM EDİLDİ");
     return { pending: pending.length, overdue: pending.filter((r) => (Date.now() - Date.parse(r.mailSentAt)) / 86400000 > 7).length };
   }, [recs]);
 
@@ -266,7 +266,7 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
               onOpenReport={(id) => { setDetailIdx(null); openReport(id); }} styles={styles} pal={pal} />
           )}
         </Card>
-        <Card title="Açık bulgu dağılımı" sub={onNavigate ? "Güncel durum — bir kategoriye tıklayınca raporu açılır" : "Güncel durum"} span={4}>
+        <Card title="Açık bulgu dağılımı" sub={onNavigate ? "Güncel durum — bir kategoriye tıklayınca rapor açılır" : "Güncel durum"} span={4}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
             <Ring segments={catKeys.map((k) => ({ id: k, k: CAT[k].k, v: catVal[k], c: CAT[k].c }))} center={fmt(openTotal)} sub="BULGU" size={160} onSegmentClick={onNavigate ? openReport : undefined} />
             <div style={{ fontSize: 12.5, display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>

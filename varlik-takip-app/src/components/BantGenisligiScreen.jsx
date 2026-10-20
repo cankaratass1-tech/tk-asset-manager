@@ -24,7 +24,7 @@ export default function BantGenisligiScreen({
   recordMailHistory,
 }) {
   const [locationFilter, setLocationFilterState] = useState("all");
-  const [mailTo, setMailTo] = useState(""); // boşsa Lokasyon Mail Listesi'ndeki adres kullanılır
+  const [mailTo, setMailTo] = useState(""); // boşsa Lokasyon E-posta Listesi'ndeki adres kullanılır
   const [preview, setPreview] = useState(null); // { subject, html, to }
   const [bulkOpen, setBulkOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -73,7 +73,7 @@ export default function BantGenisligiScreen({
   const sendOffice = async (officeCode) => {
     const p = prepare(officeCode);
     if (!p.to) {
-      showToast?.(`⚠️ ${p.officeName || officeCode} için Lokasyon Mail Listesi'nde mail adresi yok — üstteki kutuya alıcı adresi girin`);
+      showToast?.(`⚠️ ${p.officeName || officeCode} için Lokasyon E-posta Listesi'nde e-posta adresi yok — üstteki kutuya alıcı adresi girin`);
       return;
     }
     setBusy(true);
@@ -91,7 +91,7 @@ export default function BantGenisligiScreen({
     setBusy(true);
     const prepared = warningOffices.map((o) => prepare(o.officeCode));
     const sendable = prepared.filter((p) => p.to);
-    const details = prepared.filter((p) => !p.to).map((p) => ({ location: p.officeName || p.officeCode, to: null, count: p.warnCount, ok: false, message: "Lokasyon Mail Listesi'nde mail adresi bulunamadı" }));
+    const details = prepared.filter((p) => !p.to).map((p) => ({ location: p.officeName || p.officeCode, to: null, count: p.warnCount, ok: false, message: "Lokasyon E-posta Listesi'nde e-posta adresi bulunamadı" }));
     let sent = 0, failed = 0;
     for (const p of sendable) {
       const r = await deliver(p);
@@ -104,7 +104,7 @@ export default function BantGenisligiScreen({
       id: Date.now(), date: new Date().toLocaleString("tr-TR"), dept: "Ofis Bant Genişliği", report: "Ofis Bant Genişliği (toplu)",
       recipients: sent, status: failed || skipped ? (sent ? "Kısmen Başarısız" : "Gönderilemedi") : "Başarılı", details,
     });
-    showToast?.(`${failed || skipped ? (sent ? "⚠️" : "❌") : "✅"} ${sent} ofise gönderildi${skipped ? `, ${skipped} ofis için mail adresi yok` : ""}${failed ? `, ${failed} gönderim başarısız` : ""}`);
+    showToast?.(`${failed || skipped ? (sent ? "⚠️" : "❌") : "✅"} ${sent} ofise gönderildi${skipped ? `, ${skipped} ofis için e-posta adresi yok` : ""}${failed ? `, ${failed} gönderim başarısız` : ""}`);
   };
   const bulkPlan = useMemo(() => {
     if (!bulkOpen) return null;
@@ -211,12 +211,12 @@ export default function BantGenisligiScreen({
                 </div>
                 <input
                   type="text"
-                  placeholder="Mail alıcı — boşsa lokasyon mail listesi"
+                  placeholder="E-posta alıcı — boşsa lokasyon e-posta listesi"
                   value={mailTo}
                   onChange={(e) => setMailTo(e.target.value)}
                   style={{ ...styles.formInput, flex: "0 1 280px" }}
                 />
-                <button style={styles.btnGhost} onClick={() => setBulkOpen(true)} disabled={busy || warningOffices.length === 0} title="Uyarıdaki hattı olan her ofise ayrı bilgilendirme maili">
+                <button style={styles.btnGhost} onClick={() => setBulkOpen(true)} disabled={busy || warningOffices.length === 0} title="Uyarıdaki hattı olan her ofise ayrı bilgilendirme e-postası">
                   ✉️ Uyarılı ofislere mail ({warningOffices.length})
                 </button>
                 <select style={styles.scheduleSelect} value={locationFilter} onChange={(e) => setLocationFilterState(e.target.value)}>
@@ -285,18 +285,18 @@ export default function BantGenisligiScreen({
         </>
       )}
 
-      <MailPreviewModal preview={preview} onClose={() => setPreview(null)} styles={styles} noRecipientText="— (Lokasyon Mail Listesi'nde adres yok; üstteki kutuya girin)" />
+      <MailPreviewModal preview={preview} onClose={() => setPreview(null)} styles={styles} noRecipientText="— (Lokasyon E-posta Listesi'nde adres yok; üstteki kutuya girin)" />
 
       {bulkOpen && bulkPlan && (
         <div style={styles.modalOverlay} onClick={() => setBulkOpen(false)}>
           <div style={{ ...styles.modalCard, width: "min(440px, 100%)" }} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <p style={styles.modalTitle}>Mail Gönderimini Onayla</p>
+              <p style={styles.modalTitle}>E-posta Gönderimini Onayla</p>
               <span style={styles.modalClose} onClick={() => setBulkOpen(false)}>✕</span>
             </div>
             <p style={styles.modalSub}>
-              Uyarıdaki hattı olan {bulkPlan.total} ofisin {bulkPlan.withMail} tanesine ayrı bilgilendirme maili gönderilecek
-              {bulkPlan.total - bulkPlan.withMail > 0 ? ` (${bulkPlan.total - bulkPlan.withMail} ofis için mail adresi bulunamadığından atlanacak)` : ""}.
+              Uyarıdaki hattı olan {bulkPlan.total} ofisin {bulkPlan.withMail} tanesine ayrı bilgilendirme e-postası gönderilecek
+              {bulkPlan.total - bulkPlan.withMail > 0 ? ` (${bulkPlan.total - bulkPlan.withMail} ofis için e-posta adresi bulunamadığından atlanacak)` : ""}.
             </p>
             <div style={styles.formActions}>
               <button style={styles.btnGhost} onClick={() => setBulkOpen(false)}>Vazgeç</button>

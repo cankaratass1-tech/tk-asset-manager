@@ -5,7 +5,7 @@ import companyLogo from "../assets/company-logo.svg";
 const FEATURES = [
   ["◉", "Zimmet ve kullanım uyuşmazlıkları", "Kim kullanıyor, kime zimmetli — tek bakışta"],
   ["▤", "Disk, pil, BSOD ve Bottleneck", "Sorunlu cihazlar önceliklendirilmiş"],
-  ["✉", "Rapor, mail ve cihaz geçmişi", "Önizle, gönder, izini sür"],
+  ["✉", "Rapor, e-posta ve cihaz geçmişi", "Önizle, gönder, izini sür"],
 ];
 const NODES = [[70, 60], [190, 30], [300, 90], [120, 150], [250, 190], [360, 40], [40, 230], [330, 250]];
 const LINKS = [[0, 1], [1, 2], [0, 3], [3, 4], [2, 4], [1, 5], [2, 5], [3, 6], [4, 7], [6, 3]];
@@ -63,7 +63,7 @@ export default function AuthShell({ children }) {
               Cihaz varlıklarınız<br />tek ekranda, kontrol altında
             </h2>
             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, opacity: 0.8, maxWidth: 400 }}>
-              Envanter, zimmet ve sağlık verilerini birleştirir; sorunlu cihazları öne çıkarır, raporlar ve mailler üretir.
+              Envanter, zimmet ve sağlık verilerini birleştirir; sorunlu cihazları öne çıkarır, raporlar ve e-postalar üretir.
             </p>
           </div>
           <ul className="auth-features" style={{ position: "relative", zIndex: 1, listStyle: "none", padding: 0, margin: "36px 0 0", display: "flex", flexDirection: "column", gap: 16 }}>

@@ -51,7 +51,7 @@ export default function DeviceActionHistory({ row, mailHistory, styles, pal }) {
     return [{
       ts: h.isoDate || h.date || "",
       type: "Mail",
-      description: `${h.report || h.reportType || ""} maili gönderildi`,
+      description: `${h.report || h.reportType || ""} e-postası gönderildi`,
       user: h.senderUsername || "",
       reportId: h.reportType || "",
       mailSubject: h.subject || "",
@@ -101,7 +101,7 @@ export default function DeviceActionHistory({ row, mailHistory, styles, pal }) {
         style={{ padding: "9px 11px", borderRadius: 9, background: pal.fieldBg, fontSize: 13, borderLeft: `3px solid ${c === "zimmet" ? pal.accent : c === "mail" ? pal.ok : c === "rapor" ? pal.warnFg : pal.neutralDot}`, cursor: expandable ? "pointer" : "default" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
           <span style={{ fontWeight: 700 }}>
-            {CATEGORY_ICON[c]} {e.type}
+            {CATEGORY_ICON[c]} {e.type === "Mail" ? "E-posta" : e.type}
             {derivedEvt && <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 600, color: pal.inkSoft, border: `1px solid ${pal.line}`, borderRadius: 8, padding: "0 5px" }} title={e.source === "TuruncuHat" ? "TuruncuHat kaynak dosyasından" : "Snapshot geçmişinden otomatik türetildi"}>{e.source === "TuruncuHat" ? "kaynak" : "otomatik"}</span>}
           </span>
           <span style={{ color: pal.inkSoft, fontSize: 12, flexShrink: 0 }}>{timeOf(e.ts)}</span>

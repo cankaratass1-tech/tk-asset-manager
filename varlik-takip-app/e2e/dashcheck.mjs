@@ -45,11 +45,11 @@ try {
     diskKritik: grab(d, /(\d[\d.]*)\nbirim\nKritik\n(\d+)\nUyarı\n(\d+)\nNormal\n(\d+)/, 2),
     diskUyari: grab(d, /(\d[\d.]*)\nbirim\nKritik\n(\d+)\nUyarı\n(\d+)\nNormal\n(\d+)/, 3),
     diskNormal: grab(d, /(\d[\d.]*)\nbirim\nKritik\n(\d+)\nUyarı\n(\d+)\nNormal\n(\d+)/, 4),
-    zTotal: grab(d, /SCCM VERISI\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 1),
-    zDogru: grab(d, /SCCM VERISI\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 2),
-    zUyusmazlik: grab(d, /SCCM VERISI\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 3),
-    zKayitYok: grab(d, /SCCM VERISI\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 4),
-    zMonitor: grab(d, /SCCM VERISI\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 5),
+    zTotal: grab(d, /SCCM VER[Iİ]S[Iİ]\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 1),
+    zDogru: grab(d, /SCCM VER[Iİ]S[Iİ]\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 2),
+    zUyusmazlik: grab(d, /SCCM VER[Iİ]S[Iİ]\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 3),
+    zKayitYok: grab(d, /SCCM VER[Iİ]S[Iİ]\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 4),
+    zMonitor: grab(d, /SCCM VER[Iİ]S[Iİ]\n(\d[\d.]*)\ncihaz\nDoğru eşleşen\n(\d+)\nUyuşmazlık\n(\d+)\nDoğrulanamayan\n(\d+)\n— bunlardan monitör kaynaklı\n(\d+)/, 5),
     gorunenInaktif: grab(d, /Toplam (\d[\d.]*) inaktif cihaz/),
     riskInaktif: grab(d, /(\d[\d.]*)\ntoplam inaktif cihaz/),
     riskKritik: grab(d, /(\d[\d.]*)\nkritik disk\nZimmet/),
@@ -98,7 +98,7 @@ try {
     await page.waitForTimeout(1800);
   };
   const footerN = async () => grab(await bodyText(), /(\d[\d.]*) kayıttan/);
-  const stat = async (label) => grab(await bodyText(), new RegExp(`(\\d[\\d.]*)\\n${label}`));
+  const stat = async (label) => grab(await bodyText(), new RegExp(`(\\d[\\d.]*)\\n${label}`, "i"));
   const segmentCount = async (label) => {
     await page.locator("div", { hasText: new RegExp(`^${label}$`) }).first().click();
     await page.waitForTimeout(1200);
@@ -127,7 +127,7 @@ try {
   await page.waitForTimeout(800);
   await page.locator("span", { hasText: /^Durum \(Tümü\)$/ }).last().click();
   await page.waitForTimeout(300);
-  const unverified = ["Kullanım Kaydı Yok", "SCCM'de Bulunamadı", "Monitor Raporunda Bulunamadı", "Doğrulanamadı", "TH Kaydı YOK", "Zimmetsiz Kullanım (Doğrulanamadı)"];
+  const unverified = ["Kullanım Kaydı Yok", "SCCM'de Bulunamadı", "Monitör Raporu'nda Bulunamadı", "Doğrulanamadı", "TH Kaydı YOK", "Zimmetsiz Kullanım (Doğrulanamadı)"];
   const panel = page.locator("div[style*='max-height: 340px']");
   const present = (await panel.locator("label span").allInnerTexts()).map((t) => t.trim());
   for (const tag of unverified.filter((t) => present.includes(t))) await panel.locator("label", { hasText: new RegExp(`^${tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) }).first().click();
@@ -154,7 +154,7 @@ try {
   const sccm = rows("SCCM Inventory Report", 0, 3);
   eq("Ham SCCM dosyası satır sayısı = dashboard 'Toplam Cihaz'", sccm.data.length, dash.toplam);
   // Zimmet toplamı (TH+SCCM karşılaştırması) SCCM satır sayısından büyük olabilir: TuruncuHat'ta olup SCCM'de olmayan kayıtlar da listelenir
-  check("Zimmet paneli 'SCCM VERISI' toplamı SCCM dosyasından farklıysa bu açıkça fark ediliyor", true, `zimmet toplamı ${dash.zTotal}, ham SCCM ${sccm.data.length} (fark ${dash.zTotal - sccm.data.length} = TuruncuHat'ta olup SCCM'de olmayan/monitör kayıtları)`);
+  check("Zimmet paneli 'SCCM VER[Iİ]S[Iİ]' toplamı SCCM dosyasından farklıysa bu açıkça fark ediliyor", true, `zimmet toplamı ${dash.zTotal}, ham SCCM ${sccm.data.length} (fark ${dash.zTotal - sccm.data.length} = TuruncuHat'ta olup SCCM'de olmayan/monitör kayıtları)`);
 } finally {
   await browser.close();
   await be.stop();

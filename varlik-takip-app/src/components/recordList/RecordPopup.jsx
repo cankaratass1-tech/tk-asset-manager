@@ -6,10 +6,11 @@
 // Önceden isZimmet ayrımı yapılmadan hep Zimmet'e özgü alanlar gösteriliyordu; bu yüzden İnaktif
 // Cihazlar'da "Kullanan kişi" hep boş, "Durum" rozeti anlamsız/boş çıkıyordu (bkz. konuşma).
 import { isZimmetUnverified } from "../../services/zimmetService";
-import { isInaktifUnverified, needsInaktifAction } from "../../services/inaktifComparisonService";
+import { isInaktifUnverified, needsInaktifAction, inaktifUsageTone } from "../../services/inaktifComparisonService";
 import DeviceActionHistory from "./DeviceActionHistory";
 import ItemizedAlert from "./ItemizedAlert";
-import { inaktifActionItems, zimmetAlertItems } from "./alertItems";
+import { inaktifActionItems, zimmetAlertItems, descriptionShownInAlert } from "./alertItems";
+import DescriptionRow from "./DescriptionRow";
 import { ownerTitleOf } from "../../services/ownerName";
 
 export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailHistory }) {
@@ -75,6 +76,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
                   {row.windowsLabel ? `${row.windowsLabel} · ${row.windowsSupportLabel || ""}` : <span style={{ color: pal.inkSoft }}>Veri Yok</span>}
                 </span>
               </div>
+              {!descriptionShownInAlert(row) && <DescriptionRow text={row.model} styles={styles} pal={pal} />}
               <div style={{ ...styles.detailFieldRow, ...(row.monitorDetails?.length > 0 ? {} : { borderBottom: "none" }) }}>
                 <span style={{ color: pal.inkSoft }}>Durum</span>
                 <span style={{ ...styles.badge, ...(row.matched ? styles.badgeOk : isZimmetUnverified(row.statusTag) ? styles.badgeNeutral : styles.badgeBad) }}>
@@ -85,7 +87,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
             </div>
 
             {/* Gereksinim: "X kişisine ait monitörü Y kişisi kullanıyor mu" — TuruncuHat ve
-                Monitor Raporu yüklüyse bu PC'ye bağlı her monitör burada tek satırlık, sade bir
+                Monitör Raporu yüklüyse bu PC'ye bağlı her monitör burada tek satırlık, sade bir
                 kart olarak gösterilir (kullanıcı geri bildirimi: önceki hal "çok karmaşık"tı —
                 uzun paragraf yerine kısa, taranabilir bir liste). */}
             {row.monitorDetails?.length > 0 && (
@@ -174,13 +176,16 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
               <span style={{ color: pal.inkSoft }}>Lokasyon</span>
               <span>{row.location || "—"}</span>
             </div>
+            {row.matched && row.matchDetail && <DescriptionRow text={row.matchDetail} styles={styles} pal={pal} />}
             {row.statusTag && (() => {
               const unverified = isInaktifUnverified(row.statusTag);
+              const tone = inaktifUsageTone(row.statusTag); // İnaktif: kullanan varsa yeşil, kimse kullanmıyorsa kırmızı
+              const ok = tone ? tone === "ok" : row.matched;
               return (
                 <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}>
                   <span style={{ color: pal.inkSoft }}>Durum</span>
-                  <span style={{ ...styles.badge, ...(row.matched ? styles.badgeOk : unverified ? styles.badgeNeutral : styles.badgeBad) }}>
-                    <span style={{ ...styles.badgeDot, background: row.matched ? pal.ok : unverified ? pal.inkSoft : pal.bad }} />
+                  <span style={{ ...styles.badge, ...(ok ? styles.badgeOk : !tone && unverified ? styles.badgeNeutral : styles.badgeBad) }}>
+                    <span style={{ ...styles.badgeDot, background: ok ? pal.ok : !tone && unverified ? pal.inkSoft : pal.bad }} />
                     {row.statusTag}
                   </span>
                 </div>

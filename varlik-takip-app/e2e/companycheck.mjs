@@ -33,7 +33,7 @@ try {
     await page.waitForTimeout(1600);
   };
   const COMPANIES = ["AJET", "TKAO"];
-  const totalRe = /(\d[\d.]*)\ntoplam kayıt/;
+  const totalRe = /(\d[\d.]*)\ntoplam kayıt/i;
 
   // ---- ham dosya: Sahibi Firma dağılımı (İnaktif) ----
   const imports = join(be.dataDir, "imports");
@@ -84,12 +84,12 @@ try {
   console.log("\nAtıl Monitörler");
   const atilTotal = async (co) => {
     await select("Atıl Monitörler", co);
-    return pick(await txt(), /toplam monitör[^\n]*\n?(\d[\d.]*)|(\d[\d.]*)\ntoplam monitör/);
+    return pick(await txt(), /toplam monitör[^\n]*\n?(\d[\d.]*)|(\d[\d.]*)\ntoplam monitör/i);
   };
   await select("Atıl Monitörler", "Tüm Şirketler");
   const aText = await txt();
   const atilNum = (t) => {
-    const m = t.match(/toplam monitör\s*\n?\s*(\d[\d.]*)/) || t.match(/(\d[\d.]*)\s*\n?\s*toplam monitör/);
+    const m = t.match(/toplam monitör\s*\n?\s*(\d[\d.]*)/) || t.match(/(\d[\d.]*)\s*\n?\s*toplam monitör/i);
     return m ? num(m[1]) : NaN;
   };
   const aAll = atilNum(aText);
@@ -124,7 +124,7 @@ try {
   // Zimmet kartı = Zimmet ekranındaki 'zimmet hatalı' (şirket seçiliyken)
   for (const co of COMPANIES) {
     await select("Zimmet Uyuşmazlığı", co);
-    const zHatali = pick(await txt(), /(\d[\d.]*)\nzimmet hatalı/);
+    const zHatali = pick(await txt(), /(\d[\d.]*)\nzimmet hatalı/i);
     await select("Ana Sayfa", co);
     check(`Ana Sayfa [${co}]: zimmet uyuşmazlığı kartı = Zimmet ekranı 'zimmet hatalı'`, card(await txt(), "zimmet uyuşmazlığı") === zHatali, `${card(await txt(), "zimmet uyuşmazlığı")} ↔ ${zHatali}`);
   }

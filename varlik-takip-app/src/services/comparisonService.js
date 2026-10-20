@@ -121,7 +121,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
     if (r.deviceType === "MONITOR") thMonitorBySerial.set(norm(r.serial), r);
   });
 
-  const monitorsBySerial = new Map(); // TH'deki monitör satırını Monitor Raporu'ndaki gerçek kayda bağlamak için
+  const monitorsBySerial = new Map(); // TH'deki monitör satırını Monitör Raporu'ndaki gerçek kayda bağlamak için
   const monitorsByHostname = new Map(); // bir PC'ye bağlı monitörleri (popup'taki "Bağlı Monitörler") bulmak için
   monitorRows.forEach((m) => {
     const serialKey = norm(m.monitorSerial);
@@ -171,9 +171,9 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       let statusTag, matched, userDetail;
 
       if (!m) {
-        statusTag = "Monitor Raporunda Bulunamadı";
+        statusTag = "Monitör Raporu'nda Bulunamadı";
         matched = false;
-        userDetail = `${th.serial} seri numaralı monitör TuruncuHat'ta ${th.owner || "—"}'e zimmetli, ama Monitor Raporu'nda (şu an hangi PC'ye bağlı olduğunu gösteren canlı veri) kaydı yok — muhtemelen şu an takılı/aktif değil.`;
+        userDetail = `${th.serial} seri numaralı monitör TuruncuHat'ta ${th.owner || "—"}'e zimmetli, ama Monitör Raporu'nda (şu an hangi PC'ye bağlı olduğunu gösteren canlı veri) kaydı yok — muhtemelen şu an takılı/aktif değil.`;
       } else if (th.assignmentType === "OBS") {
         statusTag = "Müdürlük Zimmeti (OBS)";
         matched = true;
@@ -183,13 +183,13 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       } else if (!actualUser) {
         statusTag = "Kullanım Kaydı Yok";
         matched = false;
-        userDetail = `${th.serial} seri numaralı monitör ${th.owner}'e zimmetli, Monitor Raporu'nda aktif kullanıcı bilgisi yok.`;
+        userDetail = `${th.serial} seri numaralı monitör ${th.owner}'e zimmetli, Monitör Raporu'nda aktif kullanıcı bilgisi yok.`;
       } else {
         const cmp = compareAssignment({ actualUsername: actualUser, actualSicil: "", thUsername: th.ownerUsername, thSicil: th.ownerSicil });
         if (!cmp.verifiable) {
           statusTag = "Doğrulanamadı";
           matched = false;
-          userDetail = `${th.serial} seri numaralı monitör TuruncuHat'ta ${th.owner}'e zimmetli görünüyor, Monitor Raporu'nda ${actualUser} kullanıyor — ama karşılaştırma için gereken kullanıcı adı/sicil bilgisi eksik.`;
+          userDetail = `${th.serial} seri numaralı monitör TuruncuHat'ta ${th.owner}'e zimmetli görünüyor, Monitör Raporu'nda ${actualUser} kullanıyor — ama karşılaştırma için gereken kullanıcı adı/sicil bilgisi eksik.`;
         } else if (cmp.isMatch) {
           statusTag = "Zimmet Doğru";
           matched = true;
