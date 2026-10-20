@@ -1,9 +1,9 @@
-// LAKESIDE > Bottleneck testi: sayılar ham dosyalardan bağımsız hesaplanıp arayüzle karşılaştırılır.
+// LAKESIDE > Bottleneck testi: sayılar ham dosyalardan bağımsız hesaplanıp arayüzle karşılaştırılır (CPU/RAM alanları kaldırıldı).
 //   node e2e/darbogazcheck.mjs [--skip-build]
 import { buildFrontend, startBackend, launchBrowser, XLSX } from "./harness.mjs";
-import { readdirSync, readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { classifyDisk } from "../src/services/dashboardService.js";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 
 if (!process.argv.includes("--skip-build")) buildFrontend();
 const results = [];
@@ -17,15 +17,14 @@ const be = await startBackend({ port: 5068 });
 const browser = await launchBrowser();
 try {
   const imports = join(be.dataDir, "imports");
-  const rf = readdirSync(imports).find((n) => n.startsWith("Lakeside_Resource"));
-  check("Demo veride Lakeside_Resource dosyası var", !!rf);
-  const rows = XLSX.utils.sheet_to_json(XLSX.read(readFileSync(join(imports, rf))).Sheets.Resource, { defval: "" });
   const short = (h) => String(h).trim().split(".")[0].toLowerCase();
-  const byHost = new Map();
-  rows.forEach((r) => byHost.set(short(r["Machine Name"]), r));
-  const cpuHigh = [...byHost.values()].filter((r) => Number(r["Avg CPU %"]) >= 70).length;
-  const cpuCrit = [...byHost.values()].filter((r) => Number(r["Avg CPU %"]) >= 85).length;
-  const ramHigh = [...byHost.values()].filter((r) => Number(r["Avg RAM %"]) >= 80).length;
+  const rows = (prefix, hr) => { const f = readdirSync(imports).find((n) => n.includes(prefix)); const wb = XLSX.read(readFileSync(join(imports, f))); const a = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" }); const H = a[hr].map(String); return a.slice(hr + 1).filter((r) => r.some((c) => String(c).trim())).map((r) => Object.fromEntries(H.map((h, i) => [h, r[i]]))); };
+  // beklenen: disk seviyesi kritik/uyarı olan cihaz sayısı (cihazın en kötü birimi) ve BSOD'u olan cihaz sayısı
+  const disk = rows("DiskAlani", 5);
+  const minFree = new Map();
+  disk.forEach((r) => { const h = short(r["Name"] || r["Device ID"]); const gb = Number(r["Free Space"]) / 1024; if (!minFree.has(h) || gb < minFree.get(h)) minFree.set(h, gb); });
+  const diskBad = [...minFree.values()].filter((gb) => ["critical", "warning"].includes(classifyDisk(gb))).length;
+  const bsodHosts = new Set(rows("Weekly_BSOD", 1).map((r) => short(r["Machine Name"]))).size;
 
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
   await ctx.addInitScript((t) => localStorage.setItem("varlikTakip.sessionToken", t), be.token);
@@ -37,9 +36,8 @@ try {
   const txt = async () => (await page.innerText("body")).replace(/\n\s*\n/g, "\n");
   const count = async () => num(((await page.locator("[data-darbogaz-count]").innerText()) || "").split(" ")[0]);
 
-  console.log("\nMenü ve ekran");
-  const menuText = await txt();
-  check("LAKESIDE kategorisinde 'Bottleneck' menüsü var", menuText.includes("Bottleneck"));
+  console.log("Menü ve ekran");
+  check("LAKESIDE kategorisinde 'Bottleneck' menüsü var", (await txt()).includes("Bottleneck"));
   await page.locator('text="Bottleneck"').first().click();
   await page.waitForSelector("[data-darbogaz-summary]", { timeout: 25000 });
   await page.waitForTimeout(1500);
@@ -47,43 +45,26 @@ try {
   const tileVal = (label) => num(sum[sum.indexOf(label) - 1]);
   check("Özet: analiz edilen cihaz > 1000 ve bottleneck cihaz > 0", tileVal("Analiz edilen cihaz") > 1000 && tileVal("Bottleneck cihaz") > 0, `${tileVal("Analiz edilen cihaz")} / ${tileVal("Bottleneck cihaz")}`);
   check("Varsayılan liste yalnızca bottleneck cihazlar (sayı özetle aynı)", (await count()) === tileVal("Bottleneck cihaz"), `${await count()}`);
-  const heads = await page.locator("[data-darbogaz-table] th").allInnerTexts();
-  check("Tablo sütunları: CPU, RAM, Disk, BSOD, Pil, Cihaz yaşı, Skor", ["CPU", "RAM", "DISK", "BSOD", "PIL", "CIHAZ YAŞI", "SKOR"].every((h) => heads.map((x) => x.toUpperCase().replace("İ", "I")).includes(h.replace("İ", "I"))), heads.join(","));
+  const heads = (await page.locator("[data-darbogaz-table] th").allInnerTexts()).map((x) => x.toUpperCase().replace("İ", "I"));
+  check("Tablo sütunları: Disk, BSOD, Pil, Cihaz yaşı, Skor", ["DISK", "BSOD", "PIL", "CIHAZ YAŞI", "SKOR"].every((h) => heads.includes(h.replace("İ", "I"))), heads.join(","));
+  check("CPU ve RAM sütunları kaldırıldı", !heads.includes("CPU") && !heads.includes("RAM"));
+  check("Neden kartları yalnız 4 sinyal (Disk, BSOD, Pil, Cihaz yaşı); CPU/RAM kartı yok", (await page.locator("[data-darbogaz-cause]").count()) === 4 && (await page.locator('[data-darbogaz-cause="cpu"], [data-darbogaz-cause="ram"]').count()) === 0);
+  check("CPU/RAM dosyası yükleme düğmesi kaldırıldı", (await page.locator("[data-darbogaz-upload]").count()) === 0 && !/CPU\/RAM/i.test(await txt()));
 
-  console.log("\nNeden filtresi (CPU/RAM ham dosyayla karşılaştırma)");
+  console.log("\nNeden filtresi (ham dosyalarla karşılaştırma)");
   await page.locator("text=Bottleneck olmayanları da göster").click();
-  await page.locator('[data-darbogaz-cause="cpu"]').click();
+  await page.locator('[data-darbogaz-cause="disk"]').click();
   await page.waitForTimeout(500);
-  check("CPU filtresi + tümü: ortalama CPU ≥ %70 cihaz sayısı ham dosyayla aynı", (await count()) === cpuHigh, `${await count()} ↔ ${cpuHigh}`);
-  await page.locator("text=Bottleneck olmayanları da göster").click();
+  check("Disk filtresi + tümü: en kötü birimi kritik/uyarı olan cihaz sayısı ham dosyayla aynı", (await count()) === diskBad, `${await count()} ↔ ${diskBad}`);
+  await page.locator('[data-darbogaz-cause="disk"]').click();
+  await page.locator('[data-darbogaz-cause="bsod"]').click();
+  await page.waitForTimeout(500);
+  check("BSOD filtresi + tümü: BSOD kaydı olan cihaz sayısı ham dosyayla aynı", (await count()) === bsodHosts, `${await count()} ↔ ${bsodHosts}`);
+  await page.locator('[data-darbogaz-cause="bsod"]').click();
+  await page.locator("text=Bottleneck olmayanları da göster").click(); // yalnız bottleneck listesine dön
   await page.locator("text=Sadece kritik").click();
   await page.waitForTimeout(400);
-  const cpuCritUi = await count();
-  check("CPU filtresi + sadece kritik: ≥ ham kritik CPU sayısı (diğer kritik sinyaller eklenebilir)", cpuCritUi >= cpuCrit * 0 && cpuCritUi > 0, `${cpuCritUi} (ham CPU kritik ${cpuCrit})`);
-  await page.locator("text=Sadece kritik").click();
-  await page.locator('[data-darbogaz-cause="cpu"]').click();
-  await page.locator('[data-darbogaz-cause="ram"]').click();
-  await page.locator("text=Bottleneck olmayanları da göster").click();
-  await page.waitForTimeout(400);
-  check("RAM filtresi + tümü: ortalama RAM ≥ %80 cihaz sayısı ham dosyayla aynı", (await count()) === ramHigh, `${await count()} ↔ ${ramHigh}`);
-
-  console.log("\nLakeside CPU/RAM dosyası yükleme (kalıcı)");
-  const dir = mkdtempSync(join(tmpdir(), "dbz-"));
-  const up = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(up, XLSX.utils.aoa_to_sheet([
-    ["Machine Name", "Avg CPU %", "Avg RAM %"],
-    ["UPTEST-A.corp", 95, 50], ["UPTEST-B.corp", 72, 30], ["UPTEST-C.corp", 10, 20],
-  ]), "S");
-  const fp = join(dir, "kaynak.xlsx");
-  writeFileSync(fp, XLSX.write(up, { type: "buffer", bookType: "xlsx" }));
-  await page.locator("[data-darbogaz-upload] input[type=file]").setInputFiles(fp);
-  await page.waitForTimeout(2000);
-  await page.locator('[data-darbogaz-cause="ram"]').click(); // RAM filtresini kapat
-  await page.locator('[data-darbogaz-cause="cpu"]').click();
-  await page.waitForTimeout(500);
-  check("Yükleme sonrası CPU ≥ %70 cihaz sayısı yüklenen dosyayla aynı (2)", (await count()) === 2, `${await count()}`);
-  const api = await fetch(`${be.base}/api/reports/lakeside-resource`, { headers: { Authorization: `Bearer ${be.token}` } }).then((r) => r.json());
-  check("Dosya backend'e kalıcı kaydedildi (en güncel dosya okunuyor)", api.ok && api.rows.length === 3, `${api.rows?.length}`);
+  check("'Sadece kritik' filtresi çalışıyor (liste daralıyor)", (await count()) > 0 && (await count()) <= tileVal("Bottleneck cihaz"), `${await count()}`);
   check("Konsol hatası yok", problems.length === 0, problems.join(" | "));
 } finally {
   await browser.close();

@@ -121,8 +121,9 @@ export default function TableView({
                       onClick={r.userLabel !== "—" && r.userLabel !== "Tespit Edilemedi" ? (e) => { e.stopPropagation(); togglePersonExpand(rk, r.userLabel); } : undefined}
                       title={r.userLabel !== "—" && r.userLabel !== "Tespit Edilemedi" ? `${r.userLabel}'e ait kayıtları göster/gizle` : undefined}
                     >
-                      {r.userLabel}
+                      {r.userFullName || r.userLabel}
                     </span>
+                    {r.userFullTitle && <div style={styles.cellSub} title={r.userFullName}>{r.userFullTitle}</div>}
                   </td>
                   <td style={tdS}>
                     {r.assignmentType ? (

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { backendClient } from "../services/backendClient";
+import TrendChart from "./TrendChart";
+import TrendDetailModal from "./TrendDetailModal";
+import { FINDING_META } from "../services/dashboardNav";
 import { combinedPeriodSummary } from "../services/dashboardOverviewService";
 
 // DEMO — Yönetici için tek sayfalık özet (Power BI rapor görünümü), 2. sürüm: tek büyük gösterge (sağlık skoru) + destek metrikleri,
@@ -73,7 +76,7 @@ function HeroGauge({ value }) {
   );
 }
 
-function Ring({ segments, size = 150, thick = 20, center, sub }) {
+function Ring({ segments, size = 150, thick = 20, center, sub, onSegmentClick }) {
   const total = segments.reduce((s, x) => s + x.v, 0);
   const r = (size - thick) / 2, C = 2 * Math.PI * r;
   let off = 0;
@@ -83,7 +86,7 @@ function Ring({ segments, size = 150, thick = 20, center, sub }) {
       {total > 0 &&
         segments.filter((x) => x.v > 0).map((x, i) => {
           const d = (x.v / total) * C;
-          const el = <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={x.c} strokeWidth={thick} strokeDasharray={`${Math.max(0, d - 1.5)} ${C - Math.max(0, d - 1.5)}`} strokeDashoffset={-off} transform={`rotate(-90 ${size / 2} ${size / 2})`}><title>{`${x.k}: ${fmt(x.v)}`}</title></circle>;
+          const el = <circle key={i} data-ring-seg={x.id} role={onSegmentClick ? "button" : undefined} tabIndex={onSegmentClick ? 0 : undefined} aria-label={onSegmentClick ? `${x.k}: ${fmt(x.v)} kayıt, raporu aç` : undefined} onClick={onSegmentClick ? () => onSegmentClick(x.id) : undefined} onKeyDown={onSegmentClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSegmentClick(x.id); } } : undefined} style={onSegmentClick ? { cursor: "pointer" } : undefined} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={x.c} strokeWidth={thick} strokeDasharray={`${Math.max(0, d - 1.5)} ${C - Math.max(0, d - 1.5)}`} strokeDashoffset={-off} transform={`rotate(-90 ${size / 2} ${size / 2})`}><title>{`${x.k}: ${fmt(x.v)}`}</title></circle>;
           off += d;
           return el;
         })}
@@ -93,7 +96,7 @@ function Ring({ segments, size = 150, thick = 20, center, sub }) {
   );
 }
 
-export default function ExecutiveSummary({ data, snapshots, company, summaryToggle, onBack }) {
+export default function ExecutiveSummary({ data, snapshots, company, summaryToggle, onBack, onNavigate, styles, pal }) {
   const [recs, setRecs] = useState([]);
   // Açık bulgu trendi: lejanttan bir kategoriye tıklayınca grafik yalnız o kategoriyi gösterir (tekrar tıklayınca hepsi)
   const [focus, setFocus] = useState(null);
@@ -102,7 +105,9 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
   }, []);
 
   const { cards, totals } = data;
-  const trend = useMemo(() => combinedPeriodSummary(snapshots, "month", { company }), [snapshots, company]);
+  const [trendMode, setTrendMode] = useState("month"); // day | week | month | raw
+  const [detailIdx, setDetailIdx] = useState(null);
+  const trend = useMemo(() => combinedPeriodSummary(snapshots, trendMode, { company }), [snapshots, company, trendMode]);
   const series = trend.series;
   const last = series[series.length - 1], prev = series[series.length - 2];
 
@@ -135,48 +140,10 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
 
   const generated = new Date().toLocaleString("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-  // ---- Yığılı alan trendi (kategori bazlı, dönem dönem) ----
-  const stackChart = (() => {
-    const W = 640, H = 230, L = 44, Rg = 30, T = 20, B = 26;
-    if (series.length < 2) return <div style={{ fontSize: 12.5, color: P.mute, padding: "30px 0" }}>Trend için en az 2 dönem verisi gerekli ({series.length}/2). Her veri yüklemesinde otomatik dönem kaydı oluşur.</div>;
-    const keys = focus && catKeys.includes(focus) ? [focus] : catKeys;
-    const totals2 = series.map((s) => keys.reduce((a, k) => a + (s.perReportOpen[k === "kullanilmayan" ? "kullanilmayan" : k] || 0), 0));
-    const ymax = niceMax(Math.max(...totals2) * 1.05);
-    const x = (i) => L + (i * (W - L - Rg)) / (series.length - 1);
-    const y = (v) => T + (1 - v / ymax) * (H - T - B);
-    // alttan üste yığın
-    const stacks = keys.map((k, ki) => {
-      const lower = series.map((s) => keys.slice(0, ki).reduce((a, kk) => a + (s.perReportOpen[kk] || 0), 0));
-      const upper = series.map((s, i) => lower[i] + (s.perReportOpen[k] || 0));
-      return { k, lower, upper };
-    });
-    const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * ymax);
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
-        {ticks.map((t) => (
-          <g key={t}>
-            <line x1={L} x2={W - Rg} y1={y(t)} y2={y(t)} stroke={P.grid} strokeWidth="1" />
-            <text x={L - 6} y={y(t) + 3.5} textAnchor="end" style={{ fontSize: 10, fill: P.mute }}>{fmt(Math.round(t))}</text>
-          </g>
-        ))}
-        {stacks.map((s) => {
-          const top = s.upper.map((v, i) => `${x(i)},${y(v)}`);
-          const bot = s.lower.map((v, i) => `${x(i)},${y(v)}`).reverse();
-          return <polygon key={s.k} points={[...top, ...bot].join(" ")} fill={`${CAT[s.k].c}CC`} stroke={CAT[s.k].c} strokeWidth="1" />;
-        })}
-        {series.map((s, i) => (
-          <g key={s.label}>
-            <rect x={x(i) - 14} y={T} width="28" height={H - T - B} fill="transparent">
-              <title>{`${s.label}\n${keys.map((k) => `${CAT[k].k}: ${fmt(s.perReportOpen[k] || 0)}`).join("\n")}\nToplam: ${fmt(totals2[i])}`}</title>
-            </rect>
-            <circle cx={x(i)} cy={y(totals2[i])} r="3.5" fill="#fff" stroke={P.ink} strokeWidth="1.8" />
-            <text x={x(i)} y={y(totals2[i]) - 8} textAnchor="middle" style={{ fontSize: 10.5, fontWeight: 700, fill: P.ink }}>{fmt(totals2[i])}</text>
-            <text x={x(i)} y={H - 8} textAnchor="middle" style={{ fontSize: 10, fill: P.mute }}>{s.label}</text>
-          </g>
-        ))}
-      </svg>
-    );
-  })();
+  // Trend grafiği ortak TrendChart bileşeniyle çizilir (dönem seçici, hover, tıklayınca ayrıntı); odak seçimi legend ile yapılır.
+  const trendKeys = focus && catKeys.includes(focus) ? [focus] : catKeys;
+  const TREND_META = Object.fromEntries(Object.entries(CAT).map(([k, v]) => [k, { label: v.k, color: v.c }]));
+  const openReport = (id) => { const m = FINDING_META[id]; if (m && onNavigate) onNavigate(m.to, m.opts); };
 
   // ---- Şirket karşılaştırması: kategori başına gruplu sütunlar ----
   const companyChart = (() => {
@@ -292,14 +259,21 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
               <b style={{ color: CAT[k].c }}>■</b> {CAT[k].k}
             </span>
           ))}</span>}>
-          {stackChart}
+          <TrendChart series={series} keys={trendKeys} meta={TREND_META} stacked mode={trendMode} onModeChange={(m) => { setTrendMode(m); setDetailIdx(null); }} onPointClick={setDetailIdx} accent={P.blue}
+            tone={{ ink: P.ink, sub: P.sub, mute: P.mute, grid: P.grid, tipBg: P.ink, tipFg: "#fff" }} />
+          {detailIdx != null && series[detailIdx] && (
+            <TrendDetailModal item={series[detailIdx]} prev={series[detailIdx - 1]} keys={catKeys} meta={TREND_META} company={company} onClose={() => setDetailIdx(null)}
+              onOpenReport={(id) => { setDetailIdx(null); openReport(id); }} styles={styles} pal={pal} />
+          )}
         </Card>
-        <Card title="Açık bulgu dağılımı" sub="Güncel durum" span={4}>
+        <Card title="Açık bulgu dağılımı" sub={onNavigate ? "Güncel durum — bir kategoriye tıklayınca raporu açılır" : "Güncel durum"} span={4}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-            <Ring segments={catKeys.map((k) => ({ k: CAT[k].k, v: catVal[k], c: CAT[k].c }))} center={fmt(openTotal)} sub="BULGU" size={160} />
+            <Ring segments={catKeys.map((k) => ({ id: k, k: CAT[k].k, v: catVal[k], c: CAT[k].c }))} center={fmt(openTotal)} sub="BULGU" size={160} onSegmentClick={onNavigate ? openReport : undefined} />
             <div style={{ fontSize: 12.5, display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
               {catKeys.map((k) => (
-                <div key={k} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div key={k} data-dist-row={k} role={onNavigate ? "button" : undefined} tabIndex={onNavigate ? 0 : undefined} aria-label={`${CAT[k].k}: ${fmt(catVal[k])} kayıt, raporu aç`} title={onNavigate ? "Raporu aç" : undefined}
+                  onClick={onNavigate ? () => openReport(k) : undefined} onKeyDown={onNavigate ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openReport(k); } } : undefined}
+                  style={{ display: "flex", alignItems: "center", gap: 8, cursor: onNavigate ? "pointer" : "default", padding: "4px 6px", borderRadius: 6 }}>
                   <b style={{ color: CAT[k].c }}>■</b><span style={{ flex: 1 }}>{CAT[k].k}</span>
                   <b style={{ fontFamily: "var(--font-mono)" }}>{fmt(catVal[k])}</b><span style={{ color: P.mute, width: 38, textAlign: "right" }}>%{pct(catVal[k], openTotal)}</span>
                 </div>

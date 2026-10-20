@@ -76,9 +76,20 @@ export async function startBackend({ port = 5055 } = {}) {
   };
 }
 
-export async function launchBrowser() {
+// Ana Sayfa varsayılanı artık YENİ görünüm. Eski testler klasik dashboard'u bekler: tercih hiç yazılmamışsa "0" (klasik) yazılır;
+// testler kendi "1"/"0" değerlerini sonra yazarak bunu ezebilir. { freshStorage: true } ile gerçek varsayılan test edilir.
+export async function launchBrowser({ freshStorage = false } = {}) {
   const { chromium } = require("playwright-core");
   const executablePath = EDGE_PATHS.find((p) => existsSync(p));
   if (!executablePath) throw new Error("Edge/Chrome bulunamadı");
-  return chromium.launch({ executablePath, headless: true });
+  const browser = await chromium.launch({ executablePath, headless: true });
+  if (!freshStorage) {
+    const orig = browser.newContext.bind(browser);
+    browser.newContext = async (...args) => {
+      const ctx = await orig(...args);
+      await ctx.addInitScript(() => { try { if (localStorage.getItem("varlikTakip.dashboardDemo") === null) localStorage.setItem("varlikTakip.dashboardDemo", "0"); } catch { /* sessiz geç */ } });
+      return ctx;
+    };
+  }
+  return browser;
 }

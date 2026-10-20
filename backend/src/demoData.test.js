@@ -22,7 +22,6 @@ const th = sheet(find("TH"));
 const disk = sheet(find("DiskAlani"), 0, 5);
 const mon = sheet(find("Attached Monitors Report"), 0, 1);
 const bsod = sheet(find("Weekly_BSOD"), 0, 1);
-const res = sheet(find("Lakeside_Resource"));
 const lok = sheet(find("LokasyonMailListesi"));
 const bat = sheet(path.join(DEMO, "battery-health.xlsx"));
 const bantWb = XLSX.read(fs.readFileSync(path.join(DEMO, "bant-genisligi.csv")));
@@ -35,13 +34,12 @@ test("güncel yapı: SCCM'de Windows sürümü + ajan durumu, TH'de güncelleme 
   ["Design Capacity", "Full Charge Capacity"].forEach((c) => assert.ok(bat.H.includes(c), `Battery: ${c}`));
 });
 
-test("kaynaklar arası tutarlılık: disk / monitör / BSOD / pil / kaynak kullanımı hostname'leri SCCM'de var", () => {
+test("kaynaklar arası tutarlılık: disk / monitör / BSOD / pil hostname'leri SCCM'de var", () => {
   const miss = (rows, col) => rows.filter((r) => !sccmHosts.has(short(r[col]))).length;
   assert.equal(miss(disk.rows, disk.H.includes("Name") ? "Name" : "Device ID"), 0, "disk");
   assert.equal(miss(mon.rows, "Hostname"), 0, "monitör");
   assert.equal(miss(bsod.rows, "Machine Name"), 0, "bsod");
   assert.equal(miss(bat.rows, "System"), 0, "pil");
-  assert.equal(miss(res.rows, "Machine Name"), 0, "kaynak kullanımı");
 });
 
 test("pil kapasitesi sağlık yüzdesiyle tutarlı (tam şarj ≈ tasarım × sağlık)", () => {
@@ -95,9 +93,4 @@ test("Lokasyon/IP raporu için yeterli veri: lokasyon koduna bağlanan cihazlar�
     (ips.some((ip) => pfx.get(n).has(ip.split(".").slice(0, 3).join("."))) ? (ok++) : (bad++));
   });
   assert.ok(ok > 200 && bad > 10, `doğru ${ok}, uyuşmazlık ${bad}`);
-});
-
-test("Bottleneck demo verisi: kaynak kullanımında hem normal hem yüksek (uyarı/kritik) cihaz var", () => {
-  const cpu = res.rows.map((r) => Number(r["Avg CPU %"]));
-  assert.ok(cpu.some((v) => v >= 85) && cpu.some((v) => v < 50));
 });

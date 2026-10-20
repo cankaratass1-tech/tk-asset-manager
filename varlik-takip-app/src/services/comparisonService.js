@@ -63,8 +63,33 @@ export function compareAssignment({ actualUsername, actualSicil, thUsername, thS
   return { verifiable: false };
 }
 
+// ---- Personel rehberi: kullanıcı adı / sicil -> { name, full, title } ----
+const userKey = (v) => { const s = String(v || "").trim().toLowerCase(); const i = s.lastIndexOf("\\"); return i >= 0 ? s.slice(i + 1) : s; }; // "alan\kullanici" -> "kullanici"
+export function buildUserDirectory(thRows = []) {
+  const byUser = new Map(), bySicil = new Map();
+  thRows.forEach((t) => {
+    if (!t.ownerFull && !t.owner) return;
+    const entry = { name: t.owner || "", full: t.ownerFull || t.owner || "" };
+    const u = userKey(t.ownerUsername);
+    if (u && !byUser.has(u)) byUser.set(u, entry);
+    const sc = userKey(t.ownerSicil);
+    if (sc && !bySicil.has(sc)) bySicil.set(sc, entry);
+  });
+  return { byUser, bySicil };
+}
+export function attachUserNames(row, dir) {
+  const label = row.userLabel;
+  if (!label || label === "—" || label === "Tespit Edilemedi") return row;
+  const hit = dir.byUser.get(userKey(label)) || dir.bySicil.get(userKey(row.userSicil));
+  if (!hit) return row;
+  const idx = hit.full.indexOf(" (");
+  return { ...row, userFullName: hit.name || (idx > 0 ? hit.full.slice(0, idx) : hit.full), userFullTitle: idx > 0 ? hit.full.slice(idx + 2).replace(/\)$/, "").trim() : "" };
+}
+
 export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows = [], staleDays = DEFAULT_STALE_DAYS } = {}) {
   const relevantTh = thRows.filter((r) => RELEVANT_TH_TYPES.has(r.deviceType) && RELEVANT_ASSIGNMENT_TYPES.has(r.assignmentType));
+  const userDir = buildUserDirectory(thRows);
+  const fullNameOf = (u) => { const h = userDir.byUser.get(userKey(u)); return h ? h.name : ""; };
 
   // "Mükerrer Çift Zimmet" (madde: kırılım) — aynı kişiye (Owner Username, yoksa Sicil, yoksa
   // isim) User kategorisinde BİRDEN FAZLA NOTEBOOK zimmetli görünmesi — normalde bir kişiye bir
@@ -267,7 +292,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
         duplicateDevices = dupSerials.map((sn) => {
           const t = thBySerialAll.get(norm(sn)) || {};
           const ss = sccmBySerial.get(norm(sn));
-          return { serial: sn, isThis: sn === th.serial, model: (ss && ss.deviceModel) || t.model || "", hostname: ss ? ss.hostname : "", user: ss && ss.userLabel && ss.userLabel !== "Tespit Edilemedi" ? ss.userLabel : "", lastLogonTime: ss ? ss.lastLogonTime : "", assetNote: t.asset || "" };
+          return { serial: sn, isThis: sn === th.serial, model: (ss && ss.deviceModel) || t.model || "", hostname: ss ? ss.hostname : "", user: ss && ss.userLabel && ss.userLabel !== "Tespit Edilemedi" ? ss.userLabel : "", userName: ss && ss.userLabel ? fullNameOf(ss.userLabel) : "", lastLogonTime: ss ? ss.lastLogonTime : "", assetNote: t.asset || "" };
         });
         userDetail = `${th.owner} kişisine birden fazla notebook zimmetli görünüyor: ${th.serial} (bu kayıt) + ${others.join(", ")} — mükerrer/çift zimmet olabilir, tekilleştirme gerekir.`;
       }
@@ -413,5 +438,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
     })
     .filter(Boolean);
 
-  return [...thRowsMapped, ...noThRows, ...warehouseUsedRows];
+  // Kullanan kişinin TAM ADI: SCCM yalnız kullanıcı adı verir ("ahmet.yilmaz", "MHYNET\ahmet.yilmaz"); ad-soyad/takım personel eşleştirmesinden
+  // (TH "Owner Username" → "Sahibi", yoksa sicil) çözülür. Bulunamazsa mevcut davranış: kullanıcı adı olduğu gibi gösterilir.
+  return [...thRowsMapped, ...noThRows, ...warehouseUsedRows].map((r) => attachUserNames(r, userDir));
 }

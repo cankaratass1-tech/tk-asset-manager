@@ -171,6 +171,7 @@ ${body}`);
 
   // ---------- Diğer raporlar: ilk 2 kayda mail ----------
   const OTHERS = ["İnaktif Cihazlar", "Disk Alanı", "Kullanılmayan Cihazlar", "Lokasyon Hostname ve IP Uyuşmazlığı", "BSOD", "Battery Health"];
+  let previewText = "", previewSubject = "";
   for (const name of OTHERS) {
     console.log(`\n${name}`);
     try {
@@ -185,8 +186,21 @@ ${body}`);
           if (!/eşleşiyor/.test(await trs.nth(i).innerText())) { await trs.nth(i).locator("input[type=checkbox]").check(); picked++; }
         }
         check("Lokasyon/IP: listede uyuşmazlık satırı var (mail için)", picked === 2, `${picked} satır`);
+        // Önizleme (ilk seçili uyuşmazlık kaydı) — gönderilen mailin ilkiyle birebir aynı olmalı
+        await page.locator("[data-locip-preview]").click();
+        await page.waitForSelector("[data-mail-preview]");
+        previewText = (await page.locator("[data-mail-preview] div[style*='background: rgb(255, 255, 255)']").last().innerText()).replace(/\s+/g, " ").trim();
+        previewSubject = ((await page.locator("[data-mail-preview]").innerText()).match(/Konu:\s*([^\n]+)/) || [])[1]?.trim() || "";
+        await page.locator("[data-mail-preview] span", { hasText: "✕" }).click();
+        await page.waitForTimeout(300);
       } else await selectRows(2);
       r = await sendAndCollect(() => mailButton().click());
+      if (name.startsWith("Lokasyon") && r.mails[0]) {
+        const sentText = stripHtml(r.mails[0].html).replace(/\s+/g, " ").trim();
+        check("Lokasyon/IP: önizleme konusu ile gönderilen mailin konusu aynı", previewSubject !== "" && r.mails[0].subject === previewSubject, `${previewSubject} ↔ ${r.mails[0].subject}`);
+        check("Lokasyon/IP: önizleme içeriği ile gönderilen mail içeriği aynı", previewText.length > 100 && sentText.replace(/[^\p{L}\p{N}]/gu, "") === previewText.replace(/[^\p{L}\p{N}]/gu, ""), `${previewText.length} ↔ ${sentText.length} karakter`);
+        check("Lokasyon/IP: gönderilen mail Bant mailiyle aynı çerçeveyi kullanıyor (lacivert başlık bandı, çerçeveli gövde)", /#243a5e/.test(r.mails[0].html) && /LOKASYON \/ IP UYUŞMAZLIĞI/.test(r.mails[0].html) && /border:1px solid #d0d7de/.test(r.mails[0].html));
+      }
       check(`${name}: seçili kayıtlara mail gidiyor`, r.mails.length >= 1, r.toast || "mail gelmedi ve bildirim yok");
       if (r.mails.length >= 1) check(`${name}: gönderimden sonra seçim temizlendi`, !(await page.locator("tbody tr input[type=checkbox]").first().isChecked()));
       sane(name, r.mails);

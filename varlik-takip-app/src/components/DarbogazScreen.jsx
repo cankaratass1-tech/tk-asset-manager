@@ -1,19 +1,17 @@
 import { useMemo, useState } from "react";
 import { BOTTLENECK_THRESHOLDS as T, SIGNALS } from "../services/bottleneckService";
 
-// LAKESIDE > DARBOĞAZ — cihaz bazında CPU / RAM / Disk / BSOD / Pil / Cihaz yaşı sinyallerini tek tabloda gösterir.
-// Veri olmayan sinyal "Veri Yok" kalır; CPU/RAM için Lakeside kaynak kullanımı dosyası yüklenmelidir.
+// LAKESIDE > BOTTLENECK — cihaz bazında Disk / BSOD / Pil / Cihaz yaşı sinyallerini tek tabloda gösterir.
+// Veri olmayan sinyal "Veri Yok" kalır.
 const LIMIT = 200;
 const SIGNAL_HELP = {
-  cpu: `Ortalama CPU %: ≥${T.cpu.warn} uyarı, ≥${T.cpu.crit} kritik`,
-  ram: `Ortalama RAM %: ≥${T.ram.warn} uyarı, ≥${T.ram.crit} kritik`,
   disk: "Disk Alanı raporundaki en kötü birim (dashboard eşikleriyle aynı)",
   bsod: `Toplam BSOD: ≥${T.bsod.warn} uyarı, ≥${T.bsod.crit} kritik`,
   battery: `Pil sağlığı: <${T.battery.warn} uyarı, <${T.battery.crit} kritik`,
   age: `Cihaz yaşı (BIOS tarihi): ≥${T.age.warn} yıl uyarı, ≥${T.age.crit} yıl kritik`,
 };
 
-export default function DarbogazScreen({ styles, pal, rows, summary, resourceMeta, onUploadResource, isMaster, loading }) {
+export default function DarbogazScreen({ styles, pal, rows, summary, loading }) {
   const [cause, setCause] = useState("all");
   const [onlyCritical, setOnlyCritical] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -56,12 +54,6 @@ export default function DarbogazScreen({ styles, pal, rows, summary, resourceMet
               Performansı ve dayanıklılığı sınırlayan cihazlar. Cihaz, en az bir <strong>kritik</strong> ya da en az iki <strong>uyarı</strong> sinyali taşıyorsa bottleneck sayılır. Eşikler sinyal başlığının üzerine gelince görünür.
             </p>
           </div>
-          {isMaster && (
-            <label style={{ ...styles.btnGhost, alignSelf: "flex-start", cursor: "pointer" }} data-darbogaz-upload>
-              Lakeside CPU/RAM dosyası yükle
-              <input type="file" accept=".xlsx,.csv" style={{ display: "none" }} onChange={onUploadResource} />
-            </label>
-          )}
         </div>
         {rows.length === 0 ? (
           <p style={{ ...styles.pageSub, marginTop: 14 }}>{loading ? "Kaynak veriler yükleniyor…" : "Veri bekleniyor — SCCM / Disk / BSOD / Battery dosyaları yüklenmedi."}</p>
@@ -76,13 +68,8 @@ export default function DarbogazScreen({ styles, pal, rows, summary, resourceMet
             {missing.length > 0 && (
               <p style={{ margin: "12px 0 0", fontSize: 13, color: pal.warnFg }} data-darbogaz-missing>
                 Veri bulunamayan sinyaller: <strong>{missing.join(", ")}</strong>.
-                {!summary.available.cpu || !summary.available.ram
-                  ? " CPU/RAM için Lakeside kaynak kullanımı dosyası (Machine Name, Avg CPU %, Avg RAM %) yüklenmedi; yüklenince bu sütunlar otomatik dolar."
-                  : ""}
-                {resourceMeta ? "" : ""}
               </p>
             )}
-            {resourceMeta && <p style={{ margin: "6px 0 0", fontSize: 12, color: pal.inkSoft }}>CPU/RAM kaynağı: {resourceMeta.fileName}</p>}
           </>
         )}
       </div>

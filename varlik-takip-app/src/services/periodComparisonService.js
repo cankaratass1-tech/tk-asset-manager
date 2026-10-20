@@ -95,7 +95,7 @@ export function locationSolutionBreakdown(prev, curr, { field = "location", filt
     .sort((a, b) => a.cozumOrani - b.cozumOrani || b.toplamTespit - a.toplamTespit);
 }
 
-// Snapshot listesini dönemlere (aylık/haftalık) gruplar — her dönemin SON snapshot'ını temsilci alır.
+// Snapshot listesini dönemlere (günlük/haftalık/aylık) gruplar — her dönemin SON snapshot'ını temsilci alır.
 // Az veri olduğunda (ör. günde birkaç yükleme) aylık kırılım tek noktaya düşebilir; o yüzden
 // varsayılan olarak "her snapshot bir dönem" (raw) da desteklenir.
 export function groupSnapshotsByPeriod(snapshots, mode = "month") {
@@ -107,7 +107,9 @@ export function groupSnapshotsByPeriod(snapshots, mode = "month") {
     const d = new Date(s.capturedAt);
     if (Number.isNaN(d.getTime())) return;
     let label;
-    if (mode === "week") {
+    if (mode === "day") {
+      label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    } else if (mode === "week") {
       const onejan = new Date(d.getFullYear(), 0, 1);
       const week = Math.ceil(((d - onejan) / 86400000 + onejan.getDay() + 1) / 7);
       label = `${d.getFullYear()} H${String(week).padStart(2, "0")}`;

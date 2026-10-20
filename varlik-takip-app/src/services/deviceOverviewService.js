@@ -100,6 +100,7 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
               { label: "Windows sürümü", value: val(sccm?.windowsLabel), state: sccm?.windowsLabel ? OK : NONE, note: sccm?.windowsLabel ? "" : "SCCM envanterinde işletim sistemi sütunu yok/boş" },
               { label: "Build", value: val(sccm?.osBuild), state: NONE },
               { label: "Destek durumu", value: val(sccm?.windowsSupportLabel), state, note: sccm?.windowsDetail || "" },
+              { label: "Destek bitiş tarihi", value: val(sccm?.windowsEnd, "Tabloda yok"), state: NONE, note: "Microsoft yaşam döngüsü tablosundan (sürüm + sürüm türüne göre), cihazın kendi tarihinden değil" },
             ];
           })(),
         ],
@@ -142,7 +143,6 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
               { label: "Batarya sağlığı", value: `%${h}`, state, badgeLabel: bat.durum, note: "Yeni pile göre kalan kapasite. ≥%80 iyi · %60-80 izlenmeli · <%60 değişmeli" },
               ...(bat.cycleCount != null ? [{ label: "Şarj döngüsü", value: `${bat.cycleCount}`, state: NONE, note: "Tamamlanan şarj/deşarj sayısı (yüksekse pil yıpranır)" }] : []),
               ...(cap ? [{ label: "Kapasite", value: cap, state: NONE, note: "Mevcut tam şarj kapasitesi / tasarım kapasitesi" }] : []),
-              ...(bat.batteryStatus ? [{ label: "Pil durumu", value: bat.batteryStatus, state: NONE }] : []),
             ];
           })(),
         ],

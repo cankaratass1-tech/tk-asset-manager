@@ -126,21 +126,6 @@ router.get("/bsod", (req, res) => {
   }
 });
 
-// LAKESIDE kaynak kullanımı (CPU / RAM) — Bottleneck raporu. Gerçek Lakeside export'unun sütun adları doğrulanmadı;
-// frontend (resourceFileService.js) esnek eşleme yapar. "Lakeside_Resource_yyyyMMddHHmmss.xlsx" (başlık 1. satırda).
-router.get("/lakeside-resource", (req, res) => {
-  const cfg = getFileSourceConfig();
-  if (!cfg.folderPath) {
-    return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
-  }
-  try {
-    const { fileName, rows, modifiedAt } = loadLatestReport(cfg.folderPath, "Lakeside_Resource", { sheetIndex: 0 });
-    res.json({ ok: true, fileName, modifiedAt, rows });
-  } catch (err) {
-    res.status(502).json({ ok: false, message: err.message });
-  }
-});
-
 // Monitor Raporu: aynı klasördeki "Attached Monitors Report*.xlsx" dosyalarının en güncelini
 // okur. Başlıklar 2. satırda (headerRow: 1) — üstte tek bir rapor başlığı satırı var.
 router.get("/monitor-raporu", (req, res) => {

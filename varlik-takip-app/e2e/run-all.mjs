@@ -10,6 +10,8 @@ const SUITES = [
   ["Tüm ekran taraması", "node", ["e2e/sweep.mjs", "--skip-build"]],
   ["Veri değişimi → dashboard/rapor", "node", ["e2e/changecheck.mjs", "--skip-build"]],
   ["Senaryolar (zimmet devri, hostname, pil, disk…)", "node", ["e2e/scenarios.mjs", "--skip-build"]],
+  ["Ana Sayfa etkileşimleri (varsayılan görünüm, dağılım, trend)", "node", ["e2e/interactcheck.mjs", "--skip-build"]],
+  ["Özellikler (cihaz kartı, tam ad, Atıl filtreleri, mail önizleme)", "node", ["e2e/featurecheck.mjs", "--skip-build"]],
   ["Duman testi", "node", ["e2e/smoke.mjs", "--skip-build"]],
   ["Mail", "node", ["e2e/mailtest.mjs", "--skip-build"]],
   ["Dashboard doğruluğu", "node", ["e2e/dashcheck.mjs", "--skip-build"]],

@@ -70,22 +70,6 @@ const SCHEMAS = {
     ],
     recommended: [["BSOD Count", "BSODCount", "Count", "Adet"], ["Crash Date", "CrashDate", "Date", "Tarih"]],
   },
-  resource: {
-    label: "Kaynak Kullanımı CPU/RAM (LakeSide)",
-    prefix: "Lakeside_Resource",
-    sheetIndex: 0,
-    headerRow: 0,
-    // Alternatifler frontend/src/services/resourceFileService.js ile birebir aynıdır (gerçek export adı doğrulanmadı)
-    required: [["Machine Name", "MachineName", "Hostname", "Computer Name", "System", "Cihaz"]],
-    requiredAny: {
-      label: "CPU ya da RAM kullanım sütunu (Avg CPU % / Avg RAM %)",
-      options: [
-        [["Avg CPU %", "CPU Avg %", "Average CPU %", "CPU Usage %", "CPU %", "CPU"]],
-        [["Avg RAM %", "RAM Avg %", "Average RAM %", "Memory Usage %", "RAM %", "Memory %", "RAM"]],
-      ],
-    },
-    recommended: [["Peak CPU %", "CPU Peak %", "Max CPU %"], ["Peak RAM %", "RAM Peak %", "Max RAM %"], ["Total RAM (GB)", "RAM GB", "Installed RAM (GB)"], ["Date", "Tarih", "Week"]],
-  },
   // Battery Health ve Bant Genişliği dosyaları sabit bir ad desenine uymaz; Ayarlar > Veri Input'tan ayrı yükleme
   // yollarıyla (routes/batteryhealthupload.js, bantgenisligiupload.js) gelir. fromUpload: reports.js'te okunmaz.
   // Alternatifler frontend/src/services/batteryFileService.js ve bantGenisligiService.js ile birebir aynıdır.

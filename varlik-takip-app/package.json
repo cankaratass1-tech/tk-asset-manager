@@ -25,6 +25,8 @@
     "test:change": "node e2e/changecheck.mjs",
     "test:sweep": "node e2e/sweep.mjs",
     "test:scenarios": "node e2e/scenarios.mjs",
+    "test:interact": "node e2e/interactcheck.mjs",
+    "test:feature": "node e2e/featurecheck.mjs",
     "test:all": "node e2e/run-all.mjs"
   },
   "build": {

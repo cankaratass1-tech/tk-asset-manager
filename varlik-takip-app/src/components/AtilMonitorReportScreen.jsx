@@ -1,4 +1,5 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import MultiSelectFilter from "./MultiSelectFilter";
 import * as XLSX from "xlsx";
 import Pagination from "./Pagination";
 import { computeAtilMonitorRows, buildOtherUserMailPlan, REASON_ACTIVE, REASON_DEPOT_USED, REASON_NOT_ATTACHED, REASON_USED_BY_OTHER } from "../services/atilMonitorService";
@@ -60,13 +61,24 @@ const STAGE_EXPORT_NAMES = {
 export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRows, thMeta, monitorMeta, loading, showToast, recordMailHistory, deptLabel, initialStage = "atil" }) {
   const [confirmMailOpen, setConfirmMailOpen] = useState(false);
   const [mailBusy, setMailBusy] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(""); // uygulanan arama (yazdıkça 250 ms sonra güncellenir)
+  const [searchInput, setSearchInput] = useState("");
+  const [sort, setSort] = useState({ col: -1, dir: 1 }); // col: HEADERS indeksi
+  const [advOpen, setAdvOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [stage, setStage] = useState(initialStage);
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
   const [expandedOwner, setExpandedOwner] = useState(null); // { rowKey, ownerKey, userKey, person }
   const [detailRow, setDetailRow] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all"); // all | User | OBS | Warehouse | other
+  // Ek filtreler (yalnız veri modelinde karşılığı olan alanlar: şirket, lokasyon, marka, model, kullanım durumu). Hepsi birlikte uygulanır.
+  const [facets, setFacets] = useState({ company: [], location: [], brand: [], model: [] });
+  const [usage, setUsage] = useState("all"); // all | used | unused  (Monitor Raporu'nda kullanan kişi var mı)
+
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setPage(1); }, 250);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const { stages, stats } = useMemo(
     () => computeAtilMonitorRows({ thRows, monitorRows }),
@@ -84,13 +96,37 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
     }),
     [stageList]
   );
+  const FACET_FIELDS = { company: (r) => r.company, location: (r) => (r.location && r.location !== "—" ? r.location : ""), brand: (r) => r.marka, model: (r) => r.model };
+  const facetOptions = useMemo(() => {
+    const out = {};
+    Object.entries(FACET_FIELDS).forEach(([k, fn]) => { out[k] = [...new Set(stageList.map(fn).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr")); });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageList]);
+  const isUsed = (r) => r.usedBy && r.usedBy !== "—";
   const filtered = useMemo(() => {
-    const list =
+    let list =
       typeFilter === "all" ? stageList : typeFilter === "other" ? stageList.filter((r) => !isMainType(r.assignmentType)) : stageList.filter((r) => r.assignmentType === typeFilter);
+    Object.entries(FACET_FIELDS).forEach(([k, fn]) => { if (facets[k].length) list = list.filter((r) => facets[k].includes(fn(r))); });
+    if (usage === "used") list = list.filter(isUsed);
+    else if (usage === "unused") list = list.filter((r) => !isUsed(r));
     const q = norm(search);
-    if (!q) return list;
-    return list.filter((r) => toCells(r).some((v) => norm(v).includes(q)));
-  }, [stageList, typeFilter, search]);
+    if (q) list = list.filter((r) => toCells(r).some((v) => norm(v).includes(q)));
+    if (sort.col >= 0) list = [...list].sort((a, b) => sort.dir * String(toCells(a)[sort.col] ?? "").localeCompare(String(toCells(b)[sort.col] ?? ""), "tr", { numeric: true }));
+    return list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageList, typeFilter, search, facets, usage, sort]);
+  const toggleSort = (i) => { setSort((p) => (p.col === i ? (p.dir === 1 ? { col: i, dir: -1 } : { col: -1, dir: 1 }) : { col: i, dir: 1 })); setPage(1); };
+  const setFacet = (k, vals) => { setFacets((p) => ({ ...p, [k]: vals })); setPage(1); };
+  const FACET_LABEL = { company: "Şirket", location: "Lokasyon", brand: "Marka", model: "Model" };
+  const activeChips = [
+    ...Object.entries(facets).flatMap(([k, vals]) => vals.map((v) => ({ key: `${k}:${v}`, text: `${FACET_LABEL[k]}: ${v}`, clear: () => setFacet(k, facets[k].filter((x) => x !== v)) }))),
+    ...(usage !== "all" ? [{ key: "usage", text: usage === "used" ? "Kullanılıyor" : "Kullanılmıyor", clear: () => { setUsage("all"); setPage(1); } }] : []),
+    ...(typeFilter !== "all" ? [{ key: "type", text: `Zimmet türü: ${typeFilter === "other" ? "Diğer" : typeLabel(typeFilter)}`, clear: () => { setTypeFilter("all"); setPage(1); } }] : []),
+    ...(search ? [{ key: "search", text: `Arama: ${search}`, clear: () => { setSearchInput(""); setSearch(""); setPage(1); } }] : []),
+  ];
+  const facetCount = Object.values(facets).reduce((n, v) => n + v.length, 0);
+  const clearExtraFilters = () => { setFacets({ company: [], location: [], brand: [], model: [] }); setUsage("all"); setTypeFilter("all"); setSearchInput(""); setSearch(""); setPage(1); };
 
   const monitorsByOwner = useMemo(() => {
     const m = new Map();
@@ -309,12 +345,12 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
   };
 
   // Aşama rozeti, arama, seçim ve açılmış kişi satırlarını varsayılana (Atıl monitörler) döndürür
-  const isFiltered = stage !== "atil" || typeFilter !== "all" || search !== "" || selectedKeys.size > 0 || expandedOwner !== null;
+  const isFiltered = stage !== "atil" || typeFilter !== "all" || search !== "" || selectedKeys.size > 0 || expandedOwner !== null || activeChips.length > 0;
   const resetFilters = () => {
     setStage("atil");
     setTypeFilter("all");
-    setSearch("");
-    setPage(1);
+    clearExtraFilters();
+    setSort({ col: -1, dir: 1 });
     setSelectedKeys(new Set());
     setExpandedOwner(null);
   };
@@ -326,273 +362,276 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
     const look = ok ? styles.badgeOk : atil ? styles.badgeBad : outside ? { background: pal.warnBg, color: pal.warnFg } : styles.badgeNeutral;
     const dot = ok ? pal.ok : atil ? pal.bad : outside ? pal.warnFg : pal.inkSoft;
     return (
-      <span style={{ ...styles.badge, ...look, flexShrink: 0 }}>
-        <span style={{ ...styles.badgeDot, background: dot }} />
+      <span style={{ ...styles.badge, ...look, flexShrink: 0, whiteSpace: "normal", borderRadius: 14, lineHeight: 1.35 }}>
+        <span style={{ ...styles.badgeDot, background: dot, flexShrink: 0 }} />
         {r.reason}
       </span>
     );
   };
 
+  const STAT_LABEL = {
+    atil: "atıl (kullanılmıyor)", outside: "bilgi dışı kullanılan", depotUsed: "depoda ama kullanılan",
+    active: "aktif (sorunsuz)", inScope: "kapsamdaki (User/OBS)", depotAll: "depoda görünen", excludedScope: "kapsam dışı", all: "toplam monitör",
+  };
+  const statColor = (tone) => (tone === "bad" ? pal.bad : tone === "warn" ? pal.warnFg : pal.ink);
+  // Tablo sütunları: [başlık, HEADERS/toCells indeksi (sıralama), hizalama]
+  const COLS = [["Monitör", 0], ["Zimmet Türü", 2], ["Sahibi", 3], ["Şu An Kullanan", 4], ["Şirket / Lokasyon", 5], ["Durum", 7]];
+  const thS = (i, n) => ({ ...styles.th, fontSize: 13, padding: `12px ${i === n - 1 ? 24 : 14}px 12px 14px`, cursor: "pointer", userSelect: "none" });
+  const tdS = (extra) => ({ ...styles.td, padding: "12px 14px", verticalAlign: "middle", ...extra });
+  const COLSPAN = COLS.length + 1;
+
   return (
     <>
       <div style={{ ...styles.panel, padding: "20px 24px" }}>
         <p style={styles.pageTitle}>Atıl Monitörler</p>
-        <p style={{ ...styles.pageSub, margin: "0 0 12px" }}>
-          TuruncuHat'ta User/OBS olarak zimmetli monitörlerin gerçek durumu (Warehouse monitörleri kapsam dışı). İki şeyi bulur:
-          <b> atıl</b> monitörler (Monitor Raporu'nda hiç görünmüyor, yani kullanılmıyor) ve <b>bilgi dışı kullanılan</b> monitörler
-          (zimmetli kişi dışında biri kullanıyor; OBS monitörlerini herkes kullanabildiği için OBS bu kontrolün dışında).
-          Ayrıca TuruncuHat'ta <b>Zimmet Depoda</b> görünüp Monitor Raporu'nda kullanıldığı görülen monitörler de "Depoda görünen ama kullanılan" grubunda listelenir (depoda duran, kullanılmayanlar listelenmez).
-          Rozetlere tıklayarak her gruptaki monitörleri, bir kişinin adına (sahibi ya da şu an kullanan) tıklayarak o kişiyle ilgili tüm monitörleri görebilirsiniz.
-        </p>
-        <p style={{ fontSize: 12, color: pal.inkSoft, margin: "0 0 12px" }}>
-          {thMeta ? `TuruncuHat: ${thMeta.fileName}` : "TuruncuHat: yüklenmedi"} · {monitorMeta ? `Monitor Raporu: ${monitorMeta.fileName}` : "Monitor Raporu: yüklenmedi"}
+        <p style={styles.pageSub}>
+          TuruncuHat'ta User/OBS olarak zimmetli monitörlerin gerçek kullanım durumu —{" "}
+          {thMeta ? thMeta.fileName : "TuruncuHat yüklenmedi"} × {monitorMeta ? monitorMeta.fileName : "Monitor Raporu yüklenmedi"}
           {loading ? " · yükleniyor…" : ""}
         </p>
+        <details data-atil-help style={{ marginTop: 8, fontSize: 13, color: pal.inkSoft }}>
+          <summary style={{ cursor: "pointer", color: pal.accent, fontWeight: 600, width: "fit-content" }}>Bu rapor ne yapar, nasıl okunur?</summary>
+          <p style={{ margin: "8px 0 0", lineHeight: 1.6, maxWidth: 980 }}>
+            İki şeyi bulur: <b>atıl</b> monitörler (Monitor Raporu'nda hiç görünmüyor, yani kullanılmıyor) ve <b>bilgi dışı kullanılan</b> monitörler
+            (zimmetli kişi dışında biri kullanıyor; OBS monitörlerini herkes kullanabildiği için OBS bu kontrolün dışında).
+            TuruncuHat'ta <b>Zimmet Depoda</b> görünüp kullanıldığı görülen monitörler "Depoda görünen ama kullanılan" grubundadır (depoda duran, kullanılmayanlar listelenmez).
+            Üstteki sayılara tıklayarak her gruptaki monitörleri, bir kişinin adına (sahibi ya da şu an kullanan) tıklayarak o kişiyle ilgili tüm monitörleri görebilirsiniz.
+          </p>
+        </details>
 
         {missingData && !loading ? (
-          <p style={{ fontSize: 13, color: pal.inkSoft }}>
+          <p style={{ fontSize: 14, color: pal.inkSoft, marginTop: 16 }}>
             Rapor için TuruncuHat ve Monitor Raporu dosyaları gerekir. Ayarlar &gt; Veri Input &gt; Dosya Kaynağı klasörünü kontrol edin.
           </p>
         ) : (
           <>
-            {funnelGroups.map((group) => (
-              <div key={group.title} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{group.title}</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {group.items.map(([id, label, n, tone]) => {
-                    const selected = id === stage;
-                    const look = tone === "bad" ? styles.badgeBad : tone === "warn" ? { background: pal.warnBg, color: pal.warnFg } : {};
-                    return (
-                      <span
-                        key={id}
-                        onClick={() => selectStage(id)}
-                        title={`${GROUP_INFO[id].what} — Tıklayınca bu gruptaki monitörleri listeler.`}
-                        style={{
-                          ...styles.badge,
-                          ...look,
-                          cursor: "pointer",
-                          outline: selected ? `2px solid ${pal.accent || pal.ink}` : "none",
-                          outlineOffset: 1,
-                          fontWeight: selected ? 700 : undefined,
-                        }}
-                      >
-                        {label}: {n}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            {stageInfo && (
-              <div style={{ background: pal.fieldBg, borderRadius: 10, padding: "10px 14px", margin: "0 0 14px", fontSize: 13, lineHeight: 1.5 }}>
-                <div style={{ fontWeight: 700, marginBottom: 2 }}>{stageLabel}</div>
-                <div style={{ color: pal.inkSoft }}>{stageInfo.what}</div>
-                <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: 13 }}>{stageInfo.calc}</div>
-              </div>
-            )}
-
-            <div style={styles.toolbar} className="no-print">
-              <div style={styles.toolbarFiltersRow}>
-                <div style={styles.segmented} title="Zimmet türüne göre filtrele. User = kişi zimmeti, OBS = müdürlük zimmeti, Depo = TuruncuHat'ta depoda (Warehouse), Diğer = Saha (Site), Tedarikçi (Supplier) ya da tür boş">
-                  {[
-                    ["all", "Tümü"],
-                    ["User", "User"],
-                    ["OBS", "OBS"],
-                    ["Warehouse", "Depo"],
-                    ["other", "Diğer"],
-                  ].map(([id, label]) => (
+            <div data-atil-stats style={{ ...styles.statStrip, flexWrap: "wrap", rowGap: 16, alignItems: "stretch" }}>
+              {funnelGroups.map((group, gi) => (
+                <Fragment key={group.title}>
+                  {gi > 0 && <span aria-hidden="true" style={{ width: 1, background: pal.line, margin: "2px 0" }} />}
+                  {group.items.map(([id, , n, tone]) => (
                     <div
                       key={id}
-                      onClick={() => {
-                        setTypeFilter(id);
-                        setPage(1);
-                      }}
-                      style={{ ...styles.seg, ...(typeFilter === id ? styles.segActive : {}) }}
+                      role="button"
+                      tabIndex={0}
+                      data-atil-stage={id}
+                      aria-pressed={id === stage}
+                      onClick={() => selectStage(id)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectStage(id); } }}
+                      title={`${GROUP_INFO[id].what} — Tıklayınca bu gruptaki monitörleri listeler.`}
+                      style={{ ...styles.stat, ...styles.statClickable, ...(id === stage ? styles.statActive : {}) }}
                     >
-                      {label} ({typeCounts[id]})
+                      <span style={{ ...styles.statNum, color: statColor(tone) }}>{n}</span>
+                      <span style={styles.statLabel}>{STAT_LABEL[id]}</span>
                     </div>
                   ))}
-                </div>
-                <div style={styles.searchWrap}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="M21 21l-4.3-4.3" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Seri no, model, sahibi, kullanan veya neden ara..."
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(1);
-                    }}
-                    style={styles.searchInput}
-                  />
-                  {search && (
-                    <span
-                      onClick={() => {
-                        setSearch("");
-                        setPage(1);
-                      }}
-                      title="Aramayı temizle"
-                      style={{ cursor: "pointer", color: pal.inkSoft, fontSize: 14, lineHeight: 1, padding: "0 2px" }}
-                    >
-                      ×
-                    </span>
-                  )}
-                </div>
-                {isFiltered && (
-                  <button type="button" style={styles.btnGhost} onClick={resetFilters} title="Aşama, arama ve seçimi varsayılana döndürür">
-                    Filtreleri Sıfırla
-                  </button>
-                )}
-                {selectedKeys.size > 0 && (
-                  <button type="button" style={styles.btnGhost} onClick={exportSelected} title="Seçilen monitörleri Excel'e aktarır">
-                    Seçilenleri İndir ({selectedKeys.size})
-                  </button>
-                )}
-                <button type="button" style={styles.btnGhost} onClick={exportCurrent} disabled={filtered.length === 0} title="Ekrandaki listeyi (seçili aşama ve arama) Excel'e aktarır">
-                  Excel'e Aktar ({filtered.length})
-                </button>
-                <button type="button" style={styles.btnGhost} onClick={exportAllStages} title="Atıl monitörler ve diğer aşamalar sayfa sayfa tek dosyada">
-                  Tüm Aşamaları Aktar
-                </button>
-                <button
-                  type="button"
-                  style={styles.btnPrimary}
-                  onClick={onMailClick}
-                  disabled={mailBusy || stages.outside.length === 0}
-                  title="Monitörü kullanan (zimmetli olmayan) kişiye zimmet transferi maili gönderir. Seçim yoksa tüm bilgi dışı kullanımlara (onayla)"
-                >
-                  {mailBusy ? "Gönderiliyor…" : `Bilgi Dışı Kullanıma Mail Gönder${selectedKeys.size > 0 ? ` (${selectedKeys.size} seçili)` : ""}`}
-                </button>
+                </Fragment>
+              ))}
+            </div>
+            {stageInfo && (
+              <div style={{ marginTop: 16, paddingLeft: 12, borderLeft: `3px solid ${pal.accent}`, fontSize: 13, lineHeight: 1.55 }}>
+                <b>{stageLabel}</b> <span style={{ color: pal.inkSoft }}>— {stageInfo.what}</span>
+                <div style={{ color: pal.inkSoft, marginTop: 2 }}>{stageInfo.calc}</div>
               </div>
-            </div>
-
-            <div style={{ overflowX: "auto" }}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={{ ...styles.th, width: 32 }}>
-                      <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={styles.checkbox} />
-                    </th>
-                    {HEADERS.map((h) => (
-                      <th key={h} style={{ ...styles.th, whiteSpace: "nowrap" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paged.map((r) => {
-                    const expanded = expandedOwner && expandedOwner.rowKey === r.rowKey;
-                    const hasOwner = r.owner && r.owner !== "—";
-                    return (
-                      <Fragment key={`${stage}|${r.rowKey}`}>
-                        <tr style={selectedKeys.has(r.rowKey) ? styles.rowSelected : undefined}>
-                          <td style={styles.td}>
-                            <input type="checkbox" checked={selectedKeys.has(r.rowKey)} onChange={() => toggleSelect(r.rowKey)} style={styles.checkbox} />
-                          </td>
-                          <td style={styles.td}>
-                            <span style={{ ...styles.serial, ...styles.clickableName }} onClick={() => setDetailRow(r)} title="Monitörün detayını göster">
-                              {r.monitorSerial}
-                            </span>
-                          </td>
-                          <td style={styles.td}>{r.model}</td>
-                          <td style={styles.td}>{typeLabel(r.assignmentType)}</td>
-                          <td style={styles.td}>
-                            <div
-                              style={{ ...styles.cellName, ...(hasOwner ? styles.clickableName : {}) }}
-                              onClick={hasOwner ? () => toggleOwner(r) : undefined}
-                              title={hasOwner ? `${r.owner}'e ait monitörleri göster/gizle` : undefined}
-                            >
-                              {r.owner}
-                            </div>
-                            {ownerTitleOf(r.ownerFull) && <div style={styles.cellSub} title={r.ownerFull}>{ownerTitleOf(r.ownerFull)}</div>}
-                          </td>
-                          <td style={styles.td}>
-                            {r.usedBy === "—"
-                              ? "—"
-                              : r.usedBy.split(", ").map((u, i) => (
-                                  <Fragment key={u}>
-                                    {i > 0 && ", "}
-                                    <span
-                                      style={{
-                                        ...(r.usedByOther ? { ...styles.badge, background: pal.warnBg, color: pal.warnFg } : {}),
-                                        ...styles.clickableName,
-                                      }}
-                                      onClick={() => toggleUser(r, u)}
-                                      title={r.usedByOther ? `Zimmetli kişi dışında biri kullanıyor — ${u}'in monitörlerini göster/gizle` : `${u}'in monitörlerini göster/gizle`}
-                                    >
-                                      {u}
-                                    </span>
-                                  </Fragment>
-                                ))}
-                          </td>
-                          <td style={styles.td}>{r.company}</td>
-                          <td style={styles.td}>{r.location}</td>
-                          <td style={{ ...styles.td, fontSize: 13 }}>{r.reason}</td>
-                        </tr>
-                        {expanded && (
-                          <tr>
-                            <td style={{ ...styles.td, background: pal.fieldBg, padding: 0 }} colSpan={HEADERS.length + 1}>
-                              <div style={{ padding: "12px 20px" }}>
-                                {[
-                                  ["tüm monitörleri (zimmetli)", monitorsByOwner.get(expandedOwner.ownerKey) || [], false],
-                                  ["kullandığı, başkasına ait monitörler", expandedOwner.userKey ? borrowedByUser.get(expandedOwner.userKey) || [] : [], true],
-                                ].map(([title, list, borrowed]) => (
-                                  <div key={title} style={{ marginBottom: 10 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: pal.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                      {expandedOwner.person} — {title} ({list.length})
-                                    </div>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                      {list.length === 0 && <div style={{ fontSize: 13, color: pal.inkSoft }}>Kayıt yok</div>}
-                                      {list.map((pr) => (
-                                        <div key={pr.rowKey} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: pal.panelSolid, fontSize: 14 }}>
-                                          <span style={{ ...styles.serial, ...styles.clickableName, flexShrink: 0 }} onClick={() => setDetailRow(pr)} title="Bu monitörün detayını gör">
-                                            {pr.monitorSerial}
-                                          </span>
-                                          <span style={{ flex: 1, color: pal.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                            {[
-                                              pr.model,
-                                              borrowed ? (pr.depot ? "TuruncuHat'ta Zimmet Depoda" : `Zimmetli: ${pr.owner}`) : pr.usedByOther ? `Şu an kullanan: ${pr.usedBy}` : null,
-                                            ].filter(Boolean).join(" · ")}
-                                          </span>
-                                          {borrowed ? (
-                                            <span style={{ ...styles.badge, background: pal.warnBg, color: pal.warnFg, flexShrink: 0 }}>{pr.depot ? "Depoda görünüyor" : "Başkasına ait"}</span>
-                                          ) : pr.usedByOther ? (
-                                            <span style={{ ...styles.badge, background: pal.warnBg, color: pal.warnFg, flexShrink: 0 }}>Başkası kullanıyor</span>
-                                          ) : null}
-                                          {reasonBadge(pr)}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                  {paged.length === 0 && (
-                    <tr>
-                      <td style={{ ...styles.td, color: pal.inkSoft }} colSpan={HEADERS.length + 1}>Bu aşamada monitör bulunamadı.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ ...styles.tableFooter, flexWrap: "wrap", gap: 10, marginTop: 10 }}>
-              <span>
-                {filtered.length} kayıttan {paged.length} tanesi gösteriliyor{totalPages > 1 ? ` · Sayfa ${safePage} / ${totalPages}` : ""}
-                {selectedKeys.size > 0 ? ` · ${selectedKeys.size} seçili` : ""}
-              </span>
-              <Pagination page={safePage} totalPages={totalPages} onChange={setPage} styles={styles} pal={pal} />
-            </div>
+            )}
           </>
         )}
       </div>
+
+      {!(missingData && !loading) && (
+        <div style={styles.panel}>
+          <div style={styles.toolbar} className="no-print">
+            <div data-atil-filters style={styles.toolbarFiltersRow}>
+              <div style={{ ...styles.searchWrap, flex: "1 1 260px", maxWidth: 380 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.3-4.3" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Seri no, model, sahibi, kullanan veya neden ara..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  style={styles.searchInput}
+                />
+                {searchInput && (
+                  <span onClick={() => { setSearchInput(""); setSearch(""); setPage(1); }} title="Aramayı temizle" style={{ cursor: "pointer", color: pal.inkSoft, fontSize: 14, lineHeight: 1, padding: "0 2px" }}>×</span>
+                )}
+              </div>
+              <div style={styles.segmented} title="Zimmet türüne göre filtrele. User = kişi zimmeti, OBS = müdürlük zimmeti, Depo = TuruncuHat'ta depoda (Warehouse), Diğer = Saha (Site), Tedarikçi (Supplier) ya da tür boş">
+                {[["all", "Tümü"], ["User", "User"], ["OBS", "OBS"], ["Warehouse", "Depo"], ["other", "Diğer"]].map(([id, label]) => (
+                  <div key={id} onClick={() => { setTypeFilter(id); setPage(1); }} style={{ ...styles.seg, ...(typeFilter === id ? styles.segActive : {}) }}>
+                    {label} ({typeCounts[id]})
+                  </div>
+                ))}
+              </div>
+              <div style={styles.segmented} title="Monitor Raporu'nda bu monitörü kullanan bir kişi görünüyor mu?">
+                {[["all", "Tümü"], ["used", "Kullanılıyor"], ["unused", "Kullanılmıyor"]].map(([id, label]) => (
+                  <div key={id} onClick={() => { setUsage(id); setPage(1); }} data-atil-usage={id} style={{ ...styles.seg, ...(usage === id ? styles.segActive : {}) }}>{label}</div>
+                ))}
+              </div>
+              <button type="button" data-atil-adv aria-expanded={advOpen || facetCount > 0} onClick={() => setAdvOpen((o) => !o)} style={styles.btnGhost} title="Şirket, lokasyon, marka ve model filtreleri">
+                Gelişmiş filtreler{facetCount > 0 ? ` (${facetCount})` : ""} {advOpen || facetCount > 0 ? "▴" : "▾"}
+              </button>
+              {(advOpen || facetCount > 0) && Object.keys(FACET_LABEL).map((k) => (
+                <MultiSelectFilter key={k} label={FACET_LABEL[k]} options={facetOptions[k] || []} selected={facets[k]} onChange={(v) => setFacet(k, v)} styles={styles} pal={pal} />
+              ))}
+            </div>
+            {activeChips.length > 0 && (
+              <div data-atil-chips style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", fontSize: 13 }}>
+                <span style={{ color: pal.inkSoft }}>Aktif filtreler ({activeChips.length}):</span>
+                {activeChips.map((c) => (
+                  <span key={c.key} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: pal.accentSoft, color: pal.accent, borderRadius: 14, padding: "3px 10px", fontWeight: 600 }}>
+                    {c.text}
+                    <span onClick={c.clear} role="button" aria-label={`${c.text} filtresini kaldır`} style={{ cursor: "pointer", fontWeight: 700 }}>×</span>
+                  </span>
+                ))}
+                <span onClick={clearExtraFilters} role="button" data-atil-clear style={{ cursor: "pointer", color: pal.accent, fontWeight: 600 }}>Tümünü temizle</span>
+              </div>
+            )}
+            <div style={styles.toolbarActionsRow}>
+              <span data-atil-count style={{ fontSize: 13, color: pal.inkSoft, marginRight: "auto" }}>
+                <b style={{ color: pal.ink }}>{filtered.length}</b> / {stageList.length} monitör{activeChips.length > 0 ? ` · ${activeChips.length} aktif filtre` : ""}
+              </span>
+              {isFiltered && (
+                <button type="button" style={styles.btnGhost} onClick={resetFilters} title="Aşama, arama ve seçimi varsayılana döndürür">Filtreleri Sıfırla</button>
+              )}
+              {selectedKeys.size > 0 && (
+                <button type="button" style={styles.btnGhost} onClick={exportSelected} title="Seçilen monitörleri Excel'e aktarır">Seçilenleri İndir ({selectedKeys.size})</button>
+              )}
+              <button type="button" style={styles.btnGhost} onClick={exportCurrent} disabled={filtered.length === 0} title="Ekrandaki listeyi (seçili aşama ve filtreler) Excel'e aktarır">Excel'e Aktar ({filtered.length})</button>
+              <button type="button" style={styles.btnGhost} onClick={exportAllStages} title="Atıl monitörler ve diğer aşamalar sayfa sayfa tek dosyada">Tüm Aşamaları Aktar</button>
+              <button
+                type="button"
+                style={styles.btnPrimary}
+                onClick={onMailClick}
+                disabled={mailBusy || stages.outside.length === 0}
+                title="Monitörü kullanan (zimmetli olmayan) kişiye zimmet transferi maili gönderir. Seçim yoksa tüm bilgi dışı kullanımlara (onayla)"
+              >
+                {mailBusy ? "Gönderiliyor…" : `Bilgi Dışı Kullanıma Mail Gönder${selectedKeys.size > 0 ? ` (${selectedKeys.size} seçili)` : ""}`}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ overflowX: "auto" }}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={{ ...styles.th, width: 32, padding: "12px 6px 12px 24px" }}>
+                    <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={styles.checkbox} aria-label="Tümünü seç" />
+                  </th>
+                  {COLS.map(([h, ci], i) => (
+                    <th key={h} data-atil-sort={ci} onClick={() => toggleSort(ci)} aria-sort={sort.col === ci ? (sort.dir === 1 ? "ascending" : "descending") : "none"} title="Sıralamak için tıklayın" style={thS(i, COLS.length)}>
+                      {h}{sort.col === ci ? (sort.dir === 1 ? " ▲" : " ▼") : ""}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((r) => {
+                  const expanded = expandedOwner && expandedOwner.rowKey === r.rowKey;
+                  const hasOwner = r.owner && r.owner !== "—";
+                  return (
+                    <Fragment key={`${stage}|${r.rowKey}`}>
+                      <tr style={selectedKeys.has(r.rowKey) ? styles.rowSelected : undefined}>
+                        <td style={tdS({ padding: "12px 6px 12px 24px" })}>
+                          <input type="checkbox" checked={selectedKeys.has(r.rowKey)} onChange={() => toggleSelect(r.rowKey)} style={styles.checkbox} aria-label={`${r.monitorSerial} seç`} />
+                        </td>
+                        <td style={tdS()}>
+                          <span style={{ ...styles.serial, ...styles.clickableName }} onClick={() => setDetailRow(r)} title="Monitörün detayını göster">{r.monitorSerial}</span>
+                          {r.model && <div style={styles.cellSub}>{r.model}</div>}
+                        </td>
+                        <td style={tdS()}>
+                          <span style={{ ...styles.badge, ...styles.badgeNeutral }}>{typeLabel(r.assignmentType)}</span>
+                        </td>
+                        <td style={tdS()}>
+                          <div style={{ ...styles.cellName, ...(hasOwner ? styles.clickableName : {}) }} onClick={hasOwner ? () => toggleOwner(r) : undefined} title={hasOwner ? `${r.owner}'e ait monitörleri göster/gizle` : undefined}>
+                            {r.owner}
+                          </div>
+                          {ownerTitleOf(r.ownerFull) && <div style={styles.cellSub} title={r.ownerFull}>{ownerTitleOf(r.ownerFull)}</div>}
+                        </td>
+                        <td style={tdS()}>
+                          {r.usedBy === "—"
+                            ? <span style={{ color: pal.inkSoft }}>—</span>
+                            : r.usedBy.split(", ").map((u, i) => (
+                                <Fragment key={u}>
+                                  {i > 0 && ", "}
+                                  <span
+                                    style={{ ...(r.usedByOther ? { ...styles.badge, background: pal.warnBg, color: pal.warnFg } : {}), ...styles.clickableName }}
+                                    onClick={() => toggleUser(r, u)}
+                                    title={r.usedByOther ? `Zimmetli kişi dışında biri kullanıyor — ${u}'in monitörlerini göster/gizle` : `${u}'in monitörlerini göster/gizle`}
+                                  >
+                                    {u}
+                                  </span>
+                                </Fragment>
+                              ))}
+                        </td>
+                        <td style={tdS()}>
+                          <div style={{ fontWeight: 600 }}>{r.company || "—"}</div>
+                          <div style={styles.cellSub}>{r.location}</div>
+                        </td>
+                        <td style={tdS({ paddingRight: 24 })}>{reasonBadge(r)}</td>
+                      </tr>
+                      {expanded && (
+                        <tr>
+                          <td style={{ ...styles.td, background: pal.fieldBg, padding: 0 }} colSpan={COLSPAN}>
+                            <div style={{ padding: "12px 24px" }}>
+                              {[
+                                ["tüm monitörleri (zimmetli)", monitorsByOwner.get(expandedOwner.ownerKey) || [], false],
+                                ["kullandığı, başkasına ait monitörler", expandedOwner.userKey ? borrowedByUser.get(expandedOwner.userKey) || [] : [], true],
+                              ].map(([title, list, borrowed]) => (
+                                <div key={title} style={{ marginBottom: 10 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: pal.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                                    {expandedOwner.person} — {title} ({list.length})
+                                  </div>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                    {list.length === 0 && <div style={{ fontSize: 13, color: pal.inkSoft }}>Kayıt yok</div>}
+                                    {list.map((pr) => (
+                                      <div key={pr.rowKey} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: pal.panelSolid, fontSize: 14 }}>
+                                        <span style={{ ...styles.serial, ...styles.clickableName, flexShrink: 0 }} onClick={() => setDetailRow(pr)} title="Bu monitörün detayını gör">{pr.monitorSerial}</span>
+                                        <span style={{ flex: 1, color: pal.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                          {[
+                                            pr.model,
+                                            borrowed ? (pr.depot ? "TuruncuHat'ta Zimmet Depoda" : `Zimmetli: ${pr.owner}`) : pr.usedByOther ? `Şu an kullanan: ${pr.usedBy}` : null,
+                                          ].filter(Boolean).join(" · ")}
+                                        </span>
+                                        {borrowed ? (
+                                          <span style={{ ...styles.badge, background: pal.warnBg, color: pal.warnFg, flexShrink: 0 }}>{pr.depot ? "Depoda görünüyor" : "Başkasına ait"}</span>
+                                        ) : pr.usedByOther ? (
+                                          <span style={{ ...styles.badge, background: pal.warnBg, color: pal.warnFg, flexShrink: 0 }}>Başkası kullanıyor</span>
+                                        ) : null}
+                                        {reasonBadge(pr)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+                {paged.length === 0 && (
+                  <tr>
+                    <td style={{ ...styles.td, color: pal.inkSoft, textAlign: "center", padding: "40px 24px" }} colSpan={COLSPAN} data-atil-empty>
+                      {loading ? "Veriler yükleniyor…" : stageList.length > 0 ? <>Seçili filtrelere uyan monitör yok. <span onClick={clearExtraFilters} role="button" style={{ cursor: "pointer", color: pal.accent, fontWeight: 600 }}>Ek filtreleri temizle</span></> : "Bu aşamada monitör bulunamadı."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ ...styles.tableFooter, flexWrap: "wrap", gap: 10 }}>
+            <span>
+              {filtered.length} kayıttan {paged.length} tanesi gösteriliyor{totalPages > 1 ? ` · Sayfa ${safePage} / ${totalPages}` : ""}
+              {selectedKeys.size > 0 ? ` · ${selectedKeys.size} seçili` : ""}
+            </span>
+            <Pagination page={safePage} totalPages={totalPages} onChange={setPage} styles={styles} pal={pal} />
+          </div>
+        </div>
+      )}
 
       {confirmMailOpen && (
         <div style={styles.modalOverlay} onClick={() => setConfirmMailOpen(false)}>

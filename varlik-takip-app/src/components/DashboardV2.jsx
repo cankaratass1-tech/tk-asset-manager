@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { backendClient } from "../services/backendClient";
 import { combinedPeriodSummary } from "../services/dashboardOverviewService";
+import { FINDING_META } from "../services/dashboardNav";
+import TrendChart from "./TrendChart";
+import TrendDetailModal from "./TrendDetailModal";
 
 // DEMO — yeni Ana Sayfa tasarımı (günlük operasyon + yönetici bakışı). Eski dashboard'un yedeği:
 // git etiketi "dashboard-yedek-2026-10-16" ve ../dashboard-yedek-2026-10-16 klasörü. Henüz commit edilmedi.
@@ -54,16 +57,20 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
 
   // Bulgu dağılımı (açık bulgular, kategori başına)
   const dist = [
-    { k: "Hatalı zimmet", v: cards.zimmet.value, c: "#E5484D" },
-    { k: "İnaktif", v: cards.inaktif.value, c: "#F5A524" },
-    { k: "Kullanılmayan", v: cards.unused.value, c: "#8E6CF0" },
-    ...(cards.disk.value != null ? [{ k: "Kritik disk", v: cards.disk.value, c: "#2F7DEB" }] : []),
-  ];
+    { id: "zimmet", v: cards.zimmet.value },
+    { id: "inaktif", v: cards.inaktif.value },
+    { id: "kullanilmayan", v: cards.unused.value },
+    ...(cards.disk.value != null ? [{ id: "disk", v: cards.disk.value }] : []),
+  ].map((d) => ({ ...d, k: FINDING_META[d.id].label, c: FINDING_META[d.id].color }));
   const distTotal = dist.reduce((s, d) => s + d.v, 0);
 
   // Trend (açık bulgu, dönem dönem) — şirket filtresine uyar, Disk şirket seçiliyken hariç
-  const trend = useMemo(() => combinedPeriodSummary(snapshots, "month", { company }), [snapshots, company]);
+  const [trendMode, setTrendMode] = useState("month"); // day | week | month | raw
+  const [detailIdx, setDetailIdx] = useState(null);
+  const [hoverDist, setHoverDist] = useState(null);
+  const trend = useMemo(() => combinedPeriodSummary(snapshots, trendMode, { company }), [snapshots, company, trendMode]);
   const series = trend.series.map((s) => ({ label: s.label, v: s.acikBulgu, rate: s.cozumOrani }));
+  const trendKeys = dist.map((d) => d.id);
 
   // Yönetici özeti: tek cümlede durum
   const delta = ["inaktif", "zimmet", "disk", "unused"].map((k) => cards[k].summary).filter(Boolean);
@@ -113,13 +120,6 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
     </svg>
   );
 
-  // Trend çizgisi
-  const W = 520, H = 130, pad = 10;
-  const maxV = Math.max(1, ...series.map((s) => s.v));
-  const pts = series.map((s, i) => [pad + (i * (W - 2 * pad)) / Math.max(1, series.length - 1), H - pad - (s.v / maxV) * (H - 2 * pad)]);
-  const line = pts.map((p) => p.join(",")).join(" ");
-  const area = pts.length ? `${pad},${H - pad} ${line} ${W - pad},${H - pad}` : "";
-
   const bars = (items, color, to, opts = {}) => {
     const m = Math.max(1, ...items.map((i) => i.count));
     return items.length === 0 ? (
@@ -159,7 +159,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <p style={{ ...styles.pageTitle, margin: 0 }}>Operasyon Panosu</p>
             {chip(data.scope, pal.accent, pal.accentSoft)}
-            {chip("DEMO TASARIM", pal.warnFg, pal.warnBg || `${pal.warnFg}1e`)}
+            {chip("YENİ GÖRÜNÜM", pal.accent, pal.accentSoft)}
           </div>
           <p style={{ margin: "8px 0 0", fontSize: 16, lineHeight: 1.5, color: pal.ink }}>{summaryText}</p>
           <p style={{ margin: "6px 0 0", fontSize: 13, color: pal.inkSoft }}>
@@ -222,20 +222,29 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
           <p style={styles.settingsSectionTitle}>Açık bulgu dağılımı</p>
           <div style={{ display: "flex", height: 14, borderRadius: 8, overflow: "hidden", background: pal.fieldBg || pal.line, marginTop: 8 }}>
             {dist.map((d) => (
-              <div key={d.k} title={`${d.k}: ${d.v}`} style={{ width: `${pct(d.v, distTotal)}%`, background: d.c }} />
+              <div key={d.k} data-dist-bar={d.id} role="button" tabIndex={0} aria-label={`${d.k}: ${d.v} kayıt, raporu aç`} title={`${d.k}: ${d.v} — raporu aç`}
+                onClick={() => onNavigate(FINDING_META[d.id].to, FINDING_META[d.id].opts)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate(FINDING_META[d.id].to, FINDING_META[d.id].opts); } }}
+                onMouseEnter={() => setHoverDist(d.id)} onMouseLeave={() => setHoverDist(null)}
+                style={{ width: `${pct(d.v, distTotal)}%`, background: d.c, cursor: "pointer", opacity: hoverDist && hoverDist !== d.id ? 0.55 : 1, transition: "opacity .12s" }} />
             ))}
           </div>
-          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 2 }}>
             {dist.map((d) => (
-              <div key={d.k} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 14 }}>
+              <div key={d.k} data-dist-row={d.id} role="button" tabIndex={0} aria-label={`${d.k}: ${d.v} kayıt, raporu aç`} title="Raporu aç"
+                onClick={() => onNavigate(FINDING_META[d.id].to, FINDING_META[d.id].opts)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate(FINDING_META[d.id].to, FINDING_META[d.id].opts); } }}
+                onMouseEnter={() => setHoverDist(d.id)} onMouseLeave={() => setHoverDist(null)}
+                style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 14, cursor: "pointer", padding: "6px 8px", borderRadius: 8, background: hoverDist === d.id ? pal.accentSoft : "transparent" }}>
                 <span style={{ width: 10, height: 10, borderRadius: 3, background: d.c }} />
                 <span style={{ flex: 1 }}>{d.k}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>{fmt(d.v)}</span>
                 <span style={{ color: pal.inkSoft, minWidth: 40, textAlign: "right" }}>%{pct(d.v, distTotal)}</span>
+                <span style={{ color: pal.accent, fontSize: 13, fontWeight: 700 }}>→</span>
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 12, color: pal.inkSoft, margin: "12px 0 0" }}>Bir cihaz birden fazla kategoride yer alabilir.</p>
+          <p style={{ fontSize: 12, color: pal.inkSoft, margin: "12px 0 0" }}>Bir cihaz birden fazla kategoride yer alabilir. Bir satıra tıklayınca o bulguların raporu açılır.</p>
         </div>
         <div style={{ ...card, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
@@ -246,20 +255,12 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
               return chip(`${d > 0 ? "▲ +" : d < 0 ? "▼ " : "▬ "}${fmt(d)} önceki döneme göre${last.rate != null ? ` · çözüm oranı %${last.rate}` : ""}`, d > 0 ? pal.bad : d < 0 ? pal.ok : pal.inkSoft, `${d > 0 ? pal.bad : d < 0 ? pal.ok : pal.inkSoft}1a`);
             })()}
           </div>
-          {series.length < 2 ? (
-            <p style={{ ...styles.pageSub, margin: "10px 0 0" }}>Trend için en az 2 dönem veri gerekli ({series.length}/2). Her veri yüklemesinde otomatik dönem kaydı oluşur.</p>
-          ) : (
-            <>
-              <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="150" preserveAspectRatio="none" style={{ marginTop: 8 }}>
-                <polygon points={area} fill={`${pal.accent}22`} />
-                <polyline points={line} fill="none" stroke={pal.accent} strokeWidth="2.5" strokeLinejoin="round" />
-                {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="3.5" fill={pal.accent}><title>{`${series[i].label}: ${series[i].v}`}</title></circle>)}
-              </svg>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: pal.inkSoft }}>
-                <span>{series[0].label}</span>
-                <span>{series[series.length - 1].label}</span>
-              </div>
-            </>
+          <TrendChart series={trend.series} keys={trendKeys} meta={FINDING_META} stacked={false} mode={trendMode} onModeChange={(m) => { setTrendMode(m); setDetailIdx(null); }}
+            onPointClick={setDetailIdx} accent={pal.accent}
+            tone={{ ink: pal.ink, sub: pal.inkSoft, mute: pal.inkSoft, grid: pal.line, tipBg: pal.toastBg, tipFg: pal.toastFg }} />
+          {detailIdx != null && trend.series[detailIdx] && (
+            <TrendDetailModal item={trend.series[detailIdx]} prev={trend.series[detailIdx - 1]} keys={trendKeys} meta={FINDING_META} company={company}
+              onClose={() => setDetailIdx(null)} onOpenReport={(id) => { setDetailIdx(null); onNavigate(FINDING_META[id].to, FINDING_META[id].opts); }} styles={styles} pal={pal} />
           )}
         </div>
 

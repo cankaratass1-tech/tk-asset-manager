@@ -29,8 +29,10 @@ export function combinedPeriodSummary(reportSnapshots = {}, mode = "month", { co
     let yeni = 0;
     let devam = 0;
     const perReportOpen = {};
+    const snaps = {}; // dönemin her rapor için temsilci kaydı (ayrıntı penceresinde cihaz listesi için)
     OVERVIEW_REPORTS.forEach((rep) => {
       const snap = perReport[rep].get(label);
+      if (snap) snaps[rep] = snap;
       const open = snap ? (snap.devices || []).filter(inCompany).length : 0;
       perReportOpen[rep] = open;
       acikBulgu += open;
@@ -52,6 +54,7 @@ export function combinedPeriodSummary(reportSnapshots = {}, mode = "month", { co
       yeni,
       devam,
       perReportOpen,
+      snaps,
       cozumOrani: taban > 0 ? Math.round((cozulen / taban) * 100) : null,
       netDegisim: yeni - cozulen, // + ise bulgu arttı
     };

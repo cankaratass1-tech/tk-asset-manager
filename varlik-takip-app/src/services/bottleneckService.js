@@ -1,11 +1,10 @@
 // Bottleneck (LAKESIDE): cihaz bazında performans/dayanıklılık sinyallerini tek tabloda birleştirir.
 // Sinyaller (hangi kaynak mevcutsa o hesaplanır; olmayan "Veri Yok" kalır, uydurulmaz):
-//   cpu / ram  : Lakeside kaynak kullanımı dosyası (Avg CPU % / Avg RAM %)         — opsiyonel import
 //   disk       : Disk Alanı raporu (en kötü birimin serbest alan seviyesi, dashboard eşikleriyle aynı)
 //   bsod       : Weekly BSOD (toplam çökme adedi)
 //   battery    : Battery Health (pil sağlığı %)
 //   age        : SCCM BIOS Date'ten cihaz yaşı
-// Cihaz "bottleneck" sayılır: performans/dayanıklılık sinyallerinde (cpu, ram, disk, bsod, pil) en az 1 KRİTİK ya da en az 2 UYARI varsa;
+// Cihaz "bottleneck" sayılır: performans/dayanıklılık sinyallerinde (disk, bsod, pil) en az 1 KRİTİK ya da en az 2 UYARI varsa;
 // cihaz yaşı tek başına bottleneck nedeni DEĞİLDİR (eski ama sorunsuz cihaz bottleneck değil) — yalnızca tek bir uyarıyı tamamlayıcı destekler.
 const shortHost = (h) => String(h || "").trim().split(".")[0];
 function deviceAgeYears(date) {
@@ -17,16 +16,12 @@ function deviceAgeYears(date) {
 }
 
 export const BOTTLENECK_THRESHOLDS = {
-  cpu: { warn: 70, crit: 85 }, // ortalama CPU %
-  ram: { warn: 80, crit: 90 }, // ortalama RAM %
   bsod: { warn: 1, crit: 3 }, // toplam BSOD adedi
   battery: { warn: 80, crit: 60 }, // sağlık % (altı)
   age: { warn: 4, crit: 5 }, // yıl (üstü)
 };
 
 export const SIGNALS = [
-  ["cpu", "CPU"],
-  ["ram", "RAM"],
   ["disk", "Disk"],
   ["bsod", "BSOD"],
   ["battery", "Pil"],
@@ -39,7 +34,7 @@ const down = (value, t) => (value < t.crit ? "crit" : value < t.warn ? "warn" : 
 const sig = (level, value, text) => ({ level, value, text });
 const none = { level: "none", value: null, text: "Veri Yok" };
 
-export function computeBottlenecks({ sccmRows = [], resourceRows = [], diskRows = [], bsodRows = [], batteryRows = [] } = {}) {
+export function computeBottlenecks({ sccmRows = [], diskRows = [], bsodRows = [], batteryRows = [] } = {}) {
   const T = BOTTLENECK_THRESHOLDS;
   const devices = new Map();
   const get = (host) => {
@@ -55,12 +50,6 @@ export function computeBottlenecks({ sccmRows = [], resourceRows = [], diskRows 
     d.sccm = r;
     const age = deviceAgeYears(r.biosDate);
     if (age != null) d.signals.age = sig(up(age, T.age), age, `${age} yıl`);
-  });
-  resourceRows.forEach((r) => {
-    const d = get(r.hostname);
-    if (!d) return;
-    if (r.avgCpu != null) d.signals.cpu = sig(up(r.avgCpu, T.cpu), r.avgCpu, `%${r.avgCpu}${r.peakCpu != null ? ` (tepe %${r.peakCpu})` : ""}`);
-    if (r.avgRam != null) d.signals.ram = sig(up(r.avgRam, T.ram), r.avgRam, `%${r.avgRam}${r.totalRamGb ? ` · ${r.totalRamGb} GB` : ""}`);
   });
   const rank = { critical: 3, warning: 2, normal: 1, unknown: 0 };
   const worstDisk = new Map();
@@ -97,7 +86,7 @@ export function computeBottlenecks({ sccmRows = [], resourceRows = [], diskRows 
     const levels = SIGNALS.map(([id]) => d.signals[id].level);
     const crit = levels.filter((l) => l === "crit").length;
     const warn = levels.filter((l) => l === "warn").length;
-    const perf = levels.slice(0, 5); // SIGNALS sırası: cpu, ram, disk, bsod, battery, age → ilk 5 performans sinyali
+    const perf = levels.slice(0, 3); // SIGNALS sırası: disk, bsod, battery, age → ilk 3 performans/dayanıklılık sinyali (yaş yalnız destekler)
     const perfCrit = perf.filter((l) => l === "crit").length;
     const perfWarn = perf.filter((l) => l === "warn").length;
     const primaryId = (SIGNALS.find(([id]) => d.signals[id].level === "crit") || SIGNALS.find(([id]) => d.signals[id].level === "warn") || [])[0] || "";

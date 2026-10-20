@@ -5,7 +5,6 @@
 //   1) SCCM: "Operating System" / "OS Version" (Windows sürümü/destek) — add-os-version.js
 //   2) TH:   "Son Güncelleme Tarihi" (zimmet devri tarihi; seri no'dan türetilir, dosya tarihini aşmaz) — add-th-update-date.js --force
 //   3) SCCM: "Last Client Check" + "Client Active" (SCCM ajan durumu: Cihaz Genel Görünüm / SCCM Ajan Raporu)
-//   4) Lakeside_Resource: CPU/RAM (Bottleneck raporu) — gen-lakeside-resource.js
 //   5) Lokasyon Mail Listesi: bant dosyasındaki her ofis listede olsun; mail adresleri dolsun (az sayıda ofis bilerek boş —
 //      "mail adresi yok" uyarısı denenebilsin)
 // Battery dosyalarına: "Design Capacity" + "Full Charge Capacity" (sağlık % ile tutarlı) eklenir.
@@ -202,7 +201,6 @@ dirs.forEach((dir) => {
     () => run("add-os-version.js", dir),
     () => run("add-th-update-date.js", dir, "--force"),
     () => sccmClientCheck(dir),
-    () => run("gen-lakeside-resource.js", dir),
     () => lokasyon(dir),
     () => sccmIpAlign(dir),
     () => thFill(dir),

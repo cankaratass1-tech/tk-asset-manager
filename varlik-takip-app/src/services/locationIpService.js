@@ -14,6 +14,8 @@
 //   - çıkarılan kod Lokasyon Mail Listesi'nde hiç bulunamıyorsa (bilinmeyen kod)
 //   - cihazın SCCM'de hiç 172.x IP'si yoksa (karşılaştırma yapılamaz)
 
+import { mailShell, infoTable, esc } from "./mailLayout.js";
+
 const norm = (v) => String(v || "").trim().toLowerCase();
 
 // "ABJ0B55" -> "ABJ0" ("ABJ0-SD1" -> "ABJ0" de aynı kuralla). Baştaki harfler + İLK rakam.
@@ -102,25 +104,43 @@ export function computeLocationIpRows({ sccmRows = [], lokasyonRows = [] } = {})
 // ("Merkez Ofis" örneği) satır bazında gerçek beklenen ofis adıyla değiştiriliyor, cihaz
 // (Computer name) referansı IT'nin bileti bulabilmesi için alta ekleniyor — gövde metni aksi
 // halde AYNEN korunuyor.
-const esc = (v) =>
-  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 export function locationIpMailSubject() {
   return "Lokasyon/IP Uyuşmazlığı — Cihaz Bilgilerinizin Güncellenmesi Gerekiyor";
 }
 
-export function buildLocationIpMailHtml(row) {
+// Ortak e-posta çerçevesi (mailLayout.js — Ofis Bant Genişliği Uyarısı ile aynı tasarım). Metinler kullanıcının verdiği içerikle aynıdır;
+// yalnız yerleşim ortak çerçeveye taşındı. Önizleme ve gönderim AYNI fonksiyonu kullanır (buildLocationIpMail).
+export function buildLocationIpMail(row) {
   const officeName = row.owner || "Merkez Ofis";
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
-    <p>Merhaba,</p>
-    <p>Yapılan envanter kontrolünde, cihazınıza ait personel lokasyonu "${esc(officeName)}" olarak görünmektedir. İzleme sistemleri üzerinden alınan bağlantı bilgileri, cihazınızın farklı bir bölge veya yurt dışı lokasyonuna ait IP bloğundan düzenli olarak bağlandığını göstermektedir.</p>
-    <p>Envanter bilgilerimizin güncel ve doğru tutulabilmesi amacıyla cihazınızın "Computer name" bilgilerinin kontrol edilmesi ve gerekiyorsa güncellenmesi gerekmektedir.</p>
-    <p>Gerekli güncellemenin yapılabilmesi için BT ekibimizle iletişime geçiniz.</p>
-    <p>Bu bildirim, envanter sistemlerindeki lokasyon ve bağlantı bilgilerinin otomatik karşılaştırılması sonucunda oluşturulmuştur.<br/>
-    Herhangi bir lokasyon değişikliği bulunmuyorsa veya mevcut bilgilerin doğru olduğunu düşünüyorsanız, bu durumu BT ekibimize bildirmeniz yeterlidir.</p>
-    <p>Teşekkürler.<br/>BT Operasyonları / IT Support</p>
-    <p style="margin-top:18px;padding-top:10px;border-top:1px solid #ccc;font-size:12px;color:#555;">
-      Referans — Computer name: <strong>${esc(row.hostname)}</strong>${row.serial ? ` · Seri No: ${esc(row.serial)}` : ""}
-    </p>
-  </div>`;
+  const html = mailShell({
+    eyebrow: "LOKASYON / IP UYUŞMAZLIĞI",
+    title: officeName,
+    greeting: "Merhaba,",
+    intro: `Yapılan envanter kontrolünde, cihazınıza ait personel lokasyonu "${esc(officeName)}" olarak görünmektedir. İzleme sistemleri üzerinden alınan bağlantı bilgileri, cihazınızın farklı bir bölge veya yurt dışı lokasyonuna ait IP bloğundan düzenli olarak bağlandığını göstermektedir.`,
+    bodyHtml: infoTable([
+      ["Computer name", `<strong>${esc(row.hostname)}</strong>`],
+      ["Seri no", row.serial ? esc(row.serial) : ""],
+      ["Cihaz modeli", row.deviceModel ? esc(row.deviceModel) : ""],
+      ["Beklenen ofis", esc(officeName)],
+      ["Cihazın IP bloğu", row.location ? esc(row.location) : ""],
+    ]),
+    action: "Envanter bilgilerimizin güncel ve doğru tutulabilmesi amacıyla cihazınızın \"Computer name\" bilgilerinin kontrol edilmesi ve gerekiyorsa güncellenmesi gerekmektedir. Gerekli güncellemenin yapılabilmesi için BT ekibimizle iletişime geçiniz.",
+    notes: ["Herhangi bir lokasyon değişikliği bulunmuyorsa veya mevcut bilgilerin doğru olduğunu düşünüyorsanız, bu durumu BT ekibimize bildirmeniz yeterlidir."],
+    footer: "Bu bildirim, envanter sistemlerindeki lokasyon ve bağlantı bilgilerinin otomatik karşılaştırılması sonucunda oluşturulmuştur. Teşekkürler · BT Operasyonları / IT Support",
+  });
+  const text = [
+    "Merhaba,",
+    "",
+    `Cihazınıza ait personel lokasyonu "${officeName}" olarak görünmektedir, ancak cihazınız farklı bir bölge/yurt dışı IP bloğundan bağlanıyor.`,
+    `Computer name (${row.hostname}) bilgisinin BT ekibiyle güncellenmesi gerekiyor.`,
+    "",
+    "Herhangi bir lokasyon değişikliği bulunmuyorsa veya mevcut bilgilerin doğru olduğunu düşünüyorsanız, bu durumu BT ekibimize bildirmeniz yeterlidir.",
+    "BT Operasyonları / IT Support",
+  ].join("\n");
+  return { subject: locationIpMailSubject(), html, text };
+}
+
+export function buildLocationIpMailHtml(row) {
+  return buildLocationIpMail(row).html;
 }

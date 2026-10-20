@@ -1,3 +1,4 @@
+import { mailShell } from "./mailLayout.js";
 // Ofis Bant Genişliği — bilgilendirme e-postası şablonu (saf fonksiyonlar, backend/React yok).
 // Girdi: bir ofise (Lokasyon Kodu) ait hatlar (bantGenisligiService.mapBantRow çıktısı). Çıktı: { subject, html, text, notes }.
 //
@@ -90,22 +91,19 @@ export function buildBantMail({ officeCode = "", officeName = "", lines = [], la
     })
     .join("");
 
-  const html = `<div style="font-family:Segoe UI,Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;max-width:760px;">
-    <div style="background:#243a5e;color:#fff;padding:14px 18px;border-radius:6px 6px 0 0;">
-      <div style="font-size:11px;letter-spacing:.1em;opacity:.8;">OFİS BANT GENİŞLİĞİ</div>
-      <div style="font-size:18px;font-weight:700;">${esc(officeLabel)}</div>
-    </div>
-    <div style="border:1px solid #d0d7de;border-top:none;padding:16px 18px;border-radius:0 0 6px 6px;">
-      <p style="margin:0 0 10px;">${T.greeting}</p>
-      <p style="margin:0 0 12px;">${warnCount > 0 ? T.introWarn(office, warnCount) : T.introOk(office)}</p>
-      ${rows.length === 0
-        ? `<p style="color:#8a8886;">—</p>`
-        : `<table style="border-collapse:collapse;width:100%;font-size:13px;"><thead><tr>${head.map(th).join("")}</tr></thead><tbody>${body}</tbody></table>`}
-      ${warnCount > 0 ? `<p style="margin:14px 0 0;">${T.action}</p>` : ""}
-      ${notes.length ? `<p style="margin:12px 0 0;font-size:12px;color:#8a8886;">${notes.map(esc).join(" ")}</p>` : ""}
-      <p style="margin:14px 0 0;font-size:12px;color:#8a8886;">${T.footer}${reportDate ? ` · ${esc(reportDate)}` : ""}</p>
-    </div>
-  </div>`;
+  // Ortak çerçeve (mailLayout.js): Lokasyon/IP gibi diğer mailler de aynı tasarımı kullanır
+  const html = mailShell({
+    eyebrow: "OFİS BANT GENİŞLİĞİ",
+    title: officeLabel,
+    greeting: T.greeting,
+    intro: warnCount > 0 ? T.introWarn(office, warnCount) : T.introOk(office),
+    bodyHtml: rows.length === 0
+      ? `<p style="color:#8a8886;">—</p>`
+      : `<table style="border-collapse:collapse;width:100%;font-size:13px;"><thead><tr>${head.map(th).join("")}</tr></thead><tbody>${body}</tbody></table>`,
+    action: warnCount > 0 ? T.action : "",
+    notes,
+    footer: `${T.footer}${reportDate ? ` · ${reportDate}` : ""}`,
+  });
 
   const text = [
     T.greeting,

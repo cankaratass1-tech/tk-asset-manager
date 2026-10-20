@@ -128,6 +128,7 @@ export function mapSccmRow(raw) {
     windowsStatus: win.info ? win.support.status : "",
     windowsSupportLabel: win.info ? win.support.label : "",
     windowsDetail: win.info ? win.support.detail : "",
+    windowsEnd: win.info ? win.support.end : "", // destek bitiş tarihi (windowsVersionService.WINDOWS_LIFECYCLE tablosundan; cihaz tarihi değil)
     windowsSearch: win.searchText,
     matched,
     statusTag,

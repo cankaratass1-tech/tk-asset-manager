@@ -8,7 +8,8 @@
 import { isZimmetUnverified } from "../../services/zimmetService";
 import { isInaktifUnverified, needsInaktifAction } from "../../services/inaktifComparisonService";
 import DeviceActionHistory from "./DeviceActionHistory";
-import ItemizedAlert, { inaktifActionItems, zimmetAlertItems } from "./ItemizedAlert";
+import ItemizedAlert from "./ItemizedAlert";
+import { inaktifActionItems, zimmetAlertItems } from "./alertItems";
 import { ownerTitleOf } from "../../services/ownerName";
 
 export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailHistory }) {
@@ -59,7 +60,10 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
               </div>
               <div style={styles.detailFieldRow}>
                 <span style={{ color: pal.inkSoft }}>Kullanan kişi</span>
-                <span>{row.userLabel}</span>
+                <span style={{ textAlign: "right" }}>
+                  {row.userFullName || row.userLabel}
+                  {row.userFullTitle && <div style={{ fontSize: 12, color: pal.inkSoft }}>{row.userFullTitle}</div>}
+                </span>
               </div>
               <div style={styles.detailFieldRow}>
                 <span style={{ color: pal.inkSoft }}>Zimmet türü</span>

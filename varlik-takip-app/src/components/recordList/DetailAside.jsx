@@ -4,7 +4,8 @@ import { isInaktifUnverified, needsInaktifAction } from "../../services/inaktifC
 import { deviceKeyOf } from "../../services/deviceActionService";
 import DeviceActionHistory from "./DeviceActionHistory";
 import { useStickyTop } from "../../hooks/useStickyTop";
-import ItemizedAlert, { inaktifActionItems, zimmetAlertItems } from "./ItemizedAlert";
+import ItemizedAlert from "./ItemizedAlert";
+import { inaktifActionItems, zimmetAlertItems } from "./alertItems";
 
 const smallBtnStyle = (pal) => ({
   fontSize: 12,
@@ -207,7 +208,8 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
             style={isZimmet && row.userLabel !== "—" && row.userLabel !== "Tespit Edilemedi" ? styles.clickableName : undefined}
             onClick={isZimmet && row.userLabel !== "—" && row.userLabel !== "Tespit Edilemedi" ? () => setSelectedPerson(row.userLabel) : undefined}
           >
-            {isZimmet ? row.userLabel : row.location}
+            {isZimmet ? (row.userFullName || row.userLabel) : row.location}
+            {isZimmet && row.userFullTitle ? <div style={{ fontSize: 13, color: pal.inkSoft, fontWeight: 400 }}>{row.userFullTitle}</div> : null}
           </span>
         </div>
         {isZimmet && (

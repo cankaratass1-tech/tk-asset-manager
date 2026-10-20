@@ -16,9 +16,9 @@ import { fetchSccmRowsFromFile, mapSccmRow } from "./services/sccmFileService";
 import { mapThRows, fetchThRowsFromFile } from "./services/thFileService";
 import { mapMonitorRows, fetchMonitorRowsFromFile } from "./services/monitorFileService";
 import { fetchLokasyonMailRowsFromFile, mapLokasyonMailRows, resolveMailForLocationName } from "./services/lokasyonMailService";
-import { computeLocationIpRows, buildLocationIpMailHtml, locationIpMailSubject } from "./services/locationIpService";
+import { computeLocationIpRows, buildLocationIpMail } from "./services/locationIpService";
+import MailPreviewModal from "./components/MailPreviewModal";
 import { mapBsodRows, fetchBsodRowsFromFile } from "./services/bsodFileService";
-import { mapResourceRows, fetchResourceRowsFromFile } from "./services/resourceFileService";
 import { computeBottlenecks } from "./services/bottleneckService";
 import DarbogazScreen from "./components/DarbogazScreen";
 import { fetchBantRowsFromFile, uploadBantFile } from "./services/bantGenisligiService";
@@ -190,7 +190,8 @@ export default function App({ user, onLogout } = {}) {
   // "haftalık/aylık filtrelenebilecek şekilde... bütün raporlarda gözükmeli". Tek bir paylaşılan
   // state: nerede gösterilirse gösterilsin AYNI dönem seçimini kullanır (senkronizasyon).
   const [summaryPeriod, setSummaryPeriod] = useState("week"); // week | month
-  const [dashboardDemo, setDashboardDemo] = useState(() => { try { return localStorage.getItem("varlikTakip.dashboardDemo") === "1"; } catch { return false; } }); // DEMO: yeni Ana Sayfa tasarımı
+  // Ana Sayfa: YENİ görünüm varsayılan (tercih hiç yazılmamışsa); kullanıcı "Eski görünüme dön" ile klasiğe geçince "0" saklanır (yerel tercih, tarayıcıda kalıcı).
+  const [dashboardDemo, setDashboardDemo] = useState(() => { try { return localStorage.getItem("varlikTakip.dashboardDemo") !== "0"; } catch { return true; } });
   const [atilStage, setAtilStage] = useState(null); // DEMO: Atıl Monitörler ekranı hangi aşamayla açılsın (null = varsayılan)
   const [execView, setExecView] = useState(() => { try { return localStorage.getItem("varlikTakip.execView") === "1"; } catch { return false; } }); // DEMO: Yönetici Özeti
   const toggleExecView = (v) => { setExecView(v); try { localStorage.setItem("varlikTakip.execView", v ? "1" : "0"); } catch { /* sessiz geç */ } };
@@ -382,8 +383,6 @@ export default function App({ user, onLogout } = {}) {
   const [realMonitorMeta, setRealMonitorMeta] = useState(null);
   const [loadingRealMonitor, setLoadingRealMonitor] = useState(false);
   // LAKESIDE "Weekly_BSOD" raporu — sadece elle dosya seçimi (bkz. bsodFileService.js)
-  const [realResourceAll, setRealResourceAll] = useState([]); // Bottleneck: Lakeside CPU/RAM (opsiyonel import)
-  const [realResourceMeta, setRealResourceMeta] = useState(null);
   const [realBsodAll, setRealBsodAll] = useState([]);
   const [realBsodMeta, setRealBsodMeta] = useState(null);
   // Ofis Bant Genişliği — monitoring aracının CSV export'u, elle yükleniyor (bkz. konuşma).
@@ -678,12 +677,12 @@ export default function App({ user, onLogout } = {}) {
     });
 
   const bsodRows = useMemo(() => (realBsodAll.length ? enrichWithSccm(realBsodAll, { setLocationColumn: true }) : []), [realBsodAll, sccmByHostname]);
-  // Bottleneck (LAKESIDE): SCCM + Disk + BSOD + Battery + (opsiyonel) CPU/RAM birleşimi; şirket filtresine uyar.
+  // Bottleneck (LAKESIDE): SCCM + Disk + BSOD + Battery + birleşimi; şirket filtresine uyar.
   const bottleneck = useMemo(() => {
     if (activeReport !== "darbogaz") return { rows: [], summary: { analyzed: 0, bottleneck: 0, critical: 0, multi: 0, byCause: {}, available: {} } };
-    const res = computeBottlenecks({ sccmRows: realSccmAll, resourceRows: realResourceAll, diskRows: realDiskAll, bsodRows: realBsodAll, batteryRows: realBatteryAll });
+    const res = computeBottlenecks({ sccmRows: realSccmAll, diskRows: realDiskAll, bsodRows: realBsodAll, batteryRows: realBatteryAll });
     return res;
-  }, [activeReport, realSccmAll, realResourceAll, realDiskAll, realBsodAll, realBatteryAll]);
+  }, [activeReport, realSccmAll, realDiskAll, realBsodAll, realBatteryAll]);
   const batteryRows = useMemo(() => (realBatteryAll.length ? enrichWithSccm(realBatteryAll) : []), [realBatteryAll, sccmByHostname]);
 
   // Yeni Kurulum Kaydı formundaki LOKASYON açılır listesi — mevcut verideki lokasyonlar.
@@ -1158,7 +1157,7 @@ export default function App({ user, onLogout } = {}) {
           "Cihaz Türü": r.sub,
           "Windows Sürümü": r.windowsLabel || "",
           "Windows Destek": r.windowsSupportLabel || "",
-          "Kullanan Kişi": r.userLabel,
+          "Kullanan Kişi": r.userFullName || r.userLabel,
           "Zimmet Türü": r.assignmentType === "OBS" ? "OBS (Müdürlük)" : r.assignmentType === "User" ? "User (Kişi)" : "—",
           "Açıklama": r.model,
           "Durum": r.statusTag,
@@ -1859,6 +1858,15 @@ IT Support`;
   // doğrudan cihazı kullanan kişiye "computer name'ini BT ile güncelle" diyor (bkz. konuşma —
   // kullanıcının verdiği tam mail metni). Sadece uyuşmazlık (matched:false) satırlarına gider,
   // "Doğru Ofiste Kullanılıyor" satırları için gönderilecek bir şey yok.
+  // Lokasyon/IP maili önizlemesi: gönderilecek HTML ile birebir aynı (buildLocationIpMail). Seçili uyuşmazlık kayıtlarından ilkini gösterir.
+  const [mailPreviewData, setMailPreviewData] = useState(null);
+  const previewLocationIpMail = () => {
+    const r = resolveTargetRows().find((x) => !x.matched);
+    if (!r) { showToast("Önizlenecek uyuşmazlık kaydı yok — listede (ya da seçimde) Hostname/IP uyuşmazlığı satırı bulunmuyor"); return; }
+    const m = buildLocationIpMail(r);
+    setMailPreviewData({ subject: m.subject, html: m.html, to: r.mail || "" });
+  };
+
   const handleLocationIpMail = async () => {
     const targetRows = resolveTargetRows().filter((r) => !r.matched);
     if (targetRows.length === 0) {
@@ -1878,14 +1886,14 @@ IT Support`;
       try {
         const result = await backendClient.sendMail({
           to,
-          subject: locationIpMailSubject(),
-          text: `Cihazınıza ait personel lokasyonu "${r.owner}" olarak görünmektedir, ancak cihazınız farklı bir bölge/yurt dışı IP bloğundan bağlanıyor. Computer name (${r.hostname}) bilgisinin BT ekibiyle güncellenmesi gerekiyor.`,
-          html: buildLocationIpMailHtml(r),
+          subject: buildLocationIpMail(r).subject,
+          text: buildLocationIpMail(r).text,
+          html: buildLocationIpMail(r).html,
         });
         if (result.ok) {
           sent += 1;
           details.push({ location: r.hostname, to, count: 1, ok: true, message: "Gönderildi" });
-          logDeviceAction(r, { type: "Mail", description: `Lokasyon/IP uyuşmazlığı maili gönderildi (${r.hostname})`, mailSubject: locationIpMailSubject(), user: user?.username || "", reportId: activeReport, status: "Başarılı" });
+          logDeviceAction(r, { type: "Mail", description: `Lokasyon/IP uyuşmazlığı maili gönderildi (${r.hostname})`, mailSubject: buildLocationIpMail(r).subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" });
         } else {
           failed += 1;
           details.push({ location: r.hostname, to, count: 1, ok: false, message: result.message || "Gönderilemedi" });
@@ -2761,38 +2769,6 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     }
   };
 
-  const loadRealResourceData = async ({ silent = false } = {}) => {
-    try {
-      const { fileName, modifiedAt, rows } = await fetchResourceRowsFromFile();
-      setRealResourceAll(rows);
-      setRealResourceMeta({ fileName, modifiedAt });
-      if (!silent) showToast(`${fileName} içinden ${rows.length} CPU/RAM kaydı yüklendi`);
-    } catch (err) {
-      if (!silent) showToast(err.message || "Dosyadan veri yüklenemedi");
-    }
-  };
-
-  const handleManualResourceFile = (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    persistImport("resource", file);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
-        const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
-        const rows = mapResourceRows(raw);
-        setRealResourceAll(rows);
-        setRealResourceMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
-        showToast(`${file.name} içinden ${rows.length} CPU/RAM kaydı yüklendi${rows.length === 0 ? " (CPU/RAM sütunu bulunamadı)" : ""}`);
-      } catch (err) {
-        showToast(`Dosya okunamadı: ${err.message}`);
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
   const handleManualBsodFile = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -2945,7 +2921,6 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       loadRealSccmData({ silent: true });
       loadRealDiskData({ silent: true });
       loadRealBsodData({ silent: true });
-      loadRealResourceData({ silent: true });
       if (!batteryLoaded) loadRealBatteryData({ silent: true });
     }
     // Atıl Monitörler: yalnızca TuruncuHat + Monitor Raporu (bilgisayar/SCCM verisi gerekmez).
@@ -3486,8 +3461,20 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     const open = inak + zim + unu;
                     return { key: c, label: companyShortLabel(c), devices: dev, inaktif: inak, zimmet: zim, unused: unu, open, healthPct: dev ? Math.max(0, Math.round(((dev - open) / dev) * 100)) : 0 };
                   });
+                  // Ana Sayfa kartlarından / grafiklerinden rapora yönlendirme (filtre ve şirketle birlikte) — yeni görünüm ve Yönetici Özeti ortak kullanır
+                  const dashNavigate = (id, opts = {}) => {
+                      if (id === "bant-genisligi") { closeAllViews(); setActiveNetworkView(id); setSelectedKeys(new Set()); return; }
+                      // şirket seçiliyken rapor da aynı şirketle açılsın (kartlardaki sayı ile rapor sayısı tutsun)
+                      const effectsWillReset = activeReport !== id || activeCompany !== dc;
+                      goReport(id);
+                      if (opts.atilStage) setAtilStage(opts.atilStage);
+                      setActiveCompany(dc);
+                      setTypeFilter([]); setModelFilter([]); setWindowsFilter([]); setStatusFilter([]); setSearch(""); setShowSnoozed(false);
+                      if (effectsWillReset) pendingNavRef.current = { location: opts.location, segment: opts.segment, status: opts.status };
+                      else { setLocationFilter(opts.location ? [opts.location] : []); setStatusFilter(opts.status ? [opts.status] : []); setSegment(opts.segment || "all"); }
+                  };
                   if (execView) {
-                    return <ExecutiveSummary data={v2} snapshots={reportSnapshots} company={dc} summaryToggle={summaryPeriodToggle} onBack={() => toggleExecView(false)} />;
+                    return <ExecutiveSummary data={v2} snapshots={reportSnapshots} company={dc} summaryToggle={summaryPeriodToggle} onBack={() => toggleExecView(false)} onNavigate={dashNavigate} styles={styles} pal={pal} />;
                   }
                   return (
                     <DashboardV2
@@ -3505,17 +3492,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                           pal={pal}
                         />
                       }
-                      onNavigate={(id, opts = {}) => {
-                        if (id === "bant-genisligi") { closeAllViews(); setActiveNetworkView(id); setSelectedKeys(new Set()); return; }
-                        // şirket seçiliyken rapor da aynı şirketle açılsın (kartlardaki sayı ile rapor sayısı tutsun)
-                        const effectsWillReset = activeReport !== id || activeCompany !== dc;
-                        goReport(id);
-                        if (opts.atilStage) setAtilStage(opts.atilStage);
-                        setActiveCompany(dc);
-                        setTypeFilter([]); setModelFilter([]); setWindowsFilter([]); setStatusFilter([]); setSearch(""); setShowSnoozed(false);
-                        if (effectsWillReset) pendingNavRef.current = { location: opts.location, segment: opts.segment, status: opts.status };
-                        else { setLocationFilter(opts.location ? [opts.location] : []); setStatusFilter(opts.status ? [opts.status] : []); setSegment(opts.segment || "all"); }
-                      }}
+                      onNavigate={dashNavigate}
                       onBack={() => toggleDashboardDemo(false)}
                     />
                   );
@@ -3552,7 +3529,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                           <p style={styles.pageSub}>İnaktif Cihazlar, Disk Alanı ve Zimmet Uyuşmazlığı gerçek verilerle</p>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <button style={styles.btnGhost} onClick={() => toggleDashboardDemo(true)} title="Yeni Ana Sayfa tasarımının demosunu göster">✨ Yeni tasarımı dene (demo)</button>
+                          <button style={styles.btnGhost} onClick={() => toggleDashboardDemo(true)} title="Yeni Ana Sayfa tasarımına geç">✨ Yeni görünüme geç</button>
                           <span style={{ fontSize: 12, color: pal.inkSoft }}>Kart özetleri:</span>
                           {summaryPeriodToggle}
                         </div>
@@ -4704,9 +4681,6 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               pal={pal}
               rows={byCompany(bottleneck.rows, activeCompany)}
               summary={bottleneck.summary}
-              resourceMeta={realResourceMeta}
-              onUploadResource={handleManualResourceFile}
-              isMaster={isMaster}
               loading={loadingRealSccm}
             />
           ) : activeReport === "sccm-ajan" && !activeNetworkView ? (
@@ -5191,6 +5165,9 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     </svg>
                     PDF'e Aktar
                   </button>
+                  {isLokasyonIp && (
+                    <button style={styles.btnGhost} onClick={previewLocationIpMail} data-locip-preview>E-posta önizle</button>
+                  )}
                   {/* Seçim varsa doğrudan seçililere gönderilir; seçim yoksa "hepsine gidecek" onayı sorulur */}
                   <button style={styles.btnPrimary} onClick={() => (selectedKeys.size > 0 ? handleMailAndReset() : setConfirmMailOpen(true))}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -5387,6 +5364,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
           </div>
         </div>
       )}
+
+      <MailPreviewModal preview={mailPreviewData} onClose={() => setMailPreviewData(null)} styles={styles} noRecipientText="— (SCCM'de bu cihaz için kullanıcı maili bulunamadı)" />
 
       {confirmMailOpen && (
         <div style={styles.modalOverlay} onClick={() => setConfirmMailOpen(false)}>

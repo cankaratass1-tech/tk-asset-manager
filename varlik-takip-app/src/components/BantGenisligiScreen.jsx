@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Donut from "./Donut";
+import MailPreviewModal from "./MailPreviewModal";
 import { backendClient } from "../services/backendClient";
 import { buildBantMail, resolveBantRecipient, groupWarningOffices } from "../services/bantMailService";
 
@@ -284,19 +285,7 @@ export default function BantGenisligiScreen({
         </>
       )}
 
-      {preview && (
-        <div style={styles.modalOverlay} onClick={() => setPreview(null)}>
-          <div style={{ ...styles.modalCard, width: "min(820px, 100%)", maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <p style={styles.modalTitle}>E-posta önizleme</p>
-              <span style={styles.modalClose} onClick={() => setPreview(null)}>✕</span>
-            </div>
-            <p style={{ ...styles.modalSub, margin: "0 0 4px" }}><strong>Konu:</strong> {preview.subject}</p>
-            <p style={{ ...styles.modalSub, margin: "0 0 12px" }}><strong>Alıcı:</strong> {preview.to || "— (Lokasyon Mail Listesi'nde adres yok; üstteki kutuya girin)"}</p>
-            <div style={{ background: "#fff", color: "#1a1a1a", borderRadius: 8, padding: 12 }} dangerouslySetInnerHTML={{ __html: preview.html }} />
-          </div>
-        </div>
-      )}
+      <MailPreviewModal preview={preview} onClose={() => setPreview(null)} styles={styles} noRecipientText="— (Lokasyon Mail Listesi'nde adres yok; üstteki kutuya girin)" />
 
       {bulkOpen && bulkPlan && (
         <div style={styles.modalOverlay} onClick={() => setBulkOpen(false)}>
