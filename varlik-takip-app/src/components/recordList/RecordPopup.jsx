@@ -53,32 +53,32 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
             })()}
             <div style={{ marginTop: 14 }}>
               <div style={styles.detailFieldRow}>
-                <span style={{ color: pal.inkSoft }}>Zimmetli kişi</span>
-                <span style={{ textAlign: "right" }}>
+                <span style={{ color: pal.ink, fontWeight: 700 }}>Zimmetli kişi</span>
+                <span style={{ textAlign: "left" }}>
                   {row.owner}
                   {ownerTitleOf(row.ownerFull) && <div style={{ fontSize: 12, color: pal.inkSoft }}>{ownerTitleOf(row.ownerFull)}</div>}
                 </span>
               </div>
               <div style={styles.detailFieldRow}>
-                <span style={{ color: pal.inkSoft }}>Kullanan kişi</span>
-                <span style={{ textAlign: "right" }}>
+                <span style={{ color: pal.ink, fontWeight: 700 }}>Kullanan kişi</span>
+                <span style={{ textAlign: "left" }}>
                   {row.userFullName || row.userLabel}
                   {row.userFullTitle && <div style={{ fontSize: 12, color: pal.inkSoft }}>{row.userFullTitle}</div>}
                 </span>
               </div>
               <div style={styles.detailFieldRow}>
-                <span style={{ color: pal.inkSoft }}>Zimmet türü</span>
+                <span style={{ color: pal.ink, fontWeight: 700 }}>Zimmet türü</span>
                 <span>{row.assignmentType === "OBS" ? "OBS (Müdürlük)" : row.assignmentType === "User" ? "User (Kişi)" : "—"}</span>
               </div>
               <div style={styles.detailFieldRow}>
-                <span style={{ color: pal.inkSoft }}>Windows</span>
-                <span title={row.windowsDetail || ""} style={{ textAlign: "right" }}>
+                <span style={{ color: pal.ink, fontWeight: 700 }}>Windows</span>
+                <span title={row.windowsDetail || ""} style={{ textAlign: "left" }}>
                   {row.windowsLabel ? `${row.windowsLabel} · ${row.windowsSupportLabel || ""}` : <span style={{ color: pal.inkSoft }}>Veri Yok</span>}
                 </span>
               </div>
               {!descriptionShownInAlert(row) && <DescriptionRow text={row.model} styles={styles} pal={pal} />}
               <div style={{ ...styles.detailFieldRow, ...(row.monitorDetails?.length > 0 ? {} : { borderBottom: "none" }) }}>
-                <span style={{ color: pal.inkSoft }}>Durum</span>
+                <span style={{ color: pal.ink, fontWeight: 700 }}>Durum</span>
                 <span style={{ ...styles.badge, ...(row.matched ? styles.badgeOk : isZimmetUnverified(row.statusTag) ? styles.badgeNeutral : styles.badgeBad) }}>
                   <span style={{ ...styles.badgeDot, background: row.matched ? pal.ok : isZimmetUnverified(row.statusTag) ? pal.inkSoft : pal.bad }} />
                   {row.statusTag}
@@ -148,32 +148,32 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
               );
             })()}
             <div style={styles.detailFieldRow}>
-              <span style={{ color: pal.inkSoft }}>Sahibi</span>
+              <span style={{ color: pal.ink, fontWeight: 700 }}>Sahibi</span>
               <span>{row.ownerFull || row.owner || "—"}</span>
             </div>
             {row.model && (
               <div style={styles.detailFieldRow}>
-                <span style={{ color: pal.inkSoft }}>Model</span>
+                <span style={{ color: pal.ink, fontWeight: 700 }}>Model</span>
                 <span>{row.model}</span>
               </div>
             )}
             {row.company && (
               <div style={styles.detailFieldRow}>
-                <span style={{ color: pal.inkSoft }}>Şirket</span>
+                <span style={{ color: pal.ink, fontWeight: 700 }}>Şirket</span>
                 <span>{row.company}</span>
               </div>
             )}
             {row.hostname && (
               <div style={styles.detailFieldRow}>
-                <span style={{ color: pal.inkSoft }}>Hostname / Son Giriş</span>
-                <span style={{ textAlign: "right" }}>
+                <span style={{ color: pal.ink, fontWeight: 700 }}>Hostname / Son Giriş</span>
+                <span style={{ textAlign: "left" }}>
                   <div style={{ fontFamily: "var(--font-mono)" }}>{row.hostname}</div>
                   {row.actualUser && <div style={{ color: pal.inkSoft, fontSize: 13 }}>{row.actualUser}</div>}
                 </span>
               </div>
             )}
             <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}>
-              <span style={{ color: pal.inkSoft }}>Lokasyon</span>
+              <span style={{ color: pal.ink, fontWeight: 700 }}>Lokasyon</span>
               <span>{row.location || "—"}</span>
             </div>
             {row.matched && row.matchDetail && <DescriptionRow text={row.matchDetail} styles={styles} pal={pal} />}
@@ -183,7 +183,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
               const ok = tone ? tone === "ok" : row.matched;
               return (
                 <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}>
-                  <span style={{ color: pal.inkSoft }}>Durum</span>
+                  <span style={{ color: pal.ink, fontWeight: 700 }}>Durum</span>
                   <span style={{ ...styles.badge, ...(ok ? styles.badgeOk : !tone && unverified ? styles.badgeNeutral : styles.badgeBad) }}>
                     <span style={{ ...styles.badgeDot, background: ok ? pal.ok : !tone && unverified ? pal.inkSoft : pal.bad }} />
                     {row.statusTag}

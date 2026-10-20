@@ -187,7 +187,7 @@ export function buildStyles(p) {
     // satırı doldurup "boşta kalan alanı" sıfırlayınca etiket ve değer bitişik/boşluksuz
     // görünüyordu (bkz. konuşma — ekran görüntüsüyle işaretlendi: "ModelSYNOB000000..."). gap,
     // içerik ne kadar uzun olursa olsun aralarında asgari boşluğu garanti eder.
-    detailFieldRow: { display: "flex", justifyContent: "space-between", gap: 14, padding: "15px 0", borderBottom: `1px solid ${p.line}`, fontSize: 14 },
+    detailFieldRow: { display: "grid", gridTemplateColumns: "minmax(110px, 36%) minmax(0, 1fr)", columnGap: 16, alignItems: "start", justifyItems: "start", padding: "13px 0", borderBottom: `1px solid ${p.line}`, fontSize: 14, lineHeight: 1.45 },
     detailAlert: { padding: "16px 18px", borderRadius: 10, background: p.badBg, border: `1px solid ${p.bad}33` },
     detailAlertTitle: { fontSize: 14, fontWeight: 700, color: p.bad },
     detailAlertBody: { marginTop: 5, fontSize: 14, lineHeight: 1.55, color: p.inkSoft },

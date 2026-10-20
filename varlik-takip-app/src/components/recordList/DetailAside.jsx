@@ -76,9 +76,9 @@ function NotesBlock({ row, rowMeta, addNote, editNote, deleteNote, styles, pal }
   };
 
   return (
-    <div style={{ ...styles.detailFieldRow, borderBottom: "none", flexDirection: "column", alignItems: "flex-start", gap: 10, width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10, width: "100%", padding: "13px 0" }}>
       <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
-        <span style={{ color: pal.inkSoft, fontSize: 13 }}>Notlar</span>
+        <span style={{ color: pal.ink, fontSize: 14, fontWeight: 700 }}>Notlar</span>
         {notes.length === 0 && <span style={{ color: pal.inkSoft, fontSize: 13 }}>Henüz not eklenmedi</span>}
         {notes.map((n) => (
           <NoteRow
@@ -196,15 +196,15 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
 
       <div>
         <div style={styles.detailFieldRow}>
-          <span style={{ color: pal.inkSoft }}>{serialLabel || "Seri No"}</span>
+          <span style={{ color: pal.ink, fontWeight: 700 }}>{serialLabel || "Seri No"}</span>
           <span style={{ fontFamily: "var(--font-mono)" }}>{row.serial}</span>
         </div>
         <div style={styles.detailFieldRow}>
-          <span style={{ color: pal.inkSoft }}>{isZimmet ? "Cihaz Türü" : modelLabel || "Model"}</span>
+          <span style={{ color: pal.ink, fontWeight: 700 }}>{isZimmet ? "Cihaz Türü" : modelLabel || "Model"}</span>
           <span>{isZimmet ? row.sub : row.model}</span>
         </div>
         <div style={styles.detailFieldRow}>
-          <span style={{ color: pal.inkSoft }}>{isZimmet ? "Kullanan Kişi" : locationLabel || "Lokasyon"}</span>
+          <span style={{ color: pal.ink, fontWeight: 700 }}>{isZimmet ? "Kullanan Kişi" : locationLabel || "Lokasyon"}</span>
           <span
             style={isZimmet && row.userLabel !== "—" && row.userLabel !== "Tespit Edilemedi" ? styles.clickableName : undefined}
             onClick={isZimmet && row.userLabel !== "—" && row.userLabel !== "Tespit Edilemedi" ? () => setSelectedPerson(row.userLabel) : undefined}
@@ -215,8 +215,8 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
         </div>
         {isZimmet && (
           <div style={styles.detailFieldRow}>
-            <span style={{ color: pal.inkSoft }}>Windows</span>
-            <span title={row.windowsDetail || ""} style={{ textAlign: "right" }}>
+            <span style={{ color: pal.ink, fontWeight: 700 }}>Windows</span>
+            <span title={row.windowsDetail || ""} style={{ textAlign: "left" }}>
               {row.windowsLabel || <span style={{ color: pal.inkSoft }}>Veri Yok</span>}
               {row.windowsSupportLabel && (
                 <div style={{ fontSize: 12, fontWeight: 700, color: row.windowsStatus === "ended" ? pal.bad : row.windowsStatus === "ending" ? pal.warnFg : row.windowsStatus === "supported" ? pal.ok : pal.inkSoft }}>{row.windowsSupportLabel}</div>
@@ -226,14 +226,14 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
         )}
         {isZimmet && (
           <div style={styles.detailFieldRow}>
-            <span style={{ color: pal.inkSoft }}>Zimmet Türü</span>
+            <span style={{ color: pal.ink, fontWeight: 700 }}>Zimmet Türü</span>
             <span>{row.assignmentType === "OBS" ? "OBS (Müdürlük)" : row.assignmentType === "User" ? "User (Kişi)" : "—"}</span>
           </div>
         )}
         {isZimmet && !descriptionShownInAlert(row) && <DescriptionRow text={row.model} styles={styles} pal={pal} />}
         {!isZimmet && row.matched && row.matchDetail && <DescriptionRow text={row.matchDetail} styles={styles} pal={pal} />}
         <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}>
-          <span style={{ color: pal.inkSoft }}>Durum</span>
+          <span style={{ color: pal.ink, fontWeight: 700 }}>Durum</span>
           {(() => {
             const unverified = isZimmet ? isZimmetUnverified(row.statusTag) : isInaktifUnverified(row.statusTag);
             return (
@@ -248,8 +248,8 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
         {/* Gereksinim: "X kişisine ait monitörü Y kişisi kullanıyor mu" — kısa, taranabilir kartlar
             (önceki hal tek bir uzun paragraftı, kullanıcı geri bildirimi: "çok karmaşık"). */}
         {isZimmet && row.monitorDetails?.length > 0 && (
-          <div style={{ ...styles.detailFieldRow, borderBottom: "none", flexDirection: "column", alignItems: "flex-start", gap: 8, width: "100%", paddingTop: 16 }}>
-            <span style={{ color: pal.inkSoft, fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Bağlı Monitörler</span>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 8, width: "100%", paddingTop: 16 }}>
+            <span style={{ color: pal.ink, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Bağlı Monitörler</span>
             {row.monitorDetails.map((m, i) => {
               const badgeStyle = m.ok === true ? styles.badgeOk : m.ok === false ? styles.badgeBad : styles.badgeNeutral;
               const dotColor = m.ok === true ? pal.ok : m.ok === false ? pal.bad : pal.inkSoft;

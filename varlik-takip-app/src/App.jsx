@@ -4598,12 +4598,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         <>
                           <p style={{ ...styles.pageTitle, fontSize: 18 }}>Gönderim Detayı</p>
                           <div>
-                            <div style={styles.detailFieldRow}><span style={{ color: pal.inkSoft }}>Gönderen kullanıcı</span><span>{h.senderUsername || "—"}</span></div>
-                            <div style={styles.detailFieldRow}><span style={{ color: pal.inkSoft }}>Gönderim tarihi</span><span>{h.date}</span></div>
-                            <div style={styles.detailFieldRow}><span style={{ color: pal.inkSoft }}>Gönderim saati</span><span>{h.time || "—"}</span></div>
-                            <div style={styles.detailFieldRow}><span style={{ color: pal.inkSoft }}>Rapor türü</span><span>{h.report}</span></div>
-                            <div style={styles.detailFieldRow}><span style={{ color: pal.inkSoft }}>Gönderim durumu</span><span>{h.status}</span></div>
-                            <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}><span style={{ color: pal.inkSoft }}>Gönderilen kişi sayısı</span><span>{h.recipients}</span></div>
+                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderen kullanıcı</span><span>{h.senderUsername || "—"}</span></div>
+                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderim tarihi</span><span>{h.date}</span></div>
+                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderim saati</span><span>{h.time || "—"}</span></div>
+                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Rapor türü</span><span>{h.report}</span></div>
+                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderim durumu</span><span>{h.status}</span></div>
+                            <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderilen kişi sayısı</span><span>{h.recipients}</span></div>
                           </div>
 
                           <div>
