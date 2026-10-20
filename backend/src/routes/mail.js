@@ -1,9 +1,16 @@
+const fs = require("fs");
+const path = require("path");
 const express = require("express");
 const nodemailer = require("nodemailer");
 const { readSection } = require("../store");
 const { buildTransport } = require("../mailTransport");
 
 const router = express.Router();
+
+// Mail başlığındaki logo: gövdede <img src="cid:mail-logo"> varsa dosya gömülü ek olarak eklenir (Outlook/Gmail'de dış bağlantı/base64'e göre güvenilir).
+const LOGO_PATH = path.join(__dirname, "..", "..", "assets", "mail-logo.png");
+const logoAttachments = (html) =>
+  html && html.includes("cid:mail-logo") && fs.existsSync(LOGO_PATH) ? [{ filename: "logo.png", path: LOGO_PATH, cid: "mail-logo" }] : [];
 
 // Alıcı listesi çağıran taraftan gelir; backend alıcı belirleme mantığı içermez
 router.post("/send", async (req, res) => {
@@ -24,6 +31,7 @@ router.post("/send", async (req, res) => {
       subject,
       text: text || "",
       html: html || undefined,
+      attachments: logoAttachments(html),
     });
     res.json({ ok: true, messageId: info.messageId, accepted: info.accepted, previewUrl: nodemailer.getTestMessageUrl(info) || undefined });
   } catch (err) {

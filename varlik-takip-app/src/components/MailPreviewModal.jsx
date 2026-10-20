@@ -1,3 +1,5 @@
+import logoUrl from "../assets/mail-logo.png";
+
 // Ortak e-posta önizleme penceresi (Bant, Lokasyon/IP…): konu, alıcı ve gönderilecek HTML'in aynısı.
 export default function MailPreviewModal({ preview, onClose, styles, noRecipientText = "— (alıcı adresi bulunamadı)" }) {
   if (!preview) return null;
@@ -10,7 +12,7 @@ export default function MailPreviewModal({ preview, onClose, styles, noRecipient
         </div>
         <p style={{ ...styles.modalSub, margin: "0 0 4px" }}><strong>Konu:</strong> {preview.subject}</p>
         <p style={{ ...styles.modalSub, margin: "0 0 12px" }}><strong>Alıcı:</strong> {preview.to || noRecipientText}</p>
-        <div style={{ background: "#fff", color: "#1a1a1a", borderRadius: 8, padding: 12 }} dangerouslySetInnerHTML={{ __html: preview.html }} />
+        <div style={{ background: "#fff", color: "#1a1a1a", borderRadius: 8, padding: 12 }} dangerouslySetInnerHTML={{ __html: String(preview.html || "").replaceAll("cid:mail-logo", logoUrl) }} />
       </div>
     </div>
   );

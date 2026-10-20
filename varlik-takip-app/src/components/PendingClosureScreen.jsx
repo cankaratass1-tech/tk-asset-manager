@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { backendClient } from "../services/backendClient";
 import { buildUstYonetimEmailSet, isUstYonetimEmail, fetchUstYonetimEmails } from "../services/ustYonetimService";
 import Pagination from "./Pagination";
+import { mailShell, dataTable, MAIL_FOOTER } from "../services/mailLayout";
 
 // "Kapatma Onayı Bekleyen Kayıtlar" — ayrı bir veri kaynağı DEĞİL, "Yeni Kurulum Kaydı" akışının
 // bir alt kümesi (bkz. konuşma). Akış: form → cihaz hazırlanır → kullanıcıya "ATO kaydına
@@ -22,7 +23,6 @@ const daysSince = (d) => {
   return Number.isNaN(t) ? null : Math.floor((Date.now() - t) / 86400000);
 };
 
-const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // Kullanıcının verdiği hazır metin (bkz. konuşma) — sabit gövde + kullanıcının paylaştığı ekran
 // görüntüsündeki tablo şablonu: Barkod / Seri No / Varlık Adı / ATO Code / Etkilenen Kullanıcı.
@@ -50,28 +50,26 @@ const MAIL_TEXT = {
 
 // recs: bir veya birden fazla kayıt (tek satırlık hatırlatma da, toplu hatırlatma da aynı fonksiyonu
 // kullanır — NewInstallScreen.buildMailHtml'deki çoklu satır deseniyle aynı).
+const CLOSURE_FRAME = {
+  tr: { eyebrow: "KAPATMA ONAYI", title: "ONAYINIZ BEKLENİYOR", footer: MAIL_FOOTER },
+  en: { eyebrow: "CLOSURE APPROVAL", title: "YOUR APPROVAL IS PENDING", footer: "This notification was generated automatically from inventory records. Thank you · IT Operations / IT Support" },
+};
 function buildClosureReminderHtml(recs, thBySerial, lang = "tr") {
   const T = MAIL_TEXT[lang] || MAIL_TEXT.tr;
-  const body = recs
-    .map((r) => {
-      const th = thBySerial.get(norm(r.serial));
-      const cells = [(th && th.barkod) || "", r.serial || "", (th && (th.asset || th.model)) || "", r.atoNo || "", r.userInfo || ""];
-      return `<tr>${cells.map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${esc(c)}</td>`).join("")}</tr>`;
-    })
-    .join("");
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
-    <p>${T.greeting}</p>
-    <p>${T.intro}</p>
-    <p>${T.body}</p>
-    <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
-      <thead>
-        <tr style="background:#f0f0f0;">
-          ${T.head.map((h) => `<th style="border:1px solid #ccc;padding:6px 8px;text-align:left;">${h}</th>`).join("")}
-        </tr>
-      </thead>
-      <tbody>${body}</tbody>
-    </table>
-  </div>`;
+  const F = CLOSURE_FRAME[lang] || CLOSURE_FRAME.tr;
+  const rows = recs.map((r) => {
+    const th = thBySerial.get(norm(r.serial));
+    return [(th && th.barkod) || "", r.serial || "", (th && (th.asset || th.model)) || "", r.atoNo || "", r.userInfo || ""];
+  });
+  return mailShell({
+    eyebrow: F.eyebrow,
+    title: F.title,
+    greeting: T.greeting,
+    intro: T.intro,
+    bodyHtml: dataTable(T.head, rows),
+    action: T.body,
+    footer: F.footer,
+  });
 }
 
 export default function PendingClosureScreen({ styles, pal, showToast, thRows = [] }) {

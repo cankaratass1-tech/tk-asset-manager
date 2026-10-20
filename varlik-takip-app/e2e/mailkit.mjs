@@ -71,7 +71,7 @@ function splitHeaders(raw) {
 
 // Dönen: { to, from, subject, text, html }
 export function parseEml(raw) {
-  const out = { to: "", from: "", subject: "", text: "", html: "" };
+  const out = { to: "", from: "", subject: "", text: "", html: "", attachments: [] };
   const walk = (part) => {
     const { headers, body } = splitHeaders(part);
     const ct = headers["content-type"] || "text/plain";
@@ -80,6 +80,7 @@ export function parseEml(raw) {
       body.split(`--${boundary}`).slice(1).forEach((p) => { if (!p.startsWith("--")) walk(p.replace(/^\r?\n/, "")); });
     } else if (/text\/html/i.test(ct)) out.html += decodeBody(body, headers["content-transfer-encoding"]);
     else if (/text\/plain/i.test(ct)) out.text += decodeBody(body, headers["content-transfer-encoding"]);
+    else if (headers["content-id"]) out.attachments.push({ cid: String(headers["content-id"]).replace(/[<>]/g, ""), type: String(ct).split(";")[0].trim() });
     return headers;
   };
   const top = splitHeaders(raw).headers;

@@ -5,31 +5,29 @@ import Pagination from "./Pagination";
 import { computeAtilMonitorRows, buildOtherUserMailPlan, REASON_ACTIVE, REASON_DEPOT_USED, REASON_NOT_ATTACHED, REASON_USED_BY_OTHER } from "../services/atilMonitorService";
 import { backendClient } from "../services/backendClient";
 import { ownerTitleOf, ownerWithTitle } from "../services/ownerName";
+import { mailShell, dataTable, stepsBox, REC_NOTE, MAIL_FOOTER } from "../services/mailLayout";
 
-const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-// Metin, Zimmet Uyuşmazlığı mailiyle aynı şablon (App.jsx buildZimmetCombinedMailHtml): aynı giriş,
-// aynı sütunlar, aynı Turuncuhat kayıt talimatı — "cihaz" yerine "monitör".
+// Metin, Zimmet Uyuşmazlığı mailiyle aynı şablon: aynı giriş, aynı sütunlar, aynı Turuncuhat kayıt talimatı — "cihaz" yerine "monitör".
+// Görünüm: Ofis Bant Genişliği ile ortak çerçeve (services/mailLayout.js).
 const MAIL_SUBJECT = "Zimmet Uyuşmazlığı — Kullandığınız Cihaz(lar) İçin Zimmet Transferi Gerekli";
-const MAIL_HEAD = ["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"];
-const mailCells = (r, username) => [r.monitorSerial, r.barkod, r.marka, r.model, r.asset, ownerWithTitle(r), r.hostnames, username];
 const buildMailText = (items, username) =>
   `Aşağıdaki cihaz(lar) için aksiyon gereklidir:\n\n${items
     .map((r) => `- ${r.monitorSerial} (${r.model || "—"}) — kayıtlı eski sahibi: ${ownerWithTitle(r)}`)
     .join("\n")}\n\nTuruncuhat: turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → ilgili zimmet servisi.`;
-const buildMailHtml = (items, username) => `
-  <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
-    <p>Merhabalar,</p>
-    <p>Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi farklı bir kişi görünüyor. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.</p>
-    <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
-      <thead><tr style="background:#f0f0f0;">${MAIL_HEAD.map((h) => `<th style="border:1px solid #ccc;padding:6px 8px;text-align:left;">${h}</th>`).join("")}</tr></thead>
-      <tbody>${items
-        .map((r) => `<tr>${mailCells(r, username).map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escHtml(c)}</td>`).join("")}</tr>`)
-        .join("")}</tbody>
-    </table>
-    <p style="margin-top:12px;">İşleminiz için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:</p>
-    <p>turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → açılan pencerede Servis kısmına tıklayıp arama bölümünden ilgili zimmet servisini seçin → gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz.</p>
-    <p style="margin-top:12px;">Kayıt açıklama kısmına yukarıdaki cihaz bilgilerini (Seri No, Hostname vb.) eklemeniz, işleminizin daha hızlı değerlendirilmesine yardımcı olacaktır.</p>
-  </div>`;
+const buildMailHtml = (items, username) =>
+  mailShell({
+    eyebrow: "MONİTÖR ZİMMET UYUŞMAZLIĞI",
+    title: "ZİMMET TRANSFERİ GEREKLİ",
+    greeting: "Merhabalar,",
+    intro: "Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi farklı bir kişi görünüyor. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.",
+    bodyHtml: dataTable(
+      ["Seri No / Barkod", "Marka / Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"],
+      items.map((r) => [[r.monitorSerial, r.barkod], [r.marka, r.model], r.asset, ownerWithTitle(r), r.hostnames, username])
+    ),
+    action: stepsBox("İşleminiz için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:"),
+    notes: [REC_NOTE],
+    footer: MAIL_FOOTER,
+  });
 
 const PAGE_SIZE = 50;
 const norm = (v) => String(v ?? "").trim().toLowerCase();

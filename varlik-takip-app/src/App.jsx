@@ -17,6 +17,7 @@ import { mapThRows, fetchThRowsFromFile } from "./services/thFileService";
 import { mapMonitorRows, fetchMonitorRowsFromFile } from "./services/monitorFileService";
 import { fetchLokasyonMailRowsFromFile, mapLokasyonMailRows, resolveMailForLocationName } from "./services/lokasyonMailService";
 import { computeLocationIpRows, buildLocationIpMail } from "./services/locationIpService";
+import { mailShell, infoTable, dataTable, mailSection, stepsBox, REC_NOTE, MAIL_FOOTER } from "./services/mailLayout";
 import MailPreviewModal from "./components/MailPreviewModal";
 import { mapBsodRows, fetchBsodRowsFromFile } from "./services/bsodFileService";
 import { computeBottlenecks } from "./services/bottleneckService";
@@ -1400,136 +1401,69 @@ export default function App({ user, onLogout } = {}) {
   const escapeHtml = (v) =>
     String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  // İnaktif Cihazlar mail içeriği — kullanıcının paylaştığı örnek şablona göre (bkz. konuşma):
-  // sabit metin + No/Barkod/Marka/Model/Varlık Adı/Seri No/Cihaz Sahibi tablosu.
-  // Bu alanların hepsi gerçek Excel sütunlarından (r._raw) geliyor, uydurma veri yok.
-  const buildInaktifMailHtml = (loc, rows) => {
-    const tableRows = rows
-      .map((r) => {
-        const raw = r._raw || {};
-        // "Last Logon" — bu senaryoda (İnaktif — Kullanılmıyor) genelde SCCM'de aktif giriş kaydı
-        // yoktur; hücre boş kalması "kimse giriş yapmamış" demektir ve mailin iddiasını (cihaz
-        // kullanılmıyor) belgeler. SCCM'de eski/bayat bir LastLogonTime varsa yine de gösterilir
-        // (bkz. konuşma: "bunu diğer senaryo içinde de yapalım"). Hostname da tutarlılık için eklendi.
-        const lastLogon = [r.actualUser, r.lastLogonTime].filter(Boolean).join(" · ");
-        const cells = [r.serial, raw["Varlık Barkodu"], raw["Marka"], raw["Model"], raw["Asset"], r.ownerFull, r.hostname || "", lastLogon];
-        return `<tr>${cells.map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(c)}</td>`).join("")}</tr>`;
-      })
-      .join("");
-
-    return `
-      <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
-        <p>Merhabalar,</p>
-        <p>Lokasyonunuzda, aktif olmayan kullanıcıya ait aşağıda listelenen cihazların kayıtlı olduğu tespit edilmiştir. Yapılan kontrollerde, söz konusu cihazların sistem üzerinde aktif olarak kullanılmadığı görülmektedir.</p>
-        <p>İlgili cihazın mevcut durumu hakkında tarafımıza bilgi verilmesini rica ederiz. Bu kapsamda;</p>
-        <ul>
-          <li>Cihazın tarafınızca teslim alınıp alınmadığı,</li>
-          <li>Kullanıcı tarafından iade edilip edilmediği,</li>
-          <li>Farklı bir kullanıcı tarafından kullanılıp kullanılmadığı</li>
-        </ul>
-        <p>hususlarında bilgilendirme yapılması önem arz etmektedir.</p>
-        <p>Zimmet süreçlerinin doğru ve güncel şekilde yönetilebilmesi adına, gerekli geri bildiriminizi rica ederiz.</p>
-        <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
-          <thead>
-            <tr style="background:#f0f0f0;">
-              ${["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Cihaz Sahibi", "Hostname", "Last Logon"]
-                .map((h) => `<th style="border:1px solid #ccc;padding:6px 8px;text-align:left;">${h}</th>`)
-                .join("")}
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </div>`;
-  };
-
-  // "Kullanılıyor — Zimmet Aktarımı Gerekli" satırları için AYRI şablon (bkz. konuşma: "X cihazı
-  // biri kullanıyorsa ona tıkladığımda mail şablonu değişsin, eski şablon kalsın") — muhatap artık
-  // lokasyon değil, SCCM'den gelen gerçek kullanıcının kendisi; amaç zimmetin ona aktarılması.
-  const buildInaktifUsageMailHtml = (rows) => {
-    const tableRows = rows
-      .map((r) => {
-        const raw = r._raw || {};
-        // "Last Logon" — SCCM'e göre cihaza en son giriş yapan kullanıcı (+ varsa giriş zamanı).
-        // Muhatap zaten bu kişi olsa da, birden fazla cihaz tek mailde listelenince hangi cihazda
-        // hangi kullanıcı adıyla göründüğü net olsun diye ayrı sütun (bkz. konuşma).
-        const lastLogon = [r.actualUser, r.lastLogonTime].filter(Boolean).join(" · ");
-        const cells = [r.serial, raw["Varlık Barkodu"], raw["Marka"], raw["Model"], raw["Asset"], ownerWithTitle(r), r.hostname, lastLogon];
-        return `<tr>${cells.map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(c)}</td>`).join("")}</tr>`;
-      })
-      .join("");
-
-    return `
-      <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
-        <p>Merhabalar,</p>
-        <p>Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi inaktif durumda. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz.</p>
-        <p>Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir. Bunun için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:</p>
-        <p>turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → açılan pencerede Servis kısmına tıklayıp arama bölümünden ilgili zimmet servisini seçin → gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz.</p>
-        <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
-          <thead>
-            <tr style="background:#f0f0f0;">
-              ${["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", "Kayıtlı Sahibi (Eski)", "Hostname", "Last Logon"]
-                .map((h) => `<th style="border:1px solid #ccc;padding:6px 8px;text-align:left;">${h}</th>`)
-                .join("")}
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-        <p style="margin-top:12px;">Kayıt açıklama kısmına yukarıdaki cihaz bilgilerini (Seri No, Hostname vb.) eklemeniz, işleminizin daha hızlı değerlendirilmesine yardımcı olacaktır.</p>
-      </div>`;
-  };
-
-  // Zimmet Uyuşmazlığı — kullanıcı isteği: "cihazı fiilen kullanan kişiye gitsin". Aynı şablon
-  // buildInaktifUsageMailHtml ile neredeyse birebir (zimmet transferi için Turuncuhat'tan kayıt
-  // açma talimatı) — tek fark alan adları: zimmetRows'ta aktif kullanıcı r.userFull/r.userLabel'de
-  // (bkz. comparisonService.js), r.actualUser'da değil.
-  const zimmetMailTableRow = (r) => {
+  // Mail içerikleri: Ofis Bant Genişliği Uyarısı ile aynı çerçeve (services/mailLayout.js — lacivert başlık bandı, çerçeveli gövde,
+  // tablo, aksiyon, not, alt bilgi). Metinler önceki şablonlarla aynıdır; yalnız görünüm ortaklaştı. Tüm değerler dataTable/mailShell içinde kaçırılır.
+  // Cihaz satırı: Seri No/Barkod · Marka/Model · Varlık Adı · sahip · Hostname · Last Logon (gerçek Excel sütunlarından, r._raw).
+  const devHead = (ownerLabel) => ["Seri No / Barkod", "Marka / Model", "Varlık Adı", ownerLabel, "Hostname", "Last Logon"];
+  const devRow = (r, owner, logon) => {
     const raw = r._raw || {};
-    const lastLogon = [r.userFull || r.userLabel, r.lastLogonTime].filter(Boolean).join(" · ");
-    const cells = [r.serial, raw["Varlık Barkodu"], raw["Marka"], raw["Model"], raw["Asset"], ownerWithTitle(r), r.hostname, lastLogon];
-    return `<tr>${cells.map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(c)}</td>`).join("")}</tr>`;
+    return [[r.serial, raw["Varlık Barkodu"]], [raw["Marka"], raw["Model"]], raw["Asset"], owner, r.hostname || "", logon];
   };
-  const zimmetMailTableHead = (ownerColLabel) =>
-    `<thead><tr style="background:#f0f0f0;">${["Seri No", "Barkod", "Marka", "Model", "Varlık Adı", ownerColLabel, "Hostname", "Last Logon"]
-      .map((h) => `<th style="border:1px solid #ccc;padding:6px 8px;text-align:left;">${h}</th>`)
-      .join("")}</tr></thead>`;
 
-  // Tek bir kişiye hem "Zimmet Hatalı" hem "Mükerrer Çift Zimmet" kaydı düşebiliyor (aynı mail
-  // adresine gidiyorlar, bkz. handleZimmetMail) — mailde iki ayrı bölüm olarak, net bir şekilde
-  // ayrılıyor ki muhatap hangi cihaz için hangi aksiyonu alacağını karıştırmasın.
+  // İnaktif Cihazlar — lokasyona gönderilen mail (kullanıcının paylaştığı şablon metni).
+  const buildInaktifMailHtml = (loc, rows) => {
+    const tableRows = rows.map((r) => devRow(r, ownerWithTitle(r), [r.actualUser, r.lastLogonTime].filter(Boolean).join(" · ")));
+    return mailShell({
+      eyebrow: "İNAKTİF CİHAZ",
+      title: "KULLANICI İNAKTİF — DURUM BİLDİRİMİ GEREKLİ",
+      greeting: "Merhabalar,",
+      intro: "Lokasyonunuzda, aktif olmayan kullanıcıya ait aşağıda listelenen cihazların kayıtlı olduğu tespit edilmiştir. Yapılan kontrollerde, söz konusu cihazların sistem üzerinde aktif olarak kullanılmadığı görülmektedir.",
+      bodyHtml:
+        dataTable(devHead("Cihaz Sahibi"), tableRows) +
+        `<p style="margin:12px 0 4px;">İlgili cihazın mevcut durumu hakkında tarafımıza bilgi verilmesini rica ederiz. Bu kapsamda;</p><ul style="margin:0 0 0 18px;padding:0;"><li>Cihazın tarafınızca teslim alınıp alınmadığı,</li><li>Kullanıcı tarafından iade edilip edilmediği,</li><li>Farklı bir kullanıcı tarafından kullanılıp kullanılmadığı</li></ul><p style="margin:8px 0 0;">hususlarında bilgilendirme yapılması önem arz etmektedir.</p>`,
+      action: "Zimmet süreçlerinin doğru ve güncel şekilde yönetilebilmesi adına, gerekli geri bildiriminizi rica ederiz.",
+      footer: MAIL_FOOTER,
+    });
+  };
+
+  // "Kullanılıyor — Zimmet Aktarımı Gerekli": muhatap SCCM'den gelen gerçek kullanıcı, amaç zimmetin ona aktarılması.
+  const buildInaktifUsageMailHtml = (rows) =>
+    mailShell({
+      eyebrow: "ZİMMET AKTARIMI",
+      title: "ZİMMET TRANSFERİ GEREKLİ",
+      greeting: "Merhabalar,",
+      intro: "Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi inaktif durumda. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.",
+      bodyHtml: dataTable(devHead("Kayıtlı Sahibi (Eski)"), rows.map((r) => devRow(r, ownerWithTitle(r), [r.actualUser, r.lastLogonTime].filter(Boolean).join(" · ")))),
+      action: stepsBox("Turuncuhat üzerinden kayıt oluşturunuz:"),
+      notes: [REC_NOTE],
+      footer: MAIL_FOOTER,
+    });
+
+  // Zimmet Uyuşmazlığı — cihazı fiilen kullanan kişiye. Aynı kişiye hem "Zimmet Hatalı" hem "Mükerrer Çift Zimmet" (ve monitör)
+  // kaydı düşebilir (aynı mail adresi): tek mailde bölümler halinde birleşir. Aktif kullanıcı r.userFull/r.userLabel'de (bkz. comparisonService.js).
+  const zimmetDevRow = (r) => devRow(r, ownerWithTitle(r), [r.userFull || r.userLabel, r.lastLogonTime].filter(Boolean).join(" · "));
   const buildZimmetCombinedMailHtml = (mismatchRows, duplicateRows, monitorRows = []) => {
-    const sections = [];
-    // Transfer gerektiren her şey TEK tabloda ve tek metinle: kayıtlı sahibi başkası olan cihazlar (Zimmet Hatalı)
-    // + kişinin kullandığı ama başkasına zimmetli monitörler (Zimmet Doğru + Monitör Uyuşmazlığı). Monitör
-    // satırında Hostname = bağlı olduğu cihaz, Last Logon = monitörü kullanan kişi.
+    // Monitör satırında Hostname = bağlı olduğu cihaz, Last Logon = monitörü kullanan kişi.
     const monitorEntries = monitorRows.flatMap((r) => (r.monitorDetails || []).filter((m) => m.ok === false));
-    const monitorTableRow = (m) => {
-      const cells = [m.serial, m.barkod, m.marka, m.label, m.asset, m.assignedToFull || m.assignedTo, m.hostname, m.usedBy];
-      return `<tr>${cells.map((c) => `<td style="border:1px solid #ccc;padding:6px 8px;">${escapeHtml(c)}</td>`).join("")}</tr>`;
-    };
-    if (mismatchRows.length || monitorEntries.length) {
-      sections.push(`
-        <p>Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi farklı bir kişi görünüyor. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.</p>
-        <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
-          ${zimmetMailTableHead("Kayıtlı Sahibi (Eski)")}
-          <tbody>${mismatchRows.map(zimmetMailTableRow).join("")}${monitorEntries.map(monitorTableRow).join("")}</tbody>
-        </table>`);
-    }
-    if (duplicateRows.length) {
-      sections.push(`
-        <p${mismatchRows.length || monitorEntries.length ? ' style="margin-top:18px;"' : ""}>Ayrıca, sistem kayıtlarımıza göre üzerinize <strong>birden fazla notebook</strong> zimmetli görünüyor (aşağıdaki liste). Zimmet envanterinin doğru tutulabilmesi için, kullanmadığınız cihaz(lar)ın iade edilmesi ya da gerçekten ihtiyaç duyduğunuz birden fazla cihaz varsa bu durumun gerekçesiyle birlikte bildirilmesi rica olunur.</p>
-        <table style="border-collapse:collapse;width:100%;font-size:13px;margin-top:8px;">
-          ${zimmetMailTableHead("Zimmetli Kişi")}
-          <tbody>${duplicateRows.map(zimmetMailTableRow).join("")}</tbody>
-        </table>`);
-    }
-    return `
-      <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.6;">
-        <p>Merhabalar,</p>
-        ${sections.join("")}
-        <p style="margin-top:12px;">İşleminiz için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:</p>
-        <p>turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → açılan pencerede Servis kısmına tıklayıp arama bölümünden ilgili zimmet servisini seçin → gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz.</p>
-        <p style="margin-top:12px;">Kayıt açıklama kısmına yukarıdaki cihaz bilgilerini (Seri No, Hostname vb.) eklemeniz, işleminizin daha hızlı değerlendirilmesine yardımcı olacaktır.</p>
-      </div>`;
+    const monitorDevRow = (m) => [[m.serial, m.barkod], [m.marka, m.label], m.asset, m.assignedToFull || m.assignedTo, m.hostname || "", m.usedBy];
+    const hasTransfer = mismatchRows.length > 0 || monitorEntries.length > 0;
+    const hasDup = duplicateRows.length > 0;
+    const TRANSFER_INTRO = "Sistem kayıtlarımıza göre, aşağıda listelenen cihaz(lar)ın kayıtlı sahibi farklı bir kişi görünüyor. Ancak son giriş kayıtlarına göre bu cihaz(lar)ı <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel şekilde yönetilebilmesi için, cihaz(lar)ın sizin adınıza zimmet transferinin yapılması gerekmektedir.";
+    const DUP_INTRO = "Sistem kayıtlarımıza göre üzerinize <strong>birden fazla notebook</strong> zimmetli görünüyor (aşağıdaki liste). Zimmet envanterinin doğru tutulabilmesi için, kullanmadığınız cihaz(lar)ın iade edilmesi ya da gerçekten ihtiyaç duyduğunuz birden fazla cihaz varsa bu durumun gerekçesiyle birlikte bildirilmesi rica olunur.";
+    const transferTable = dataTable(devHead("Kayıtlı Sahibi (Eski)"), [...mismatchRows.map(zimmetDevRow), ...monitorEntries.map(monitorDevRow)]);
+    const dupTable = dataTable(devHead("Zimmetli Kişi"), duplicateRows.map(zimmetDevRow));
+    return mailShell({
+      eyebrow: hasTransfer ? "ZİMMET UYUŞMAZLIĞI" : "MÜKERRER ZİMMET",
+      title: hasTransfer ? "ZİMMET TRANSFERİ GEREKLİ" : "MÜKERRER ÇİFT ZİMMET BİLDİRİMİ",
+      greeting: "Merhabalar,",
+      intro: hasTransfer ? TRANSFER_INTRO : DUP_INTRO,
+      bodyHtml: hasTransfer
+        ? transferTable + (hasDup ? mailSection("Mükerrer çift zimmet", `<p style="margin:0 0 8px;">Ayrıca, ${DUP_INTRO.charAt(0).toLowerCase()}${DUP_INTRO.slice(1)}</p>` + dupTable) : "")
+        : dupTable,
+      action: stepsBox("İşleminiz için lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden bir kayıt oluşturunuz:"),
+      notes: [REC_NOTE],
+      footer: MAIL_FOOTER,
+    });
   };
 
   // Zimmet Uyuşmazlığı "Mail Gönder" — ÖNCEDEN demo stub'du (bkz. konuşma: "hepsi için gidiyor mu"
@@ -1712,6 +1646,61 @@ Regards,
 IT Support`;
   };
 
+  // Kritik Disk Alanı HTML sürümü — metin sürümüyle (buildDiskMailText) aynı TR+EN içerik, Ofis Bant düzeninde.
+  const buildDiskMailHtml = (d) => {
+    const sccm = sccmByHostname.get(String(d.owner || "").trim().toLowerCase());
+    const hostname = d.owner;
+    const free = d.model;
+    const L = (tr) => ({
+      tr,
+      label: tr ? ["Hostname", "Cihaz", "Boş C Disk Alanı", "Toplam Disk Alanı", "Lokasyon", "Seri No", "OU Adı", "Bitlocker Durumu"] : ["Hostname", "Device", "Free Space", "Total Disk Space", "Location", "Serial Number", "OU Name", "Bitlocker Enabled"],
+    });
+    const info = (lab) => infoTable([
+      [lab[0], `<strong>${escapeHtml(hostname)}</strong>`],
+      [lab[1], escapeHtml(sccm?.deviceModel || "")],
+      [lab[2], `<strong style="color:#b42318;">${escapeHtml(free)}</strong>`],
+      [lab[3], escapeHtml(d.location)],
+      [lab[4], escapeHtml(sccm && sccm.location !== "—" ? sccm.location : "")],
+      [lab[5], escapeHtml(sccm?.serial || "")],
+      [lab[6], escapeHtml(sccm?.ouName || "")],
+      [lab[7], escapeHtml(sccm?.bitlocker || "")],
+    ]);
+    const list = (items) => `<ul style="margin:0 0 0 18px;padding:0;">${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+    const tr = mailShell({
+      eyebrow: "DİSK ALANI",
+      title: "KRİTİK DİSK ALANI",
+      greeting: "Merhaba,",
+      intro: `<strong>${escapeHtml(hostname)}</strong> hostname'li bilgisayarınızda C diski boş alanı kritik seviyenin altına düşmüştür.`,
+      bodyHtml: info(L(true).label) + `<p style="margin:14px 0 4px;">Disk alanının bu seviyede kalması durumunda cihazınızda aşağıdaki sorunlarla karşılaşabilirsiniz:</p>` + list([
+        "Windows ve güvenlik güncellemeleri indirilemez, cihazınız güncel olmayan ve güvenlik açıklarına maruz bir durumda kalır",
+        "Sistem performansında ciddi yavaşlamalar ve uygulamalarda donmalar yaşanabilir",
+        "VPN ve kurumsal ağ bağlantılarında kesintiler veya erişim sorunları oluşabilir",
+        "Yeni dosya kaydetme, e-posta indirme ve senkronizasyon işlemleri başarısız olabilir",
+        "İleri düzeyde, işletim sistemi kararsız hale gelip cihaz tamamen kullanılamaz duruma gelebilir",
+      ]),
+      action: "<strong>Olası veri kaybı ve iş kesintisini önlemek için lütfen en kısa sürede işlem yapınız.</strong>" + stepsBox("Lütfen aşağıdaki adımları izleyerek Turuncuhat üzerinden kayıt oluşturunuz:", "turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → Açılan pencerede Servis kısmına tıklayıp arama bölümünden Lenovo yazıp seçin → Sonrasında diğer gerekli alanları doldurup kaydet ve çık butonuna basabilirsiniz."),
+      notes: [REC_NOTE],
+      footer: "Regards, IT Support",
+    });
+    const en = mailShell({
+      eyebrow: "DISK SPACE",
+      title: "CRITICAL DISK SPACE",
+      greeting: "Hello,",
+      intro: `The C drive free space on your device with hostname <strong>${escapeHtml(hostname)}</strong> has dropped below the critical threshold.`,
+      bodyHtml: info(L(false).label) + `<p style="margin:14px 0 4px;">If the disk space remains at this level, you may experience the following issues on your device:</p>` + list([
+        "Windows and security updates cannot be downloaded, leaving your device outdated and exposed to security vulnerabilities",
+        "Significant slowdowns and application freezes may occur",
+        "VPN and corporate network connections may be interrupted or become inaccessible",
+        "Saving new files, downloading emails, and synchronization tasks may fail",
+        "In severe cases, the operating system may become unstable and the device may become completely unusable",
+      ]),
+      action: "<strong>Please take action as soon as possible to prevent potential data loss and business disruption.</strong>" + stepsBox("Please follow the steps below to create a ticket via Turuncuhat:", "turuncuhat.mhy.com.tr → Create → User Incident → Click Service (search Lenovo then select) → Fill in the other necessary fields, then click Save and Exit."),
+      notes: ["Including the device information above (Hostname, Serial Number, etc.) in the ticket description will help expedite the process."],
+      footer: "Regards, IT Support",
+    });
+    return `${tr}<div style="max-width:760px;margin:22px 0;border-top:1px dashed #d0d7de;"></div>${en}`;
+  };
+
   // Disk Alanı — gerçek gönderim: her kritik cihaz kendi (SCCM'den gelen gerçek) kullanıcı
   // mailine ayrı bir mail alır, İnaktif'teki lokasyon-mail eşleşmesine gerek yok (bkz. konuşma)
   const handleDiskMail = async () => {
@@ -1738,6 +1727,7 @@ IT Support`;
           to,
           subject: `Kritik Disk Alanı Uyarısı — ${d.owner}`,
           text: buildDiskMailText(d),
+          html: buildDiskMailHtml(d),
         });
         if (result.ok) {
           sent++;
@@ -2254,6 +2244,14 @@ IT Support`;
         to: testMailTo.trim(),
         subject: "Varlık Takip — Test Maili",
         text: "Bu, Varlık Takip uygulamasının SMTP ayarlarını doğrulamak için gönderdiği bir test mailidir.",
+        // Diğer maillerle aynı çerçeve (başlık bandı + logo): logonun gerçek mailde görünüp görünmediğini de buradan denetleyebilirsiniz
+        html: mailShell({
+          eyebrow: "SMTP TESTİ",
+          title: "TEST MAİLİ",
+          greeting: "Merhaba,",
+          intro: "Bu, Varlık Takip uygulamasının SMTP ayarlarını doğrulamak için gönderdiği bir test mailidir. Bu maili başlık bandında logoyla birlikte görüyorsanız mail ayarları ve şablon düzgün çalışıyor demektir.",
+          footer: MAIL_FOOTER,
+        }),
       });
       setBackendReachable(true);
       showToast(result.ok ? `Test maili gönderildi (${testMailTo.trim()})` : result.message);

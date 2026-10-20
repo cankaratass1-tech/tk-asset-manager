@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { backendClient } from "../services/backendClient";
 import Pagination from "./Pagination";
+import { mailShell, infoTable, dataTable } from "../services/mailLayout";
 
 // Formdaki tüm seçim alanları (Seri No, Lokasyon, Bitlocker, Durum, Nedeni) aynı görünüm ve davranışta
 // olsun diye tek açılır liste bileşeni (tarayıcının native select/datalist'i her biri farklı görünüyordu).
@@ -124,44 +125,46 @@ const MAIL_TEXT = {
   },
 };
 
-// Mail gövdesi — kullanıcının verdiği şablona birebir (bkz. konuşma). lang: "tr" | "en".
-// Tablo sütunları: Seri Numarası · Barkod · Model · Marka · Varlık Kataloğu · Varlık Transfer Emri
+// Mail gövdesi — kullanıcının verdiği şablon metni, Ofis Bant Genişliği ile ortak çerçevede (services/mailLayout.js). lang: "tr" | "en".
+// Tablo alanları: Seri Numarası · Barkod · Model · Marka · Varlık Kataloğu · Varlık Transfer Emri
 // Barkod/Marka form'da yok → seri no ile TuruncuHat'tan doldurulur. Varlık Transfer Emri = ATO NUMARASI.
+const MAIL_FRAME = {
+  tr: { eyebrow: "YENİ KURULUM", title: "CİHAZINIZ HAZIR", footer: "Teşekkürler · BT Operasyonları / IT Support" },
+  en: { eyebrow: "NEW INSTALLATION", title: "YOUR DEVICE IS READY", footer: "Thank you · IT Operations / IT Support" },
+};
 function buildMailHtml(recs, thRows = [], lang = "tr") {
   const T = MAIL_TEXT[lang] || MAIL_TEXT.tr;
+  const F = MAIL_FRAME[lang] || MAIL_FRAME.tr;
   const thBySerial = new Map();
   thRows.forEach((t) => {
     const k = String(t.serial || "").trim().toLowerCase();
     if (k) thBySerial.set(k, t);
   });
-  const body = recs
-    .map((r) => {
-      const th = thBySerial.get(String(r.serial || "").trim().toLowerCase());
-      // Sütun kaynakları (kullanıcı onayı): Seri No/Barkod/Model/Marka/Varlık Kataloğu → TH;
-      // Varlık Transfer Emri → form ATO NUMARASI.
-      const cells = [
-        (th && th.serial) || r.serial || "", // TH → SERİ NO
-        (th && th.barkod) || "", // TH → Varlık Barkodu
-        (th && th.deviceType) || "", // TH → "Model" sütunu
-        (th && th.marka) || "", // TH → Marka
-        (th && (th.asset || th.model)) || "", // TH → Asset (Varlık Kataloğu)
-        r.atoNo || "", // form → ATO NUMARASI
-      ];
-      return `<tr>${cells.map((c) => `<td style="border:1px solid #000;padding:6px 10px;">${esc(c)}</td>`).join("")}</tr>`;
-    })
-    .join("");
-  return `<div style="font-family:Calibri,Arial,Helvetica,sans-serif;font-size:14px;color:#000;line-height:1.55;">
-    <p>${T.greeting}</p>
-    <p>${T.intro}</p>
-    <table style="border-collapse:collapse;margin:10px 0 14px;">
-      <thead><tr>${T.head
-        .map((h) => `<th style="border:1px solid #000;padding:6px 10px;text-align:left;color:#C00000;font-weight:bold;white-space:nowrap;">${h}</th>`)
-        .join("")}</tr></thead>
-      <tbody>${body}</tbody>
-    </table>
-    <p>${T.addressLabel}: ${T.address}</p>
-    <p>${T.locationLabel} : <a href="https://goo.gl/maps/boaRCuAx7Qu">https://goo.gl/maps/boaRCuAx7Qu</a></p>
-  </div>`;
+  const rowsOf = recs.map((r) => {
+    const th = thBySerial.get(String(r.serial || "").trim().toLowerCase());
+    // Sütun kaynakları (kullanıcı onayı): Seri No/Barkod/Model/Marka/Varlık Kataloğu → TH; Varlık Transfer Emri → form ATO NUMARASI.
+    return [
+      (th && th.serial) || r.serial || "", // TH → SERİ NO
+      (th && th.barkod) || "", // TH → Varlık Barkodu
+      (th && th.deviceType) || "", // TH → "Model" sütunu
+      (th && th.marka) || "", // TH → Marka
+      (th && (th.asset || th.model)) || "", // TH → Asset (Varlık Kataloğu)
+      r.atoNo || "", // form → ATO NUMARASI
+    ];
+  });
+  // Tek cihaz (varsayılan, mail kayıt başına gider): bilgi alanı; birden fazla kayıt verilirse tablo.
+  const detail =
+    rowsOf.length === 1
+      ? infoTable(T.head.map((h, i) => [h, i === 0 ? `<strong>${esc(rowsOf[0][i])}</strong>` : esc(rowsOf[0][i]) || "—"]))
+      : dataTable(T.head, rowsOf);
+  return mailShell({
+    eyebrow: F.eyebrow,
+    title: F.title,
+    greeting: T.greeting,
+    intro: T.intro,
+    bodyHtml: `${detail}<p style="margin:14px 0 0;"><strong>${T.addressLabel}:</strong> ${T.address}</p><p style="margin:6px 0 0;"><strong>${T.locationLabel}:</strong> <a href="https://goo.gl/maps/boaRCuAx7Qu">https://goo.gl/maps/boaRCuAx7Qu</a></p>`,
+    footer: F.footer,
+  });
 }
 
 const norm = (v) => String(v || "").trim().toLowerCase();

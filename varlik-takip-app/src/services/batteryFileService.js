@@ -7,6 +7,7 @@
 // COL_* listelerine tam başlık eklenebilir.
 import { shortHost } from "./bsodKnowledgeService";
 import { backendClient } from "./backendClient";
+import { mailShell, dataTable, mailSection, MAIL_FOOTER } from "./mailLayout.js";
 
 const norm = (v) => String(v ?? "").trim();
 
@@ -108,33 +109,30 @@ export function findBattery(batteryRows, query) {
   );
 }
 
-const esc = (v) =>
-  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
 // Battery Health raporu için mail gövdesi — "Değişmeli" ve "İzlenmeli" cihazlar iki tabloda.
 export function buildBatteryMailHtml(rows = []) {
   const replace = rows.filter((r) => r.batteryHealth != null && r.batteryHealth < 60);
   const watch = rows.filter((r) => r.batteryHealth != null && r.batteryHealth >= 60 && r.batteryHealth < 80);
-  const table = (list) => {
-    const head = ["Cihaz", "Sağlık %", "Döngü", "Pil Durumu", "Üretici"];
-    const body = list
-      .map((r) => {
-        const c = [r.hostShort || r.hostname, r.batteryHealth != null ? `%${r.batteryHealth}` : "Veri Yok", r.cycleCount ?? "—", r.batteryStatus || "—", r.manufacturer || "—"];
-        return `<tr>${c.map((x) => `<td style="border:1px solid #ccc;padding:6px 8px;">${esc(x)}</td>`).join("")}</tr>`;
-      })
-      .join("");
-    return `<table style="border-collapse:collapse;width:100%;font-size:13px;margin:6px 0 14px;"><thead><tr style="background:#f0f0f0;">${head
-      .map((h) => `<th style="border:1px solid #ccc;padding:6px 8px;text-align:left;">${h}</th>`)
-      .join("")}</tr></thead><tbody>${body}</tbody></table>`;
-  };
-  let b = `<p>Merhabalar,</p><p>LakeSide Battery Health raporunda aşağıdaki cihazlarda batarya sağlığı düşük görünüyor.</p>`;
+  const table = (list) =>
+    dataTable(
+      ["Cihaz", "Sağlık %", "Döngü", "Pil Durumu", "Üretici"],
+      list.map((r) => [r.hostShort || r.hostname, r.batteryHealth != null ? `%${r.batteryHealth}` : "Veri Yok", String(r.cycleCount ?? "—"), r.batteryStatus || "—", r.manufacturer || "—"])
+    );
+  let b = "";
   if (replace.length)
-    b += `<p><strong>%60 altı — batarya değişimi önerilir (${replace.length} cihaz):</strong> Bu cihazlar için Lenovo garanti/servis üzerinden batarya değişimi başlatılmalıdır.</p>${table(replace)}`;
+    b += mailSection(`%60 altı — batarya değişimi önerilir (${replace.length} cihaz)`, `<p style="margin:0 0 6px;">Bu cihazlar için Lenovo garanti/servis üzerinden batarya değişimi başlatılmalıdır.</p>${table(replace)}`);
   if (watch.length)
-    b += `<p><strong>%60–%80 arası — izlenmeli (${watch.length} cihaz):</strong> Şarj süresi belirgin kısaldıysa değişim planlanmalı; aksi halde bir sonraki raporda tekrar değerlendirilecek.</p>${table(watch)}`;
-  if (!replace.length && !watch.length) b += `<p>Eşik altında cihaz bulunmuyor.</p>`;
-  b += `<p>Cihazların güncel durumu (değiştirildi / kullanımda / iade) hakkında bilgi verilmesini rica ederiz.</p>`;
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.55;">${b}</div>`;
+    b += mailSection(`%60–%80 arası — izlenmeli (${watch.length} cihaz)`, `<p style="margin:0 0 6px;">Şarj süresi belirgin kısaldıysa değişim planlanmalı; aksi halde bir sonraki raporda tekrar değerlendirilecek.</p>${table(watch)}`);
+  if (!replace.length && !watch.length) b += `<p style="margin:0;">Eşik altında cihaz bulunmuyor.</p>`;
+  return mailShell({
+    eyebrow: "BATTERY HEALTH",
+    title: "DÜŞÜK BATARYA SAĞLIĞI",
+    greeting: "Merhabalar,",
+    intro: "LakeSide Battery Health raporunda aşağıdaki cihazlarda batarya sağlığı düşük görünüyor.",
+    bodyHtml: b,
+    action: "Cihazların güncel durumu (değiştirildi / kullanımda / iade) hakkında bilgi verilmesini rica ederiz.",
+    footer: MAIL_FOOTER,
+  });
 }
 
 export function batteryMailSubject(rows = []) {

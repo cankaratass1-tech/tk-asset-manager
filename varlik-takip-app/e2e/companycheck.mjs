@@ -84,12 +84,12 @@ try {
   console.log("\nAtıl Monitörler");
   const atilTotal = async (co) => {
     await select("Atıl Monitörler", co);
-    return pick(await txt(), /TuruncuHat monitör toplam[^\n]*\n?(\d[\d.]*)|(\d[\d.]*)\nTuruncuHat monitör toplam/);
+    return pick(await txt(), /toplam monitör[^\n]*\n?(\d[\d.]*)|(\d[\d.]*)\ntoplam monitör/);
   };
   await select("Atıl Monitörler", "Tüm Şirketler");
   const aText = await txt();
   const atilNum = (t) => {
-    const m = t.match(/TuruncuHat monitör toplam\s*\n?\s*(\d[\d.]*)/) || t.match(/(\d[\d.]*)\s*\n?\s*TuruncuHat monitör toplam/);
+    const m = t.match(/toplam monitör\s*\n?\s*(\d[\d.]*)/) || t.match(/(\d[\d.]*)\s*\n?\s*toplam monitör/);
     return m ? num(m[1]) : NaN;
   };
   const aAll = atilNum(aText);
@@ -98,7 +98,7 @@ try {
     await select("Atıl Monitörler", co);
     aParts.push(atilNum(await txt()));
   }
-  check("Atıl Monitörler: AJET + TKAO = Tüm Şirketler ('TuruncuHat monitör toplam')", aParts.every((n) => n > 0 && n < aAll) && aParts.reduce((a, b) => a + b, 0) === aAll, `${aParts.join(" + ")} ↔ ${aAll}`);
+  check("Atıl Monitörler: AJET + TKAO = Tüm Şirketler ('toplam monitör')", aParts.every((n) => n > 0 && n < aAll) && aParts.reduce((a, b) => a + b, 0) === aAll, `${aParts.join(" + ")} ↔ ${aAll}`);
   void atilTotal;
 
   console.log("\nDisk Alanı (dosyada şirket bilgisi yok)");

@@ -33,3 +33,29 @@ test("mailShell / infoTable: boş değer atlanır, opsiyonel bölümler yoksa ç
   const h = mailShell({ eyebrow: "E", title: "T" });
   assert.ok(!h.includes("<p style=\"margin:0 0 10px;\">") && !h.includes("margin:14px 0 0;"));
 });
+
+// ---- Tüm mail türleri aynı çerçevede (Ofis Bant düzeni) ----
+import { dataTable } from "./mailLayout.js";
+import { buildUnusedDeviceMailHtml } from "./unusedDeviceMailService.js";
+import { buildBsodMailHtml } from "./bsodKnowledgeService.js";
+
+const FRAME = ["background:#243a5e;color:#fff;padding:14px 18px;border-radius:6px 6px 0 0;", "max-width:760px"];
+
+test("dataTable: hücre kaçırılır, boş hücre — olur, [ana, alt] iki satırlı gösterilir", () => {
+  const h = dataTable(["A", "B"], [[["<x>", "alt"], ""]]);
+  assert.ok(h.includes("&lt;x&gt;") && h.includes("alt") && h.includes("—") && h.includes("background:#f6f8fa"));
+});
+
+test("Kullanılmayan / BSOD mailleri ortak çerçeveyi kullanır, bozuk değer basmaz", () => {
+  const unused = buildUnusedDeviceMailHtml([
+    { hostname: "H1", serial: "S1", deviceModel: "M", location: "L", deviceAge: 7 },
+    { hostname: "H2", serial: "S2", deviceModel: "M", location: "L", deviceAge: 2, lastLogonTime: "2026-04-02" },
+  ]);
+  const bsod = buildBsodMailHtml([{ code: "0x0000000A", hostname: "H1.corp.local", user: "u", count: 2 }], { locationLabel: "MERKEZ" });
+  for (const [name, html] of [["unused", unused], ["bsod", bsod]]) {
+    for (const f of FRAME) assert.ok(html.includes(f), `${name}: ${f}`);
+    for (const bad of ["undefined", "NaN", "[object"]) assert.ok(!html.includes(bad), `${name}: ${bad}`);
+  }
+  assert.ok(unused.includes("merkeze elden iade") && unused.includes("yeni cihaz talep etmeden önce"));
+  assert.ok(bsod.includes("MERKEZ") && bsod.includes("H1") && !bsod.includes("corp.local"));
+});

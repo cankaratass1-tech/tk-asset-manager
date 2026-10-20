@@ -136,7 +136,7 @@ ${body}`);
   if (r.mails[0]) {
     sane("Monitör Uyuşmazlığı", r.mails);
     const t = stripHtml(r.mails[0].html);
-    check("Monitör Uyuşmazlığı: tek tablo, aynı metin, monitör satırı", /kayıtlı sahibi farklı bir kişi görünüyor/.test(t) && (r.mails[0].html.match(/<table/g) || []).length === 1 && t.includes("Kayıtlı Sahibi (Eski)"));
+    check("Monitör Uyuşmazlığı: tek tablo, aynı metin, monitör satırı", /kayıtlı sahibi farklı bir kişi görünüyor/.test(t) && (r.mails[0].html.match(/<thead>/g) || []).length === 1 && t.includes("Kayıtlı Sahibi (Eski)"));
   }
 
   // seçim yokken: onay penceresi, vazgeçince mail yok
@@ -239,12 +239,13 @@ ${body}`);
       const t = stripHtml(m.html);
       sane("Yeni Kurulum TR", r1.mails);
       check("Yeni Kurulum (TR): alıcı elle girilen adres", m.to.includes("alici@test.local"), m.to);
+      check("Yeni Kurulum (TR): logo gömülü ek olarak gidiyor (cid:mail-logo, image/png)", m.html.includes("cid:mail-logo") && m.attachments.some((a) => a.cid === "mail-logo" && a.type === "image/png"), JSON.stringify(m.attachments));
       check("Yeni Kurulum (TR): konu 'Cihazınız Hazır — ATO Kapatma Onayı'", m.subject === "Cihazınız Hazır — ATO Kapatma Onayı", m.subject);
       check("Yeni Kurulum (TR): şablon metni ve adres/konum", t.includes("Cihazınız hazırlanmıştır") && t.includes("Corporate Club") && m.html.includes("goo.gl/maps"));
       check("Yeni Kurulum (TR): tablo başlıkları", ["Seri Numarası", "Barkod", "Model", "Marka", "Varlık Kataloğu", "Varlık Transfer Emri"].every((h) => t.includes(h)));
       const ato = (firstText.match(/ATO-[\w-]+/) || [])[0];
       check("Yeni Kurulum (TR): kaydın ATO numarası tabloda (Varlık Transfer Emri)", !!ato && t.includes(ato), ato);
-      check("Yeni Kurulum (TR): tek satırlık tablo", (m.html.match(/<tbody>[\s\S]*<\/tbody>/) || [""])[0].split("<tr>").length - 1 === 1);
+      check("Yeni Kurulum (TR): tek cihaz (bilgi alanında tek 'Seri Numarası') ve Ofis Bant düzeni (lacivert başlık bandı)", (m.html.match(/Seri Numarası/g) || []).length === 1 && m.html.includes("background:#243a5e") && t.includes("YENİ KURULUM"));
     }
     const sentBadge = await page.locator("tr", { hasText: /Mail: gönderildi/ }).count();
     check("Yeni Kurulum: gönderilen kaydın rozeti Mail gönderildi oldu", sentBadge >= 1);
@@ -279,7 +280,7 @@ ${body}`);
       const r3 = await sendAndCollect(() => page.getByRole("button", { name: /Mail Gönder — TR \(2 seçili\)/ }).click());
       check("Yeni Kurulum (2 kayıt): her kayıt için AYRI mail gidiyor (2 mail)", r3.mails.length === 2, r3.toast);
       if (r3.mails.length === 2) {
-        check("Yeni Kurulum (2 kayıt): her mail tekil konu ve tek satırlı tablo", r3.mails.every((m) => m.subject === "Cihazınız Hazır — ATO Kapatma Onayı" && (m.html.match(/<tbody>[\s\S]*<\/tbody>/) || [""])[0].split("<tr>").length - 1 === 1), r3.mails.map((m) => m.subject).join(" | "));
+        check("Yeni Kurulum (2 kayıt): her mail tekil konu ve tek cihaz bilgisi", r3.mails.every((m) => m.subject === "Cihazınız Hazır — ATO Kapatma Onayı" && (m.html.match(/Seri Numarası/g) || []).length === 1), r3.mails.map((m) => m.subject).join(" | "));
         check("Yeni Kurulum (2 kayıt): iki mail farklı ATO numarası taşıyor", new Set(r3.mails.map((m) => (stripHtml(m.html).match(/ATO-[\w-]+/) || [""])[0])).size === 2);
         sane("Yeni Kurulum 2 kayıt", r3.mails);
       }

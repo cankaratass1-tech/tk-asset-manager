@@ -9,6 +9,8 @@
 // Kaynaklar (araştırma): Microsoft Learn "Bug Check Code Reference", Lenovo Support/Forums,
 // yaygın alan deneyimi. Bkz. konuşma — kullanıcı örnek stop code listesi iletti.
 
+import { mailShell, MAIL_FOOTER } from "./mailLayout.js";
+
 const norm = (v) => String(v ?? "").trim().toUpperCase();
 
 // Bazı raporlarda kod sonuna "_M" (minidump) eklenir; "0x..." ondalık/başında sıfır farkları olur.
@@ -606,13 +608,15 @@ export function buildBsodMailHtml(rows = [], { locationLabel = "" } = {}) {
     })
     .join("");
 
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.55;">
-    <p>Merhabalar,</p>
-    <p>${locationLabel ? `<strong>${esc(locationLabel)}</strong> lokasyonunda ` : ""}LakeSide BSOD raporunda <strong>${totalHits}</strong> mavi ekran olayı${hostCount ? ` (<strong>${hostCount}</strong> cihaz)` : ""} tespit edildi. Aşağıda her hata tipi için olası neden ve ThinkPad + kurumsal Windows imajımıza göre uygulanması gereken çözüm adımları yer alıyor.</p>
-    <p style="font-size:13px;color:#555;">Genel ön koşul: cihazlarda <strong>Lenovo Commercial Vantage / System Update</strong> ile <strong>BIOS/UEFI + Intel ME firmware + tüm sürücüler</strong> güncellenmeli. Tekrarlayan cihazlarda <code>C:\\Windows\\Minidump</code> dökümleri toplanıp IT'ye iletilmeli.</p>
-    ${blocks}
-    <p style="font-size:13px;color:#555;">Adımlar uygulandıktan sonra tekrar mavi ekran alan cihazların listesini ve minidump dosyalarını tarafımıza iletmenizi rica ederiz.</p>
-  </div>`;
+  return mailShell({
+    eyebrow: "BSOD",
+    title: "MAVİ EKRAN BİLDİRİMİ",
+    greeting: "Merhabalar,",
+    intro: `${locationLabel ? `<strong>${esc(locationLabel)}</strong> lokasyonunda ` : ""}LakeSide BSOD raporunda <strong>${totalHits}</strong> mavi ekran olayı${hostCount ? ` (<strong>${hostCount}</strong> cihaz)` : ""} tespit edildi. Aşağıda her hata tipi için olası neden ve ThinkPad + kurumsal Windows imajımıza göre uygulanması gereken çözüm adımları yer alıyor.`,
+    bodyHtml: `<p style="margin:0 0 10px;font-size:13px;color:#555;">Genel ön koşul: cihazlarda <strong>Lenovo Commercial Vantage / System Update</strong> ile <strong>BIOS/UEFI + Intel ME firmware + tüm sürücüler</strong> güncellenmeli. Tekrarlayan cihazlarda <code>C:\\Windows\\Minidump</code> dökümleri toplanıp IT'ye iletilmeli.</p>${blocks}`,
+    action: `Adımlar uygulandıktan sonra tekrar mavi ekran alan cihazların listesini ve minidump dosyalarını tarafımıza iletmenizi rica ederiz.`,
+    footer: MAIL_FOOTER,
+  });
 }
 
 export function bsodMailSubject(rows = []) {
