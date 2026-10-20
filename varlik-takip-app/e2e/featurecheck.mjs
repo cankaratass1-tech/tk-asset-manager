@@ -106,6 +106,26 @@ try {
   check("Sütun başlığına tıklayınca sıralama (artan ↔ azalan) çalışıyor", first !== firstDesc && first.localeCompare(firstDesc, "tr", { numeric: true }) < 0, first + " / " + firstDesc);
   await page.locator('[data-atil-sort="0"]').click(); await page.waitForTimeout(300);
 
+  console.log("\nYeni Kurulum Kaydı — liste");
+  await page.locator('text="Yeni Kurulum Kaydı"').first().click(); await page.waitForTimeout(2500);
+  const tw = await page.evaluate(() => { const t = document.querySelector("[data-yk-table]"); return [t.scrollWidth, t.parentElement.clientWidth]; });
+  check("Liste yatay kaydırma gerektirmiyor (tablo panele sığıyor)", tw[0] <= tw[1] + 2, tw.join(" / "));
+  const mb = await page.locator("[data-yk-menu]").first().boundingBox();
+  check("Aksiyon (Teslim Et / ⋯) ilk ekranda, yatay kaydırmadan görünüyor", !!mb && mb.x + mb.width <= 1500);
+  const ykTotal = num(await page.locator('[data-yk-stat="all"]').innerText());
+  await page.locator('[data-yk-stat="unmailed"]').click(); await page.waitForTimeout(400);
+  const ykUnmailed = num(await page.locator('[data-yk-stat="unmailed"]').innerText());
+  check("Sayı şeridinden filtre: satır sayısı şerit sayısıyla aynı + aktif filtre çipi", (await page.locator("[data-yk-table] tbody tr").count()) === ykUnmailed && (await page.locator("[data-yk-chips]").count()) === 1, ykUnmailed + " / " + ykTotal);
+  await page.locator("[data-yk-chips] >> text=Tümünü temizle").click(); await page.waitForTimeout(300);
+  check("Filtre temizlenince kayıtlar geri geliyor", (await page.locator("[data-yk-table] tbody tr").count()) > 0 && (await page.locator("[data-yk-chips]").count()) === 0);
+  await page.locator("[data-yk-table] tbody tr span[title^='Ayrıntıyı']").first().click(); await page.waitForTimeout(250);
+  const det = await page.locator("[data-yk-detail]").innerText();
+  check("Satır ayrıntısı açılıyor (Bitlocker, İşlem yapan, İadeler)", /BITLOCKER/i.test(det) && /İADELER/i.test(det));
+  await page.locator("[data-yk-menu]").first().click(); await page.waitForTimeout(150);
+  check("'⋯' menüsü: Düzenle / Sil", (await page.locator("[data-yk-edit]").count()) === 1 && (await page.locator("[data-yk-delete]").count()) === 1);
+  await page.mouse.click(5, 5); await page.waitForTimeout(150);
+  check("Menü dışına tıklayınca kapanıyor", (await page.locator("[data-yk-edit]").count()) === 0);
+
   console.log("\nLokasyon/IP — e-posta önizlemesi");
   await page.locator('text="Lokasyon Hostname ve IP Uyuşmazlığı"').first().click(); await page.waitForTimeout(3500);
   await page.locator("[data-locip-preview]").click(); await page.waitForTimeout(800);

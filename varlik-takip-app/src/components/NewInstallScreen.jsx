@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { backendClient } from "../services/backendClient";
 import Pagination from "./Pagination";
 
@@ -85,6 +85,10 @@ const FIELDS = [
   { k: "returns", label: "İADELER", wide: true },
 ];
 
+const QF_LABEL = { undelivered: "Teslim bekleyen", waiting: "7+ gün bekleyen", unmailed: "Mail gönderilmemiş", unsynced: "Excel'e işlenmemiş" };
+// Liste sütunları: [başlık, sıralama anahtarı]
+const YK_COLS = [["Cihaz", "device"], ["Kullanıcı / Lokasyon", "user"], ["ATO / Tarih", "ato"], ["Durum", "status"], ["İşlem", ""], ["Aksiyon", ""]];
+
 const today = () => new Date().toISOString().slice(0, 10);
 const toUpperTr = (v) => String(v ?? "").toLocaleUpperCase("tr-TR");
 // Büyük harfe çevrilecek serbest metin alanları. Sabit seçenekli alanlara (DURUM/Bitlocker/NEDENİ)
@@ -106,7 +110,6 @@ const MAIL_TEXT = {
     address: "<strong>EBİ- Corporate Club binası</strong> (Atatürk Uluslararası Havalimanı B Kapısı , (Eğitim Akademisi, Merkez yemekhane yanı))",
     locationLabel: "Konum",
     subjectOne: "Cihazınız Hazır — ATO Kapatma Onayı",
-    subjectMany: (n) => `Cihazlarınız Hazır — ATO Kapatma Onayı (${n} cihaz)`,
     plain: "Cihazınız hazırlanmıştır. ATO kaydına Turuncuhattan kapatma onayı vermeniz durumunda bizden teslim alabilirsiniz. Adres: EBİ- Corporate Club binası. Konum: https://goo.gl/maps/boaRCuAx7Qu",
   },
   en: {
@@ -117,7 +120,6 @@ const MAIL_TEXT = {
     address: "<strong>EBİ- Corporate Club binası</strong> (Atatürk Uluslararası Havalimanı B Kapısı , (Eğitim Akademisi, Merkez yemekhane yanı))",
     locationLabel: "Location",
     subjectOne: "Your Device Is Ready — ATO Closure Approval",
-    subjectMany: (n) => `Your Devices Are Ready — ATO Closure Approval (${n} devices)`,
     plain: "Your device has been prepared. Once you give the ATO record closure approval via Turuncuhat, you may collect it from us. Address: EBİ- Corporate Club binası. Location: https://goo.gl/maps/boaRCuAx7Qu",
   },
 };
@@ -204,6 +206,17 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
   // Geriye dönük sorgu — hızlı filtre çipi + serbest arama (hepsi client-side, kayıtlar zaten yüklü).
   const [qFilter, setQFilter] = useState("all"); // all | undelivered | unmailed | unsynced | waiting
   const [qText, setQText] = useState("");
+  const [sort, setSort] = useState({ key: "", dir: 1 }); // key: device | user | ato | date | status ("" = en yeni kayıt üstte)
+  const [expanded, setExpanded] = useState(() => new Set()); // ayrıntısı açık kayıtlar
+  const [menuId, setMenuId] = useState(null); // "⋯" menüsü açık satır
+  const toggleExpand = (id) => setExpanded((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSort = (key) => setSort((p) => (p.key === key ? (p.dir === 1 ? { key, dir: -1 } : { key: "", dir: 1 }) : { key, dir: 1 }));
+  useEffect(() => {
+    if (menuId == null) return undefined;
+    const close = (e) => { if (!e.target.closest?.("[data-yk-menu]") && !e.target.closest?.("[role=menu]")) setMenuId(null); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [menuId]);
 
   const reload = () =>
     backendClient
@@ -322,13 +335,15 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
     }
     // Yeni kurulan cihaz en üstte görünsün — takip kolaylaşsın (bkz. konuşma). createdAt yoksa
     // (eski kayıt) id/date'e düşer, en azından backend ekleme sırasının tersini verir.
+    const SORT_VAL = { device: (r) => r.serial || r.hostname, user: (r) => r.userInfo, ato: (r) => r.atoNo, date: (r) => r.date, status: (r) => r.status };
+    if (sort.key) return [...list].sort((a, b) => sort.dir * String(SORT_VAL[sort.key](a) ?? "").localeCompare(String(SORT_VAL[sort.key](b) ?? ""), "tr", { numeric: true }));
     return [...list].sort((a, b) => {
       const ta = Date.parse(a.createdAt || "") || 0;
       const tb = Date.parse(b.createdAt || "") || 0;
       if (tb !== ta) return tb - ta;
       return String(b.id).localeCompare(String(a.id));
     });
-  }, [records, qFilter, qText]);
+  }, [records, qFilter, qText, sort]);
 
   // Sayfalama — diğer raporlarla aynı desen (Pagination bileşeni + 25/50/100/Tümü seçici).
   // Seçim/mail hedefi hâlâ TÜM filtrelenmiş kayıtları kapsar (filteredRecords) — sayfalama
@@ -429,69 +444,81 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
       .slice(0, 40);
   }, [returnQuery, thRows]);
 
+  // Mail gönderimi TEKLİ: her kayıt için ayrı mail (tek cihaz, verilen şablon). Alıcı kaydın kendisine göre bulunur:
+  // 1) üstteki kutuya elle yazılan adres(ler) → seçilen her kayıt için ayrı mail oraya gider,
+  // 2) TuruncuHat'ta "Kullanıcı Bilgisi" ile eşleşen kişinin maili, 3) lokasyon mail grubu.
   const sendMail = async () => {
     if (targetRecs.length === 0) {
       showToast("Gönderilecek kayıt yok");
       return;
     }
-    let recipients = mailTo.split(/[;,\s]+/).map((s) => s.trim()).filter((s) => /@/.test(s));
-    if (recipients.length === 0) {
-      // TuruncuHat'ta "Kullanıcı Bilgisi" (isim) ile eşleşen bir kayıt varsa o kişinin gerçek
-      // maili (bkz. konuşma) — yeni cihazın kendisi henüz TH'de olmasa bile, kişi genelde TH'de
-      // başka bir kayıtla zaten vardır.
-      recipients = [...new Set(targetRecs.map((r) => thByOwnerName.get(norm(r.userInfo))).filter(Boolean))];
-    }
-    if (recipients.length === 0) {
-      // lokasyon mail grupları
-      const groups = Object.fromEntries(
-        (mailGroupsText || "")
-          .split("\n")
-          .map((l) => l.split(/[\t,;]/).map((x) => x.trim()))
-          .filter((p) => p[0] && p[1] && /@/.test(p[1]))
-      );
-      recipients = [...new Set(targetRecs.map((r) => groups[r.location]).filter(Boolean))];
-    }
-    if (recipients.length === 0) {
+    const manual = mailTo.split(/[;,\s]+/).map((x) => x.trim()).filter((x) => /@/.test(x));
+    const groups = Object.fromEntries(
+      (mailGroupsText || "")
+        .split("\n")
+        .map((l) => l.split(/[\t,;]/).map((x) => x.trim()))
+        .filter((x) => x[0] && x[1] && /@/.test(x[1]))
+    );
+    const recipientsOf = (r) => {
+      if (manual.length) return manual;
+      const owner = thByOwnerName.get(norm(r.userInfo));
+      if (owner) return [owner];
+      return groups[r.location] ? [groups[r.location]] : [];
+    };
+    const plan = targetRecs.map((r) => ({ r, to: recipientsOf(r) }));
+    const sendable = plan.filter((x) => x.to.length > 0);
+    const noRecipient = plan.filter((x) => x.to.length === 0);
+    if (sendable.length === 0) {
       showToast("Alıcı yok — üstteki kutuya e-posta girin veya Ayarlar > Lokasyon Mailleri'ni doldurun");
       return;
     }
-    const to = recipients.join(", ");
     const T = MAIL_TEXT[mailLang] || MAIL_TEXT.tr;
-    const subject = targetRecs.length === 1 ? T.subjectOne : T.subjectMany(targetRecs.length);
+    const lang = mailLang === "en" ? "EN" : "TR";
     setMailBusy(true);
+    const details = noRecipient.map(({ r }) => ({ location: r.hostname || r.serial || "—", to: null, count: 1, ok: false, message: `[${lang}] Alıcı bulunamadı` }));
+    const sentIds = [];
+    let lastPreview = null;
     try {
-      const r = await backendClient.sendMail({
-        to,
-        subject,
-        text: T.plain,
-        html: buildMailHtml(targetRecs, thRows, mailLang),
-      });
-      const ok = !!r.ok;
-      if (ok) {
-        await backendClient.markNewInstallsMailed(targetRecs.map((x) => x.id)).catch(() => {});
-        await reload();
-        setSelected(new Set()); // gönderilenler seçili kalmasın: bir sonraki "Mail Gönder" aynı kayıtları yeniden göndermesin
-        setMailPreview(r.previewUrl ? { url: r.previewUrl, to, at: new Date() } : null);
+      for (const { r: rec, to } of sendable) {
+        const toStr = to.join(", ");
+        try {
+          const res = await backendClient.sendMail({ to: toStr, subject: T.subjectOne, text: T.plain, html: buildMailHtml([rec], thRows, mailLang) });
+          const ok = !!res.ok;
+          if (ok) {
+            sentIds.push(rec.id);
+            if (res.previewUrl) lastPreview = { url: res.previewUrl, to: toStr, at: new Date() };
+          }
+          details.push({ location: rec.hostname || rec.serial || "—", to: toStr, count: 1, ok, message: `[${lang}] ` + (res.message || (ok ? "Gönderildi" : "Gönderilemedi")) + (res.previewUrl ? ` · önizleme: ${res.previewUrl}` : "") });
+        } catch (err) {
+          details.push({ location: rec.hostname || rec.serial || "—", to: toStr, count: 1, ok: false, message: `[${lang}] ${err.message || "Gönderilemedi"}` });
+        }
       }
+      if (sentIds.length) {
+        await backendClient.markNewInstallsMailed(sentIds).catch(() => {});
+        await reload();
+        setSelected(new Set()); // gönderilenler seçili kalmasın: bir sonraki "Mail Gönder" aynı kayıtlara yeniden mail atmasın
+        setMailPreview(lastPreview);
+      }
+      const failed = sendable.length - sentIds.length;
       recordMailHistory &&
         recordMailHistory({
           id: Date.now(),
           date: new Date().toLocaleString("tr-TR"),
           dept: "Yeni Kurulum",
-          report: `Yeni Kurulum Kaydı (${mailLang === "en" ? "EN" : "TR"})`,
-          recipients: ok ? targetRecs.length : 0,
-          status: ok ? "Başarılı" : "Gönderilemedi",
-          details: [{ location: `${targetRecs.length} cihaz`, to, count: targetRecs.length, ok, message: `[${mailLang === "en" ? "EN" : "TR"}] ` + (r.message || (ok ? "Gönderildi" : "Gönderilemedi")) + (r.previewUrl ? ` · önizleme: ${r.previewUrl}` : "") }],
+          report: `Yeni Kurulum Kaydı (${lang})`,
+          recipients: sentIds.length,
+          status: sentIds.length === 0 ? "Gönderilemedi" : failed > 0 || noRecipient.length > 0 ? "Kısmen Başarısız" : "Başarılı",
+          details,
         });
-      showToast(ok ? `✅ Kurulum bildirimi gönderildi (${to})${r.previewUrl ? " — önizleme linki aşağıda" : ""}` : `❌ Gönderilemedi — ${r.message || ""}`);
-    } catch (err) {
-      showToast(`❌ Gönderilemedi — ${err.message}`);
+      const extra = (failed ? `, ${failed} gönderilemedi` : "") + (noRecipient.length ? `, ${noRecipient.length} kayıt için alıcı bulunamadı` : "");
+      showToast(sentIds.length === 0 ? `❌ Gönderilemedi${extra}` : `${failed || noRecipient.length ? "⚠️" : "✅"} ${sentIds.length} kayıt için ayrı ayrı mail gönderildi${extra}${lastPreview ? " — önizleme linki aşağıda" : ""}`);
     } finally {
       setMailBusy(false);
     }
   };
 
   const inp = { ...styles.formInput };
+  const ykTd = (extra) => ({ ...styles.td, padding: "12px 14px", verticalAlign: "middle", ...extra });
 
   // İADELER — artık elle yazılmıyor: aşağıdaki "zimmetli cihaz" listesinden seçilen cihazlar
   // satır satır form.returns içine yazılır (backend değişmez), formda çip olarak gösterilir.
@@ -520,6 +547,25 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
           Yeni kurduğun cihazı formdan gir → sistemde saklanır → "Excel'e İşle" ile mevcut kurulum Excel'ine satır eklenir → "Mail Gönder" ile bildirim hazırlanır.
           <em> (Demo: Excel dosyası hazır varsayılıyor.)</em>
         </p>
+        {records.length > 0 && (
+          <div data-yk-stats style={{ ...styles.statStrip, flexWrap: "wrap", rowGap: 16 }}>
+            {[
+              ["all", "toplam kayıt", counts.all, pal.ink, "Tümünü göster"],
+              ["undelivered", "teslim bekleyen", counts.undelivered, pal.warnFg || pal.bad, "Henüz teslim edilmemiş kayıtlar"],
+              ["waiting", "7+ gün bekleyen", counts.waiting, pal.bad, "Teslim edilmemiş ve kurulumdan 7 günden fazla geçmiş"],
+              ["unmailed", "mail gönderilmemiş", counts.unmailed, pal.ink, "Kullanıcıya bildirim maili henüz gitmemiş kayıtlar"],
+              ["unsynced", "Excel'e işlenmemiş", counts.unsynced, pal.ink, "Kurulum Excel'ine henüz yazılmamış kayıtlar"],
+            ].map(([key, label, n, color, tip]) => (
+              <div key={key} role="button" tabIndex={0} data-yk-stat={key} aria-pressed={qFilter === key} title={tip}
+                onClick={() => setQFilter(key)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setQFilter(key); } }}
+                style={{ ...styles.stat, ...styles.statClickable, ...(qFilter === key ? styles.statActive : {}) }}>
+                <span style={{ ...styles.statNum, color }}>{n}</span>
+                <span style={styles.statLabel}>{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* FORM */}
@@ -710,197 +756,215 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
       </div>
 
       {/* KAYITLAR + AKSİYONLAR */}
-      <div style={{ ...styles.panel, padding: "20px 24px" }}>
-        <div style={styles.settingsSectionHead}>
-          <p style={styles.settingsSectionTitle}>
-            Kayıtlar ({filteredRecords.length === records.length ? records.length : `${filteredRecords.length} / ${records.length}`})
-          </p>
-          <span style={{ fontSize: 13, color: pal.inkSoft }}>
-            {counts.unsynced === 0 ? "Tümü Excel'e işlendi" : `${counts.unsynced} Excel'e işlenmedi`} ·{" "}
-            {counts.unmailed === 0 ? "Tümü maillendi" : `${counts.unmailed} mail gönderilmedi`}
-          </span>
-        </div>
-
-        {/* Geriye dönük sorgu — hızlı filtreler + arama */}
-        {records.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "4px 0 14px" }}>
-            {[
-              ["all", "Tümü", counts.all],
-              ["undelivered", "Teslim bekleyen", counts.undelivered],
-              ["waiting", "7+ gün bekleyen", counts.waiting],
-              ["unmailed", "Mail gönderilmemiş", counts.unmailed],
-              ["unsynced", "Excel'e işlenmemiş", counts.unsynced],
-            ].map(([key, label, n]) => {
-              const on = qFilter === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setQFilter(key)}
-                  style={{
-                    ...styles.btnGhost,
-                    padding: "4px 10px",
-                    fontSize: 12,
-                    fontWeight: on ? 700 : 400,
-                    background: on ? pal.accentSoft || pal.line : "transparent",
-                    borderColor: on ? pal.accent || pal.ok : pal.line,
-                    color: on ? pal.accent || pal.ink : pal.inkSoft,
-                  }}
-                >
-                  {label} <span style={{ opacity: 0.7 }}>({n})</span>
-                </button>
-              );
-            })}
-            <input
-              type="text"
-              value={qText}
-              onChange={(e) => setQText(e.target.value)}
-              style={{ ...inp, flex: "1 1 200px", minWidth: 160 }}
-              placeholder="Ara: seri no / hostname / kullanıcı / ATO / lokasyon"
-            />
-            {(qFilter !== "all" || qText) && (
-              <button type="button" style={{ ...styles.btnGhost, padding: "4px 10px", fontSize: 12 }} onClick={() => { setQFilter("all"); setQText(""); }}>
-                Temizle
-              </button>
-            )}
+      <div style={styles.panel}>
+        <div style={{ ...styles.toolbar, paddingBottom: 10 }}>
+          <div style={{ ...styles.toolbarFiltersRow, justifyContent: "space-between" }}>
+            <div style={styles.settingsSectionHead}>
+              <p style={styles.settingsSectionTitle}>Kayıtlar</p>
+              <span data-yk-count style={{ fontSize: 13, color: pal.inkSoft }}>
+                <b style={{ color: pal.ink }}>{filteredRecords.length}</b> / {records.length} kayıt · {counts.unsynced === 0 ? "tümü Excel'e işlendi" : `${counts.unsynced} Excel'e işlenmedi`} · {counts.unmailed === 0 ? "tümü maillendi" : `${counts.unmailed} mail gönderilmedi`}
+              </span>
+            </div>
           </div>
-        )}
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", margin: "6px 0 14px" }}>
-          <input
-            type="text"
-            value={excelPath}
-            onChange={(e) => setExcelPath(e.target.value)}
-            style={{ ...inp, flex: "1 1 340px", fontFamily: "var(--font-mono)", fontSize: 12 }}
-            placeholder="Excel dosya yolu"
-          />
-          <button style={styles.btnPrimary} onClick={syncExcel} disabled={syncing || records.length === 0}>
-            {syncing ? "İşleniyor…" : "📄 Excel'e İşle"}
-          </button>
+          {records.length > 0 && (
+            <div data-yk-filters style={styles.toolbarFiltersRow}>
+              <div style={{ ...styles.searchWrap, flex: "1 1 260px", maxWidth: 420 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" /></svg>
+                <input type="text" value={qText} onChange={(e) => setQText(e.target.value)} style={styles.searchInput} placeholder="Ara: seri no / hostname / kullanıcı / ATO / lokasyon" />
+                {qText && <span onClick={() => setQText("")} title="Aramayı temizle" style={{ cursor: "pointer", color: pal.inkSoft, fontSize: 14, lineHeight: 1, padding: "0 2px" }}>×</span>}
+              </div>
+              {(qFilter !== "all" || qText) && (
+                <span data-yk-chips style={{ display: "inline-flex", gap: 6, alignItems: "center", fontSize: 13 }}>
+                  {qFilter !== "all" && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: pal.accentSoft, color: pal.accent, borderRadius: 14, padding: "3px 10px", fontWeight: 600 }}>
+                      {QF_LABEL[qFilter]}
+                      <span onClick={() => setQFilter("all")} role="button" aria-label="Filtreyi kaldır" style={{ cursor: "pointer", fontWeight: 700 }}>×</span>
+                    </span>
+                  )}
+                  <span onClick={() => { setQFilter("all"); setQText(""); }} role="button" style={{ cursor: "pointer", color: pal.accent, fontWeight: 600 }}>Tümünü temizle</span>
+                </span>
+              )}
+              {filteredRecords.length > PAGE_SIZE_OPTIONS[0] && (
+                <div style={{ ...styles.segmented, marginLeft: "auto" }} title="Sayfada gösterilecek kayıt sayısı">
+                  {PAGE_SIZE_OPTIONS.map((n) => (
+                    <div key={n} onClick={() => setPageSize(n)} style={{ ...styles.seg, ...(pageSize === n ? styles.segActive : {}) }}>{n === Infinity ? "Tümü" : n}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div data-yk-actions style={{ ...styles.toolbarFiltersRow, paddingTop: 2 }}>
+            <input type="text" value={mailTo} onChange={(e) => setMailTo(e.target.value)} style={{ ...inp, flex: "1 1 260px", maxWidth: 380 }} placeholder="Mail alıcı(lar) — boşsa lokasyon mail grubu" />
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: pal.inkSoft, flex: "0 0 auto" }}>
+              Dil
+              <select value={mailLang} onChange={(e) => setMailLang(e.target.value)} style={{ ...inp, width: 120, flex: "0 0 auto" }}>
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+            <span style={{ flex: 1 }} />
+            <button style={styles.btnGhost} onClick={syncExcel} disabled={syncing || records.length === 0} title="Kayıtları mevcut kurulum Excel'ine satır olarak ekler">
+              {syncing ? "İşleniyor…" : "📄 Excel'e İşle"}
+            </button>
+            <button style={styles.btnPrimary} onClick={sendMail} disabled={mailBusy || targetRecs.length === 0}>
+              {mailBusy
+                ? "Gönderiliyor…"
+                : `✉️ Mail Gönder — ${mailLang === "en" ? "EN" : "TR"} (${
+                    selected.size > 0 ? selected.size + " seçili" : qFilter !== "all" || qText ? filteredRecords.length + " filtreli" : "tümü"
+                  })`}
+            </button>
+          </div>
+          <details data-yk-settings style={{ fontSize: 13, color: pal.inkSoft }}>
+            <summary style={{ cursor: "pointer", color: pal.accent, fontWeight: 600, width: "fit-content" }}>Gönderim ayarları (Excel dosya yolu)</summary>
+            <input type="text" value={excelPath} onChange={(e) => setExcelPath(e.target.value)} style={{ ...inp, marginTop: 8, maxWidth: 560, fontFamily: "var(--font-mono)", fontSize: 12 }} placeholder="Excel dosya yolu" />
+          </details>
+
+          {lastSync && (
+            <p style={{ ...styles.formHelper, color: pal.ok, margin: 0 }}>
+              {lastSync.existed ? "Mevcut dosyaya işlendi" : "Dosya oluşturuldu"} · {lastSync.file} · toplam {lastSync.totalRows} satır
+              {lastSync.manualRowsKept ? ` (${lastSync.manualRowsKept} elle eklenen satır korundu)` : ""}
+            </p>
+          )}
+          {mailPreview && (
+            <p style={{ ...styles.formHelper, margin: 0 }}>
+              ✉️ Son gönderim ({mailPreview.to}) —{" "}
+              <a href={mailPreview.url} target="_blank" rel="noreferrer" style={{ color: pal.accent || pal.ok, fontWeight: 600 }}>maili tarayıcıda önizle</a>{" "}
+              <span style={{ color: pal.inkSoft }}>(test SMTP kutusu)</span>
+            </p>
+          )}
         </div>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-          <input
-            type="text"
-            value={mailTo}
-            onChange={(e) => setMailTo(e.target.value)}
-            style={{ ...inp, flex: "0 1 360px" }}
-            placeholder="Mail alıcı(lar) — boşsa lokasyon mail grubu"
-          />
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: pal.inkSoft, flex: "0 0 auto" }}>
-            Dil
-            <select value={mailLang} onChange={(e) => setMailLang(e.target.value)} style={{ ...inp, width: 120, flex: "0 0 auto" }}>
-              <option value="tr">Türkçe</option>
-              <option value="en">English</option>
-            </select>
-          </label>
-          <button style={styles.btnGhost} onClick={sendMail} disabled={mailBusy || targetRecs.length === 0}>
-            {mailBusy
-              ? "Gönderiliyor…"
-              : `✉️ Mail Gönder — ${mailLang === "en" ? "EN" : "TR"} (${
-                  selected.size > 0 ? selected.size + " seçili" : qFilter !== "all" || qText ? filteredRecords.length + " filtreli" : "tümü"
-                })`}
-          </button>
-        </div>
-
-        {lastSync && (
-          <p style={{ ...styles.formHelper, color: pal.ok, marginTop: 0 }}>
-            {lastSync.existed ? "Mevcut dosyaya işlendi" : "Dosya oluşturuldu"} · {lastSync.file} · toplam {lastSync.totalRows} satır
-            {lastSync.manualRowsKept ? ` (${lastSync.manualRowsKept} elle eklenen satır korundu)` : ""}
-          </p>
-        )}
-
-        {mailPreview && (
-          <p style={{ ...styles.formHelper, marginTop: 0 }}>
-            ✉️ Son gönderim ({mailPreview.to}) —{" "}
-            <a href={mailPreview.url} target="_blank" rel="noreferrer" style={{ color: pal.accent || pal.ok, fontWeight: 600 }}>
-              maili tarayıcıda önizle
-            </a>{" "}
-            <span style={{ color: pal.inkSoft }}>(test SMTP kutusu)</span>
-          </p>
-        )}
 
         {records.length === 0 ? (
-          <p style={styles.pageSub}>Henüz kayıt yok — yukarıdaki formdan ekleyin.</p>
+          <p style={{ ...styles.pageSub, padding: "10px 24px 24px" }}>Henüz kayıt yok — yukarıdaki formdan ekleyin.</p>
         ) : filteredRecords.length === 0 ? (
-          <p style={styles.pageSub}>Bu filtreyle eşleşen kayıt yok.</p>
+          <p style={{ ...styles.pageSub, padding: "30px 24px 36px", textAlign: "center" }}>
+            Bu filtreyle eşleşen kayıt yok. <span onClick={() => { setQFilter("all"); setQText(""); }} role="button" style={{ cursor: "pointer", color: pal.accent, fontWeight: 600 }}>Filtreleri temizle</span>
+          </p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={styles.table}>
+            <table data-yk-table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={{ ...styles.th, width: 32 }}>
-                    <input type="checkbox" checked={allChecked} onChange={toggleAll} style={styles.checkbox} />
+                  <th style={{ ...styles.th, width: 32, padding: "12px 6px 12px 24px" }}>
+                    <input type="checkbox" checked={allChecked} onChange={toggleAll} style={styles.checkbox} aria-label="Tümünü seç" />
                   </th>
-                  {FIELDS.map((f) => (
-                    <th key={f.k} style={styles.th}>{f.label}</th>
+                  {YK_COLS.map(([label, key], i) => (
+                    <th
+                      key={label}
+                      data-yk-sort={key || undefined}
+                      onClick={key ? () => toggleSort(key) : undefined}
+                      aria-sort={key && sort.key === key ? (sort.dir === 1 ? "ascending" : "descending") : undefined}
+                      title={key ? "Sıralamak için tıklayın" : undefined}
+                      style={{ ...styles.th, fontSize: 13, padding: `12px ${i === YK_COLS.length - 1 ? 24 : 14}px 12px 14px`, cursor: key ? "pointer" : "default", userSelect: "none" }}
+                    >
+                      {label}{key && sort.key === key ? (sort.dir === 1 ? " ▲" : " ▼") : ""}
+                    </th>
                   ))}
-                  <th style={styles.th}>Excel</th>
-                  <th style={styles.th}>Mail</th>
-                  <th style={styles.th}>Aksiyon</th>
                 </tr>
               </thead>
               <tbody>
-                {pagedRecords.map((r) => (
-                  <tr key={r.id} style={selected.has(r.id) ? styles.rowSelected : undefined}>
-                    <td style={styles.td} onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} style={styles.checkbox} />
-                    </td>
-                    {FIELDS.map((f) => (
-                      <td key={f.k} style={{ ...styles.td, fontSize: 13, whiteSpace: f.wide ? "normal" : "nowrap" }}>
-                        {r[f.k] || <span style={{ color: pal.inkSoft }}>—</span>}
-                      </td>
-                    ))}
-                    <td style={styles.td}>
-                      {r.excelSyncedAt ? (
-                        <span style={{ ...styles.badge, ...styles.badgeOk }}>işlendi</span>
-                      ) : (
-                        <span style={{ ...styles.badge, ...styles.badgeNeutral }}>bekliyor</span>
+                {pagedRecords.map((r) => {
+                  const open = expanded.has(r.id);
+                  const delivered = !isUndelivered(r);
+                  const wait = isWaitingLong(r) ? daysSince(r.date) : 0;
+                  const retLines = (r.returns || "").split("\n").filter((l) => l.trim());
+                  return (
+                    <Fragment key={r.id}>
+                      <tr style={selected.has(r.id) ? styles.rowSelected : undefined}>
+                        <td style={ykTd({ padding: "12px 6px 12px 24px" })} onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} style={styles.checkbox} aria-label={`${r.serial || r.hostname} seç`} />
+                        </td>
+                        <td style={ykTd()}>
+                          <span style={{ ...styles.serial, ...styles.clickableName }} onClick={() => toggleExpand(r.id)} title={open ? "Ayrıntıyı gizle" : "Ayrıntıyı göster (Bitlocker, işlem yapan, neden, iadeler)"}>
+                            {open ? "▾ " : "▸ "}{r.serial || r.hostname || "—"}
+                          </span>
+                          <div style={styles.cellSub}>{[r.model, r.serial ? r.hostname : ""].filter(Boolean).join(" · ") || "—"}</div>
+                        </td>
+                        <td style={ykTd()}>
+                          <div style={{ fontWeight: 600 }}>{r.userInfo || <span style={{ color: pal.inkSoft }}>—</span>}</div>
+                          <div style={styles.cellSub}>{r.location || "—"}</div>
+                        </td>
+                        <td style={ykTd()}>
+                          <div style={{ ...styles.serial, fontSize: 13 }}>{r.atoNo || <span style={{ color: pal.inkSoft }}>—</span>}</div>
+                          <div style={styles.cellSub}>{r.date || "—"}</div>
+                        </td>
+                        <td style={ykTd()}>
+                          <span style={{ ...styles.badge, ...(delivered ? styles.badgeOk : styles.badgeNeutral) }}>
+                            <span style={{ ...styles.badgeDot, background: delivered ? pal.ok : pal.inkSoft }} />
+                            {delivered ? "Teslim edildi" : r.status ? r.status.charAt(0) + r.status.slice(1).toLocaleLowerCase("tr-TR") : "Durum yok"}
+                          </span>
+                          {wait > 0 && <div style={{ ...styles.cellSub, color: pal.warnFg, fontWeight: 600 }}>{wait} gündür bekliyor</div>}
+                          {delivered && r.deliveryDate && <div style={styles.cellSub}>{r.deliveryDate}</div>}
+                        </td>
+                        <td style={ykTd()}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                            <span style={{ ...styles.badge, ...(r.excelSyncedAt ? styles.badgeOk : styles.badgeNeutral) }}>
+                              Excel: {r.excelSyncedAt ? "işlendi" : "bekliyor"}
+                            </span>
+                            <span style={{ ...styles.badge, ...(r.mailSentAt ? styles.badgeOk : styles.badgeNeutral) }} title={r.mailSentAt ? new Date(r.mailSentAt).toLocaleString("tr-TR") : undefined}>
+                              Mail: {r.mailSentAt ? "gönderildi" : "gönderilmedi"}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={ykTd({ whiteSpace: "nowrap", paddingRight: 24 })}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", position: "relative" }}>
+                            {!delivered && (
+                              <button style={{ ...styles.btnGhost, padding: "5px 11px", fontSize: 13, color: pal.ok }} onClick={() => deliver(r)} title="Teslim edildi olarak işaretle (teslim tarihini sorar)">
+                                ✓ Teslim Et
+                              </button>
+                            )}
+                            <button data-yk-menu={r.id} style={{ ...styles.btnGhost, padding: "5px 10px", fontSize: 15, lineHeight: 1 }} aria-haspopup="menu" aria-expanded={menuId === r.id} aria-label="Diğer işlemler" onClick={(e) => { e.stopPropagation(); setMenuId(menuId === r.id ? null : r.id); }}>⋯</button>
+                            {menuId === r.id && (
+                              <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 20, minWidth: 130, background: pal.panelSolid || pal.panel, border: `1px solid ${pal.line}`, borderRadius: 10, boxShadow: pal.shadow, padding: "4px 0" }}>
+                                <div role="menuitem" data-yk-edit style={{ padding: "8px 14px", fontSize: 14, cursor: "pointer" }} onClick={() => { setMenuId(null); edit(r); }}>Düzenle</div>
+                                <div role="menuitem" data-yk-delete style={{ padding: "8px 14px", fontSize: 14, cursor: "pointer", color: pal.bad }} onClick={() => { setMenuId(null); del(r); }}>Sil</div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr data-yk-detail>
+                          <td colSpan={YK_COLS.length + 1} style={{ ...styles.td, background: pal.fieldBg, padding: "12px 24px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "10px 20px", fontSize: 14 }}>
+                              {[["Bitlocker", r.bitlocker], ["İşlem yapan", r.processedBy], ["Nedeni", r.reason], ["Teslim tarihi", r.deliveryDate], ["Hostname", r.hostname], ["Seri no", r.serial]].map(([k, v]) => (
+                                <div key={k}>
+                                  <div style={{ fontSize: 12, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.03em" }}>{k}</div>
+                                  <div style={{ fontWeight: 600 }}>{v || <span style={{ color: pal.inkSoft, fontWeight: 400 }}>—</span>}</div>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontSize: 12, color: pal.inkSoft, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 6 }}>İadeler ({retLines.length})</div>
+                              {retLines.length === 0 ? (
+                                <span style={{ color: pal.inkSoft, fontSize: 13 }}>İade kaydı yok</span>
+                              ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                  {retLines.map((l, i) => (
+                                    <div key={i} style={{ fontSize: 13, background: pal.panelSolid || pal.panel, borderRadius: 8, padding: "6px 10px" }}>{l}</div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td style={styles.td}>
-                      {r.mailSentAt ? (
-                        <span style={{ ...styles.badge, ...styles.badgeOk }} title={new Date(r.mailSentAt).toLocaleString("tr-TR")}>gönderildi · 1</span>
-                      ) : (
-                        <span style={{ ...styles.badge, ...styles.badgeNeutral }}>gönderilmedi · 0</span>
-                      )}
-                    </td>
-                    <td style={{ ...styles.td, whiteSpace: "nowrap" }}>
-                      {norm(r.status) !== norm("TESLİM EDİLDİ") && (
-                        <>
-                          <button
-                            style={{ ...styles.btnGhost, padding: "4px 10px", fontSize: 12, color: pal.ok, borderColor: pal.ok }}
-                            onClick={() => deliver(r)}
-                            title="Teslim edildi olarak işaretle (teslim tarihini sorar)"
-                          >
-                            ✓ Teslim Et
-                          </button>{" "}
-                        </>
-                      )}
-                      <button style={{ ...styles.btnGhost, padding: "4px 10px", fontSize: 12 }} onClick={() => edit(r)}>Düzenle</button>{" "}
-                      <button style={{ ...styles.btnGhost, padding: "4px 10px", fontSize: 12, color: pal.bad }} onClick={() => del(r)}>Sil</button>
-                    </td>
-                  </tr>
-                ))}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
 
-        {filteredRecords.length > PAGE_SIZE_OPTIONS[0] && (
-          <div style={styles.segmented} title="Sayfada gösterilecek kayıt sayısı">
-            {PAGE_SIZE_OPTIONS.map((n) => (
-              <div key={n} onClick={() => setPageSize(n)} style={{ ...styles.seg, ...(pageSize === n ? styles.segActive : {}) }}>
-                {n === Infinity ? "Tümü" : n}
-              </div>
-            ))}
-          </div>
-        )}
         {filteredRecords.length > 0 && (
-          <div style={{ ...styles.tableFooter, flexWrap: "wrap", gap: 10, marginTop: 10 }}>
+          <div style={{ ...styles.tableFooter, flexWrap: "wrap", gap: 10 }}>
             <span>
               {filteredRecords.length} kayıttan {pagedRecords.length} tanesi gösteriliyor
               {pageSize !== Infinity && totalPages > 1 ? ` · Sayfa ${safePage} / ${totalPages}` : ""}
+              {selected.size > 0 ? ` · ${selected.size} seçili` : ""}
             </span>
             <Pagination page={safePage} totalPages={totalPages} onChange={setPage} styles={styles} pal={pal} />
           </div>

@@ -156,7 +156,7 @@ ${body}`);
   // ---------- Atıl Monitörler ----------
   console.log("\nAtıl Monitörler");
   await openReport("Atıl Monitörler");
-  await page.getByText(/Bilgi dışı kullanılan/).first().click();
+  await page.locator("[data-atil-stage=outside]").click();
   await page.waitForTimeout(800);
   await selectRows(1);
   r = await sendAndCollect(() => page.getByRole("button", { name: /Bilgi Dışı Kullanıma Mail Gönder/ }).first().click());
@@ -223,7 +223,7 @@ ${body}`);
     await page.reload();
     await page.waitForTimeout(3000);
     await openReport("Yeni Kurulum Kaydı");
-    const recRows = page.locator("tr", { hasText: /gönderilmedi · 0/ });
+    const recRows = page.locator("tr", { hasText: /Mail: gönderilmedi/ });
     const nUnsent = await recRows.count();
     check("Yeni Kurulum: mail gönderilmemiş kayıtlar listede", nUnsent >= 3, `${nUnsent} kayıt`);
 
@@ -246,8 +246,8 @@ ${body}`);
       check("Yeni Kurulum (TR): kaydın ATO numarası tabloda (Varlık Transfer Emri)", !!ato && t.includes(ato), ato);
       check("Yeni Kurulum (TR): tek satırlık tablo", (m.html.match(/<tbody>[\s\S]*<\/tbody>/) || [""])[0].split("<tr>").length - 1 === 1);
     }
-    const sentBadge = await page.locator("tr", { hasText: /gönderildi · 1/ }).count();
-    check("Yeni Kurulum: gönderilen kaydın rozeti 'gönderildi · 1' oldu", sentBadge >= 1);
+    const sentBadge = await page.locator("tr", { hasText: /Mail: gönderildi/ }).count();
+    check("Yeni Kurulum: gönderilen kaydın rozeti Mail gönderildi oldu", sentBadge >= 1);
     // gönderimden sonra seçim temizlenmeli: buton "(1 seçili)" değil "(tümü)" göstermeli — aksi halde aynı kayıt yeniden gider
     check("Yeni Kurulum: gönderimden sonra seçim temizlendi (buton '(tümü)' gösteriyor)", (await page.getByRole("button", { name: /Mail Gönder — TR \(tümü\)/ }).count()) === 1);
 
@@ -255,7 +255,7 @@ ${body}`);
     await page.reload();
     await page.waitForTimeout(3000);
     await openReport("Yeni Kurulum Kaydı");
-    await page.locator("tr", { hasText: /gönderilmedi · 0/ }).first().locator("input[type=checkbox]").check();
+    await page.locator("tr", { hasText: /Mail: gönderilmedi/ }).first().locator("input[type=checkbox]").check();
     await page.locator('input[placeholder^="Mail alıcı"]').fill("alici@test.local");
     await page.locator("select").filter({ has: page.locator('option[value="en"]') }).selectOption("en");
     const r2 = await sendAndCollect(() => page.getByRole("button", { name: /Mail Gönder — EN/ }).click());
@@ -266,20 +266,21 @@ ${body}`);
       check("Yeni Kurulum (EN): İngilizce konu ve metin ve tablo başlıkları", r2.mails[0].subject === "Your Device Is Ready — ATO Closure Approval" && t.includes("Your device has been prepared") && ["Serial Number", "Barcode", "Asset Transfer Order"].every((h) => t.includes(h)), r2.mails[0].subject);
     }
 
-    // 3) iki kayıt tek mailde (çoğul konu, 2 satır) — önceki gönderimin seçimi ekranda kaldığı için sayfa yenilenir
+    // 3) iki kayıt seçili → TEKLİ gönderim: her kayıt için ayrı mail (tek satırlı tablo, tekil konu)
     await page.reload();
     await page.waitForTimeout(3000);
     await openReport("Yeni Kurulum Kaydı");
-    const boxes = page.locator("tr", { hasText: /gönderilmedi · 0/ });
+    const boxes = page.locator("tr", { hasText: /Mail: gönderilmedi/ });
     check("Yeni Kurulum (2 kayıt senaryosu): yeterli gönderilmemiş kayıt kaldı", (await boxes.count()) >= 2, `${await boxes.count()} kayıt`);
     if ((await boxes.count()) >= 2) {
       await boxes.nth(0).locator("input[type=checkbox]").check();
       await boxes.nth(1).locator("input[type=checkbox]").check();
       await page.locator('input[placeholder^="Mail alıcı"]').fill("alici@test.local");
       const r3 = await sendAndCollect(() => page.getByRole("button", { name: /Mail Gönder — TR \(2 seçili\)/ }).click());
-      check("Yeni Kurulum (2 kayıt): tek mailde gidiyor", r3.mails.length === 1, r3.toast);
-      if (r3.mails[0]) {
-        check("Yeni Kurulum (2 kayıt): çoğul konu ve 2 satırlı tablo", /Cihazlarınız Hazır — ATO Kapatma Onayı \(2 cihaz\)/.test(r3.mails[0].subject) && (r3.mails[0].html.match(/<tbody>[\s\S]*<\/tbody>/) || [""])[0].split("<tr>").length - 1 === 2, r3.mails[0].subject);
+      check("Yeni Kurulum (2 kayıt): her kayıt için AYRI mail gidiyor (2 mail)", r3.mails.length === 2, r3.toast);
+      if (r3.mails.length === 2) {
+        check("Yeni Kurulum (2 kayıt): her mail tekil konu ve tek satırlı tablo", r3.mails.every((m) => m.subject === "Cihazınız Hazır — ATO Kapatma Onayı" && (m.html.match(/<tbody>[\s\S]*<\/tbody>/) || [""])[0].split("<tr>").length - 1 === 1), r3.mails.map((m) => m.subject).join(" | "));
+        check("Yeni Kurulum (2 kayıt): iki mail farklı ATO numarası taşıyor", new Set(r3.mails.map((m) => (stripHtml(m.html).match(/ATO-[\w-]+/) || [""])[0])).size === 2);
         sane("Yeni Kurulum 2 kayıt", r3.mails);
       }
     }
