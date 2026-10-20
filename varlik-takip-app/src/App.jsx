@@ -984,18 +984,35 @@ export default function App({ user, onLogout } = {}) {
     [mailHistory]
   );
 
+  // Rapor adındaki dil eki ("(TR)" / "(EN)") aynı raporu bölmesin
+  const historyReportBase = (name) => String(name || "").replace(/\s*\((TR|EN)\)\s*$/, "");
+  // Kapsam (şirket / "Tüm Şirketler" / kayıt türü) ve rapor seçenekleri sahte sabit listeden değil, gerçek kayıtlardan gelir
+  const historyScopes = useMemo(
+    () => Array.from(new Set(mailHistory.map((h) => h.dept).filter(Boolean))).sort((a, b) => a.localeCompare(b, "tr")),
+    [mailHistory]
+  );
+  const historyReports = useMemo(
+    () => Array.from(new Set(mailHistory.map((h) => historyReportBase(h.report)).filter(Boolean))).sort((a, b) => a.localeCompare(b, "tr")),
+    [mailHistory]
+  );
+  const historyFilterCount = [historyStatusFilter, historyDeptFilter, historyReportFilter, historySenderFilter].filter((v) => v !== "all").length + (historyDateFrom ? 1 : 0) + (historyDateTo ? 1 : 0) + (historySearch.trim() ? 1 : 0);
+  const clearHistoryFilters = () => {
+    setHistoryStatusFilter("all"); setHistoryDeptFilter("all"); setHistoryReportFilter("all"); setHistorySenderFilter("all");
+    setHistoryDateFrom(""); setHistoryDateTo(""); setHistorySearch("");
+  };
+
   const filteredMailHistory = useMemo(() => {
     return mailHistory.filter((h) => {
       if (historyStatusFilter !== "all" && h.status !== historyStatusFilter) return false;
-      if (historyDeptFilter !== "all" && h.dept !== DEPARTMENTS.find((d) => d.id === historyDeptFilter)?.name) return false;
-      if (historyReportFilter !== "all" && h.report !== REPORT_TYPES.find((r) => r.id === historyReportFilter)?.name) return false;
+      if (historyDeptFilter !== "all" && h.dept !== historyDeptFilter) return false;
+      if (historyReportFilter !== "all" && historyReportBase(h.report) !== historyReportFilter) return false;
       if (historySenderFilter !== "all" && h.senderUsername !== historySenderFilter) return false;
       if (historyDateFrom && h.isoDate && h.isoDate < historyDateFrom) return false;
       if (historyDateTo && h.isoDate && h.isoDate > `${historyDateTo}T23:59:59`) return false;
       if (historySearch.trim()) {
         const q = historySearch.trim().toLowerCase();
         const inDetails = (h.details || []).some((d) => `${d.location} ${d.to || ""}`.toLowerCase().includes(q));
-        if (!inDetails && !`${h.dept} ${h.report}`.toLowerCase().includes(q)) return false;
+        if (!inDetails && !`${h.dept} ${h.report} ${h.senderUsername || ""}`.toLowerCase().includes(q)) return false;
       }
       return true;
     });
@@ -4497,57 +4514,67 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             <>
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
                 <p style={styles.pageTitle}>Gönderim Geçmişi</p>
-                <p style={styles.pageSub}>Kim, ne zaman, hangi rapor için e-posta gönderdi. İnaktif Cihazlar ve Disk Alanı gerçek gönderim sonucunu yansıtır; Zimmet Uyuşmazlığı henüz demo modundadır.</p>
+                <p style={styles.pageSub}>Hangi kullanıcı, ne zaman, hangi rapor için, kime e-posta gönderdi. Bir satıra tıklayınca kişi ve cihaz bazında sonuçları görürsünüz.</p>
               </div>
+              <div style={{ ...styles.panel, padding: "12px 16px", marginBottom: 14 }} className="no-print" data-history-filters>
+                <div data-history-row style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ ...styles.searchWrap, flex: "2 1 220px", maxWidth: "none", padding: "6px 11px", boxSizing: "border-box" }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="M21 21l-4.3-4.3" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Kişi, cihaz veya e-posta ara..."
+                      value={historySearch}
+                      onChange={(e) => setHistorySearch(e.target.value)}
+                      style={{ ...styles.searchInput, fontSize: 13 }}
+                    />
+                    {historySearch && (
+                      <span style={styles.searchClear} onClick={() => setHistorySearch("")} title="Aramayı temizle">✕</span>
+                    )}
+                  </div>
+                  <select style={{ ...{ ...styles.scheduleSelect, fontSize: 13, padding: "6px 9px", boxSizing: "border-box", minWidth: 0 }, flex: "1 1 120px" }} value={historyStatusFilter} onChange={(e) => setHistoryStatusFilter(e.target.value)}>
+                    <option value="all">Tüm Durumlar</option>
+                    <option value="Başarılı">Başarılı</option>
+                    <option value="Kısmen Başarısız">Kısmen Başarısız</option>
+                    <option value="Gönderilemedi">Gönderilemedi</option>
+                  </select>
+                  <select style={{ ...{ ...styles.scheduleSelect, fontSize: 13, padding: "6px 9px", boxSizing: "border-box", minWidth: 0 }, flex: "1 1 120px" }} value={historyDeptFilter} onChange={(e) => setHistoryDeptFilter(e.target.value)} title="Gönderimin kapsamı (şirket ya da kayıt türü)">
+                    <option value="all">Tüm Kapsamlar</option>
+                    {historyScopes.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <select style={{ ...{ ...styles.scheduleSelect, fontSize: 13, padding: "6px 9px", boxSizing: "border-box", minWidth: 0 }, flex: "1 1 120px" }} value={historyReportFilter} onChange={(e) => setHistoryReportFilter(e.target.value)}>
+                    <option value="all">Tüm Raporlar</option>
+                    {historyReports.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <select style={{ ...{ ...styles.scheduleSelect, fontSize: 13, padding: "6px 9px", boxSizing: "border-box", minWidth: 0 }, flex: "1 1 120px" }} value={historySenderFilter} onChange={(e) => setHistorySenderFilter(e.target.value)}>
+                    <option value="all">Tüm Gönderenler</option>
+                    {historySenders.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <div data-history-dates style={{ display: "flex", alignItems: "center", gap: 6, flex: "0 0 auto" }}>
+                    <input type="date" style={{ ...styles.scheduleSelect, fontSize: 13, padding: "6px 8px", width: 134, boxSizing: "border-box" }} value={historyDateFrom} onChange={(e) => setHistoryDateFrom(e.target.value)} title="Başlangıç tarihi" aria-label="Başlangıç tarihi" />
+                    <span style={{ color: pal.inkSoft }}>–</span>
+                    <input type="date" style={{ ...styles.scheduleSelect, fontSize: 13, padding: "6px 8px", width: 134, boxSizing: "border-box" }} value={historyDateTo} onChange={(e) => setHistoryDateTo(e.target.value)} title="Bitiş tarihi" aria-label="Bitiş tarihi" />
+                  </div>
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <div data-history-summary style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontSize: 13, color: pal.inkSoft }}>
+                      <span><b style={{ color: pal.ink }}>{filteredMailHistory.length}</b> / {mailHistory.length} gönderim{historyFilterCount > 0 ? ` · ${historyFilterCount} aktif filtre` : ""}</span>
+                      {historyFilterCount > 0 && <span role="button" data-history-clear onClick={clearHistoryFilters} style={{ cursor: "pointer", color: pal.accent, fontWeight: 600 }}>Filtreleri temizle</span>}
+                    </div>
+                </div>
+              </div>
+
               <div style={styles.detailLayoutRow}>
                 <div style={styles.panel} className="print-area">
-                  <div style={styles.toolbar} className="no-print">
-                    <div style={styles.toolbarFiltersRow}>
-                      <div style={styles.searchWrap}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <circle cx="11" cy="11" r="8" />
-                          <path d="M21 21l-4.3-4.3" />
-                        </svg>
-                        <input
-                          type="text"
-                          placeholder="Kişi, cihaz veya e-posta ara..."
-                          value={historySearch}
-                          onChange={(e) => setHistorySearch(e.target.value)}
-                          style={styles.searchInput}
-                        />
-                        {historySearch && (
-                          <span style={styles.searchClear} onClick={() => setHistorySearch("")} title="Aramayı temizle">✕</span>
-                        )}
-                      </div>
-                      <select style={styles.scheduleSelect} value={historyStatusFilter} onChange={(e) => setHistoryStatusFilter(e.target.value)}>
-                        <option value="all">Tüm Durumlar</option>
-                        <option value="Başarılı">Başarılı</option>
-                        <option value="Kısmen Başarısız">Kısmen Başarısız</option>
-                        <option value="Gönderilemedi">Gönderilemedi</option>
-                      </select>
-                      <select style={styles.scheduleSelect} value={historyDeptFilter} onChange={(e) => setHistoryDeptFilter(e.target.value)}>
-                        <option value="all">Tüm Departmanlar</option>
-                        {DEPARTMENTS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
-                      <select style={styles.scheduleSelect} value={historyReportFilter} onChange={(e) => setHistoryReportFilter(e.target.value)}>
-                        <option value="all">Tüm Rapor Türleri</option>
-                        {REPORT_TYPES.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                      </select>
-                      <select style={styles.scheduleSelect} value={historySenderFilter} onChange={(e) => setHistorySenderFilter(e.target.value)}>
-                        <option value="all">Tüm Gönderenler</option>
-                        {historySenders.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <input type="date" style={styles.scheduleSelect} value={historyDateFrom} onChange={(e) => setHistoryDateFrom(e.target.value)} title="Başlangıç tarihi" />
-                      <input type="date" style={styles.scheduleSelect} value={historyDateTo} onChange={(e) => setHistoryDateTo(e.target.value)} title="Bitiş tarihi" />
-                    </div>
-                  </div>
                   <table style={styles.table}>
                     <thead>
                       <tr>
                         <th style={styles.th}>Tarih</th>
                         <th style={styles.th}>Gönderen</th>
                         <th style={styles.th}>Rapor Türü</th>
-                        <th style={styles.th}>Alıcı Sayısı</th>
+                        <th style={styles.th}>Kayıt Sayısı</th>
                         <th style={styles.th}>Durum</th>
                       </tr>
                     </thead>
@@ -4563,7 +4590,10 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                             {h.time && <div style={styles.cellSub}>{h.time}</div>}
                           </td>
                           <td style={styles.td}>{h.senderUsername || "—"}</td>
-                          <td style={styles.td}>{h.report}</td>
+                          <td style={styles.td}>
+                            <div style={{ fontWeight: 600 }}>{historyReportBase(h.report)}</div>
+                            {h.dept && <div style={styles.cellSub}>{h.dept}</div>}
+                          </td>
                           <td style={styles.td}>{h.recipients} kayıt</td>
                           <td style={styles.td}>
                             <span style={{ ...styles.badge, ...(h.status === "Başarılı" ? styles.badgeOk : h.status === "Gönderilemedi" ? styles.badgeBad : styles.badgeNeutral) }}>
@@ -4578,7 +4608,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                           <td style={{ ...styles.td, textAlign: "center", color: pal.inkSoft }} colSpan={5}>
                             {mailHistory.length === 0
                               ? "Henüz e-posta gönderilmedi — bir rapor ekranında \"E-posta Gönder\" butonuna basınca burada görünecek"
-                              : "Filtreyle eşleşen kayıt yok"}
+                              : <>Filtreyle eşleşen kayıt yok. <span role="button" onClick={clearHistoryFilters} style={{ cursor: "pointer", color: pal.accent, fontWeight: 600 }}>Filtreleri temizle</span></>}
                           </td>
                         </tr>
                       )}
@@ -4601,13 +4631,22 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                             <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderen kullanıcı</span><span>{h.senderUsername || "—"}</span></div>
                             <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderim tarihi</span><span>{h.date}</span></div>
                             <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderim saati</span><span>{h.time || "—"}</span></div>
-                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Rapor türü</span><span>{h.report}</span></div>
+                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Rapor</span><span>{historyReportBase(h.report)}</span></div>
+                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Kapsam</span><span>{h.dept || "—"}</span></div>
                             <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderim durumu</span><span>{h.status}</span></div>
-                            <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}><span style={{ color: pal.ink, fontWeight: 700 }}>Gönderilen kişi sayısı</span><span>{h.recipients}</span></div>
+                            <div style={styles.detailFieldRow}><span style={{ color: pal.ink, fontWeight: 700 }}>Kayıt sayısı</span><span>{h.recipients}</span></div>
+                            <div style={{ ...styles.detailFieldRow, borderBottom: "none" }}>
+                              <span style={{ color: pal.ink, fontWeight: 700 }}>Alıcı sayısı</span>
+                              <span>{(() => {
+                                if (!selectedHistoryDetails || selectedHistoryDetails.length === 0) return "—";
+                                const to = new Set(selectedHistoryDetails.filter((d) => d.recipientEmail || d.to).map((d) => String(d.recipientEmail || d.to).toLowerCase()));
+                                return to.size > 0 ? to.size : "—";
+                              })()}</span>
+                            </div>
                           </div>
 
                           <div>
-                            <p style={{ ...styles.formLabel, marginBottom: 8 }}>Kişi / Cihaz Bazında Detay</p>
+                            <p style={{ ...styles.formLabel, marginBottom: 8, color: pal.ink, fontWeight: 700 }}>Kişi / Cihaz Bazında Detay</p>
                             {loadingHistoryDetails ? (
                               <p style={styles.formHelper}>Yükleniyor...</p>
                             ) : !selectedHistoryDetails || selectedHistoryDetails.length === 0 ? (
@@ -4618,18 +4657,18 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                                   <div key={i} style={{ padding: "10px 12px", borderRadius: 8, background: pal.fieldBg, fontSize: 13 }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                       <span style={{ fontWeight: 600 }}>{d.recipientUser || d.location || "—"}</span>
-                                      <span style={{ ...styles.badge, ...(d.sendingStatus === "Başarılı" ? styles.badgeOk : styles.badgeBad) }}>
-                                        <span style={{ ...styles.badgeDot, background: d.sendingStatus === "Başarılı" ? pal.ok : pal.bad }} />
+                                      <span style={{ ...styles.badge, ...((d.sendingStatus ? d.sendingStatus === "Başarılı" : d.ok) ? styles.badgeOk : styles.badgeBad) }}>
+                                        <span style={{ ...styles.badgeDot, background: (d.sendingStatus ? d.sendingStatus === "Başarılı" : d.ok) ? pal.ok : pal.bad }} />
                                         {d.sendingStatus || (d.ok ? "Başarılı" : "Başarısız")}
                                       </span>
                                     </div>
-                                    {d.recipientEmail && <div style={{ color: pal.inkSoft, marginTop: 2 }}>{d.recipientEmail}</div>}
+                                    {(d.recipientEmail || d.to) && <div style={{ color: pal.inkSoft, marginTop: 2 }}>{d.recipientEmail || d.to}</div>}
                                     {(d.device || d.deviceModel) && (
                                       <div style={{ color: pal.inkSoft, marginTop: 2 }}>
                                         {d.device}{d.deviceModel ? ` — ${d.deviceModel}` : ""}
                                       </div>
                                     )}
-                                    {d.message && d.sendingStatus !== "Başarılı" && <div style={{ color: pal.bad, marginTop: 2 }}>{d.message}</div>}
+                                    {d.message && !(d.sendingStatus ? d.sendingStatus === "Başarılı" : d.ok) && <div style={{ color: pal.bad, marginTop: 2 }}>{d.message}</div>}
                                     {d.ok && d.previewUrl && (
                                       <a href={d.previewUrl} target="_blank" rel="noreferrer" style={{ color: pal.accent, fontSize: 12 }}>Önizle ↗</a>
                                     )}

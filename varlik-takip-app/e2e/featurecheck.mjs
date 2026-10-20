@@ -140,6 +140,27 @@ try {
   await page.mouse.click(5, 5); await page.waitForTimeout(150);
   check("Menü dışına tıklayınca kapanıyor", (await page.locator("[data-yk-edit]").count()) === 0);
 
+  console.log("\nGönderim Geçmişi — ekran");
+  const hAuth = { "Content-Type": "application/json", Authorization: `Bearer ${be.token}` };
+  const hMk = (id, iso, report, dept, status, details) => fetch(`${be.base}/api/mail/history`, { method: "POST", headers: hAuth, body: JSON.stringify({ id, date: new Date(iso).toLocaleDateString("tr-TR"), time: "10:15:00", isoDate: iso, report, reportType: "x", dept, recipients: details.length, status, senderUsername: "smoke", details }) });
+  await hMk(9001, "2026-10-19T10:15:00Z", "Yeni Kurulum Kaydı (TR)", "Yeni Kurulum", "Başarılı", [{ location: "HOST1", to: "a@x.com", count: 1, ok: true }]);
+  await hMk(9002, "2026-10-19T11:00:00Z", "Yeni Kurulum Kaydı (EN)", "Yeni Kurulum", "Kısmen Başarısız", [{ location: "HOST2", to: "b@x.com", count: 1, ok: true }, { location: "HOST3", to: null, count: 1, ok: false, message: "Alıcı bulunamadı" }]);
+  await hMk(9003, "2026-10-20T09:00:00Z", "Zimmet Uyuşmazlığı", "Tüm Şirketler", "Başarılı", [{ location: "Ahmet Yılmaz", to: "ahmet@x.com", count: 2, ok: true }]);
+  await page.reload(); await page.waitForTimeout(4000);
+  await page.locator('text="Gönderim Geçmişi"').first().click(); await page.waitForTimeout(1500);
+  const hOpts = await page.locator("select").evaluateAll((els) => els.map((e) => [...e.options].map((o) => o.text)));
+  check("Filtre seçenekleri gerçek kayıtlardan (sahte 'Departman 1/2/3' yok; TR/EN aynı rapor tek satır)", !hOpts.flat().some((t) => /Departman \d/.test(t)) && hOpts.flat().filter((t) => t === "Yeni Kurulum Kaydı").length === 1 && hOpts.flat().includes("Tüm Kapsamlar") && hOpts.flat().includes("Tüm Raporlar"), JSON.stringify(hOpts.map((o) => o.length)));
+  check("Sayı özeti: 'N / M gönderim'", /\d+ \/ \d+ gönderim/.test(await page.locator("[data-history-summary]").innerText()));
+  const hTotal = await page.locator("tbody tr").count();
+  await page.locator("select").nth(1).selectOption({ label: "Yeni Kurulum" }); await page.waitForTimeout(300);
+  check("Kapsam filtresi çalışıyor (boş sonuç vermiyor) ve aktif filtre sayısı görünüyor", (await page.locator("tbody tr").count()) >= 2 && (await page.locator("tbody tr").count()) < hTotal && /1 aktif filtre/.test(await page.locator("[data-history-summary]").innerText()));
+  await page.locator("[data-history-clear]").click(); await page.waitForTimeout(300);
+  check("'Filtreleri temizle' tüm kayıtları geri getiriyor", (await page.locator("tbody tr").count()) === hTotal && (await page.locator("[data-history-clear]").count()) === 0);
+  await page.locator("tbody tr", { hasText: "Yeni Kurulum" }).first().click(); await page.waitForTimeout(1800);
+  const hPanel = await page.locator("body").innerText();
+  check("Sağ panel: 'Kayıt sayısı', 'Alıcı sayısı' ve 'Kapsam' (eski 'Gönderilen kişi sayısı' yok)", /Kayıt sayısı/i.test(hPanel) && /Alıcı sayısı/i.test(hPanel) && /Kapsam/i.test(hPanel) && !/Gönderilen kişi sayısı/i.test(hPanel));
+  check("Sağ panelde alıcı e-postası görünüyor", /@x\.com/.test(hPanel));
+
   console.log("\nLokasyon/IP — e-posta önizlemesi");
   await page.locator('text="Lokasyon Hostname ve IP Uyuşmazlığı"').first().click(); await page.waitForTimeout(3500);
   await page.locator("[data-locip-preview]").click(); await page.waitForTimeout(800);
