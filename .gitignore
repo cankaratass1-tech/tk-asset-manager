@@ -7,3 +7,8 @@ backend/.env
 .claude/
 
 senaryo-gorselleri/
+
+*.zip
+yedekler/
+maddeli-gorseller/
+tipografi-gorseller/
