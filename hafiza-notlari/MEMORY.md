@@ -1,0 +1,3 @@
+- [Cihaz Aksiyon Geçmişi — ileriki plan](cihaz-aksiyon-gecmisi-plan.md) — askıya alınan bileşen tekrar açılınca zimmet devri (kime/ne zaman) ve hostname değişikliği gösterecek
+- [Şirket filtresi — KRİTİK NOT](sirket-filtresi-kritik-not.md) — şirket seçimi tüm raporlara bağlandı, geri alma adımları KRITIK-NOTLAR.md'de
+- [Hostname değişikliği kurgusu — beklemede](hostname-degisikligi-kurgu-beklemede.md) — kullanıcı kararı: mevcut sistem aynen kalsın; seçenekler A/B/C ve senaryolar notta

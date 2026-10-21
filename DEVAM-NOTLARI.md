@@ -38,3 +38,6 @@ Danışılan, karar bekleyen konular:
 4. `main` dalına alma.
 
 Test altyapısı: Playwright-core (Edge; yoksa Chromium, ya da `E2E_BROWSER_PATH`), `e2e/harness.mjs`, `npm run test:all`.
+
+## Hafıza notları
+Önceki oturumlardaki kalıcı notlar `hafiza-notlari/` klasöründe (Cihaz Aksiyon Geçmişi planı, hostname değişikliği kurgusu — beklemede, şirket filtresi kritik notu). Yeni bir Claude oturumu bunları okumalı; kullanıcı açıkça istemeden hostname/kimlik kurgusunu değiştirme.
