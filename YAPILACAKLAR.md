@@ -1,7 +1,7 @@
 # Yapılacaklar
 
 Bu dosya iki bilgisayarda da `senkronla.bat` ile eşitlenir. Yeni bir iş aklınıza gelince buraya ekletin, bitenleri `- [x]` yapın.
-Son güncelleme: 21.10.2026
+Son güncelleme: 22.10.2026
 
 ## Karar bekleyenler
 - [ ] **Gönderim Geçmişi veri modeli:** mail içeriğinin saklanması, zamanlayıcı e-postaları, Cihaz Aksiyon Geçmişi ile birleştirme.
@@ -17,7 +17,7 @@ Son güncelleme: 21.10.2026
 - [x] **BUL-03 (yüksek):** giriş, yönetici girişi, kurulum, şifre değiştirme için deneme sınırı. Giderildi 21.10.2026.
 - [x] **BUL-04 (orta), kısmen:** alıcı doğrulama, boyut sınırı, kullanıcı kotası, gönderim günlüğü eklendi (21.10.2026).
 - [ ] **BUL-04 kalan:** şirket sunucusuna geçerken `MAIL_ALLOWED_DOMAINS` ortam değişkenini şirket alan adlarıyla tanımla; gövdeyi sunucuda şablondan üretme işi (karar bekliyor).
-- [ ] **BUL-11 (orta):** `npm audit fix`, Express/Nodemailer güncelle.
+- [x] **BUL-11 (orta):** bağımlılıklar güncellendi, `npm audit` 0 açık, CI'ya audit adımı eklendi. Giderildi 22.10.2026.
 - [ ] Bilgi Güvenliği ekibine göndermeden önce Bölüm 16'daki teyit sorularını yanıtla (render.yaml yayında mı? yönetici hesabı gerçek mi?).
 
 ## Verilen kararlar

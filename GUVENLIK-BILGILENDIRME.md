@@ -199,27 +199,24 @@ sonlandıran bir ters vekil (reverse proxy) olmadan **HTTP üzerinden düz metin
   değişikliği kimin yaptığı ayırt edilemez (BUL-12).
 - İstemciye hata ayrıntısı/stack trace sızdırılmaz (genel "İstek işlenemedi" mesajı).
 
-## 13. Bağımlılık güvenliği (`npm audit`, 21.10.2026)
+## 13. Bağımlılık güvenliği (`npm audit`, 22.10.2026)
 
-| Paket grubu | Toplam | Kritik | Yüksek | Orta | Düşük |
-|---|---|---|---|---|---|
-| Backend (tümü) | 6 | 1 | 1 | 4 | 0 |
-| Backend (yalnızca üretim) | 5 | 1 | 1 | 3 | 0 |
-| İstemci (tümü) | 3 | 0 | 2 | 0 | 1 |
-| İstemci (yalnızca üretim) | 1 | 0 | 0 | 0 | 1 |
+`npm audit` hem backend hem istemci için **0 açık** raporlar. Başlangıçta (21.10.2026) backend'de 6 (1 kritik, 1 yüksek,
+4 orta), istemcide 3 (2 yüksek, 1 düşük) bulgu vardı.
 
-**Backend, üretimde etkili olanlar**
-- **`proxy-addr` (kritik, dolaylı, `express` üzerinden):** "güvenilen alt ağ" ile IP sahteciliği. Uygulama
-  `trust proxy` ayarını açmaz ve istemci IP'sini hiçbir yerde kullanmaz; bu nedenle mevcut yapılandırmada
-  sömürülebilir değildir. Yine de paket güncellenmelidir.
-- **`nodemailer` (yüksek, doğrudan):** eski imza ile `resolveContent()` çağrıldığında dosya/URL erişim kısıtını
-  atlama. Uygulama bu çağrı biçimini kullanmaz, ancak güncelleme önerilir.
+| Paket grubu | 21.10.2026 | 22.10.2026 |
+|---|---|---|
+| Backend (tümü) | 6 | 0 |
+| İstemci (tümü) | 3 (Electron araçlarının kaldırılmasıyla 18'den düşmüştü) | 0 |
 
-**İstemci:** Kalan iki yüksek bulgu geliştirme araçlarındadır (`vite` ve bağımlılığı `source-map-js`) ve çalışan
-uygulamaya girmez, yalnızca üretim bağımlılıklarında tek bir düşük önemli bulgu kalır. Electron ve exe paketleme
-araçları projeden kaldırıldığı için onlardan gelen bulgular (18'den 3'e düşüş) ortadan kalkmıştır.
+**Yapılan güncellemeler**
+- `nodemailer` 9.0.5 → 10.2.0 (ana sürüm yükseltmesi; yüksek önemli adres ayrıştırma ve alan adı doğrulama bulguları).
+- `express` 4.22.3, `qs` 6.16.1, `proxy-addr` 2.0.8 (kritik IP sahteciliği bulgusu dahil, `npm audit fix`).
+- İstemcide `vite`, `source-map-js`, `dompurify` yamalı sürümlere alındı.
+- Güncellemeler sonrası birim, backend ve 18 tarayıcı paketi geçti.
 
-Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenler ayrıca değerlendirilmelidir.
+CI iş akışı her gönderimde `npm audit --audit-level=high` çalıştırır; yüksek veya kritik yeni bir açık çıkarsa
+iş akışı başarısız olur.
 
 ## 14. Kaynak kod yönetimi ve CI
 
@@ -252,7 +249,7 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
 | BUL-08 | Orta | Paylaşımlı yönetici şifresi düz metin dosyada tutulur, sabit zamanlı olmayan `===` ile karşılaştırılır, her istekte HTTP başlığıyla taşınır, ilk üretimde konsola yazılır. | Dosyaya/loga erişen veya trafiği dinleyen kişi yönetici yetkisini alır. Kimin değişiklik yaptığı bilinmez. | Ayarları Master oturumuna taşı (bcrypt + token), paylaşımlı şifreyi kaldır. |
 | BUL-09 | Orta | Uygulama TLS sunmaz. | Sunucu modunda parolalar, token ve yönetici şifresi ağda düz metin gider. | TLS sonlandıran ters vekil (IIS/nginx) arkasında yayınla, HTTP'yi kapat. |
 | BUL-10 | Orta | Dört gizli dosya git geçmişinde durur (private GitHub). Anahtar, şifreli verinin yanındadır. | Depo erişimi olan biri anahtarı ve şifreli ayarları alır. | SMTP test verisi (Ethereal) olduğundan proje sahibi şimdilik kabul etti. Yönetici hesabı ve kullanıcılar gerçekse hemen yenile. Üretim öncesi geçmişi temizle, anahtarları yenile. |
-| BUL-11 | Orta | Bağımlılık açıkları (Bölüm 13), özellikle `nodemailer` ve `express` zinciri. | Doğrudan sömürü olasılığı düşük, ama güncel olmayan paket riski. | `npm audit fix`, Express/Nodemailer'ı güncelle, CI'da `npm audit` adımı ekle. |
+| BUL-11 | **Giderildi** (22.10.2026, eski önem: Orta) | Bağımlılık açıkları (Bölüm 13), özellikle `nodemailer` ve `express` zinciri. | Eski etki: güncel olmayan paket riski. | **Uygulanan:** `nodemailer` 10.x, Express zinciri ve istemci araçları güncellendi, `npm audit` iki pakette de 0 açık. CI'ya `npm audit --audit-level=high` adımı eklendi. |
 | BUL-12 | Orta | Denetim kaydı yok, başarısız girişte IP yok, başarılı giriş kaydedilmiyor. | Olay incelemesi ve hesap verebilirlik zayıf. | Kimlik doğrulama ve ayar değişikliği olaylarını kullanıcı + IP ile ayrı log'a yaz. |
 | BUL-13 | Düşük | Dosya klasörü bulunamazsa uygulama **sessizce depodaki demo verisine** düşer. | Üretimde yapılandırma hatası, kullanıcıya gerçek veri gibi demo veri gösterilmesine yol açabilir (veri bütünlüğü). | Üretim modunda yedek veriyi kapat, belirgin bir hata göster. |
 | BUL-14 | Düşük | Dış sağlayıcıda `ldaps` kapalı seçilirse LDAP şifresi düz metin gider. RADIUS ve TACACS+ protokolleri kendi doğaları gereği MD5 tabanlı gizleme kullanır. | Ağ dinlemesiyle kimlik bilgisi ele geçirilebilir. | LDAPS zorunlu kıl, RADIUS/TACACS+ yalnızca yönetim ağında kullan. |

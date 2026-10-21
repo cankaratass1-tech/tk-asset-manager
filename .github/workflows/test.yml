@@ -28,6 +28,10 @@ jobs:
         run: |
           npm ci --prefix varlik-takip-app
           npm ci --prefix backend
+      - name: Bağımlılık denetimi
+        run: |
+          npm audit --audit-level=high --prefix varlik-takip-app
+          npm audit --audit-level=high --prefix backend
       - name: Birim testleri
         working-directory: varlik-takip-app
         run: node --test src/services/*.test.js
