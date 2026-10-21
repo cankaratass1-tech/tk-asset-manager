@@ -6,7 +6,7 @@ import { combinedPeriodSummary, waterfallSegments, pctChange } from "../services
 const PERIOD_LABELS = { month: "Aylık", week: "Haftalık", raw: "Her Yükleme" };
 const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString("tr-TR"));
 
-// Her kart kendi renk ailesinde (bkz. konuşma / referans dashboardlar).
+// Her kart kendi renk ailesinde.
 const C = {
   blue: "#2563EB",
   teal: "#0D9488",
@@ -90,8 +90,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
 
   // "Cihaz Sağlığı Durumu" — Toplam Cihaz'dan problem kategorileri çıkarılıp Temiz Cihaz'a
   // ulaşılır. Grafik yerine: tek yığılı çubuk (kompozisyon) + çıkarma tablosu (anlaşılır).
-  // (Başlık "Şelale/waterfall" idi — kart gerçek bir waterfall grafiği çizmediği için kullanıcı
-  // isteğiyle değiştirildi, bkz. konuşma.)
+  // (Başlık "Şelale/waterfall" idi — kart gerçek bir waterfall grafiği çizmediği için değiştirildi.)
   const healthRows = [
     { key: "Toplam Cihaz", value: live.toplamCihaz, sign: "", color: C.slate, bold: true },
     { key: "İnaktif Cihaz", value: live.inaktif, sign: "−", color: C.coral },

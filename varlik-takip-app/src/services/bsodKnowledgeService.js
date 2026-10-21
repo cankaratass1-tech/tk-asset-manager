@@ -1,4 +1,4 @@
-// LAKESIDE "BSOD" raporu için gömülü çözüm bilgi tabanı (madde: kullanıcı isteği).
+// LAKESIDE "BSOD" raporu için gömülü çözüm bilgi tabanı.
 //
 // Amaç: BSOD (mavi ekran) raporundaki her "stop code" için, IT ekibinin ayrıca araştırma
 // yapmadan lokasyona/kullanıcıya gönderebileceği; olası neden + sıralı çözüm adımlarını
@@ -7,7 +7,7 @@
 // Guard, Lenovo System Update / Commercial Vantage vb.).
 //
 // Kaynaklar (araştırma): Microsoft Learn "Bug Check Code Reference", Lenovo Support/Forums,
-// yaygın alan deneyimi. Bkz. konuşma — kullanıcı örnek stop code listesi iletti.
+// yaygın alan deneyimi.
 
 import { mailShell, MAIL_FOOTER } from "./mailLayout.js";
 
@@ -559,7 +559,7 @@ function rowLabel(r) {
 function rowHost(r) {
   return r.hostname || r.host || r.computer || r.computerName || r.cihaz || "";
 }
-// Kullanıcı isteği: mail içeriğinde hostname'in ilk noktadan sonrası (FQDN alan adı) atılır.
+// Mail içeriğinde hostname'in ilk noktadan sonrası (FQDN alan adı) atılır.
 // "PC12345.sirket.local" -> "PC12345"
 export function shortHost(h) {
   return String(h || "").trim().split(".")[0];

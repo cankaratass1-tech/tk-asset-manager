@@ -1,4 +1,4 @@
-// Yarım daire ibreli gösterge (Bold BI referansındaki gibi — bkz. konuşma). Renk bantları
+// Yarım daire ibreli gösterge (Bold BI referansındaki gibi). Renk bantları
 // kırmızı → sarı → turkuaz; ibre değeri gösterir. min/max ve orta değer yazısı özelleştirilebilir.
 export default function Gauge({
   value,

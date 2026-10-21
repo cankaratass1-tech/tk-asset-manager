@@ -2,7 +2,7 @@
 // Mainstream/bakımlı bir npm paketi olmadığı için (bkz. plan) sadece PAP authentication (tek
 // START paketinde kullanıcı adı + şifre, tek REPLY ile PASS/FAIL) uygulanmıştır — ASCII/CHAP çok
 // adımlı akışlar kapsam dışı bırakılmıştır. Bu istemci gerçek bir TACACS+ cihazına karşı bu
-// ortamdan test edilememiştir (bkz. konuşma) — kullanıcının kendi kurumsal cihazında "Bağlantıyı
+// ortamdan test edilememiştir — kullanıcının kendi kurumsal cihazında "Bağlantıyı
 // Test Et" ile doğrulaması gerekir. sharedSecret hiçbir zaman loglanmaz.
 const net = require("net");
 const crypto = require("crypto");

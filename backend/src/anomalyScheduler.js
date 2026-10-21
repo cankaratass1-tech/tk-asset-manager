@@ -1,5 +1,4 @@
-// Zamanlanmış Otomatik Tarama (bkz. konuşma: "yeni uyuşmazlıkları özetler" — Ayarlar > Veri
-// Input ekranında önceden sadece görsel/demo bir bölümdü, burada GERÇEK çalışır hale getirildi).
+// Zamanlanmış Otomatik Tarama.
 //
 // Frontend'deki comparisonService.js (ES module, Vite/tarayıcı için) burada require EDİLEMEZ —
 // backend CommonJS. Bu yüzden sadece bu özellik için gereken İKİ kontrolün (Mükerrer Çift Zimmet,

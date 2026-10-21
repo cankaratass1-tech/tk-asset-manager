@@ -61,7 +61,7 @@ import RecordPopup from "./components/recordList/RecordPopup";
 const pageSizeOptions = [25, 50, 100, Infinity];
 
 // Excel'deki "Sahibi Firma" ham değerleri uzun/resmi olduğu için sidebar'da kısa etiket
-// gösteriliyor (bkz. konuşma) — eşleştirme/filtreleme hâlâ ham değer üzerinden çalışır, sadece
+// gösteriliyor — eşleştirme/filtreleme hâlâ ham değer üzerinden çalışır, sadece
 // görünen metin değişir. Eşlemesi bilinmeyen bir şirket gelirse ham adıyla gösterilir.
 const COMPANY_SHORT_LABELS = {
   "TKAO-MHY A.O.": "TKAO",
@@ -73,7 +73,7 @@ function companyShortLabel(raw) {
 
 // "PDF'e Aktar" artık window.print() ile tarayıcının yazdırma penceresini açıp kullanıcıya
 // "PDF olarak kaydet"i elle seçtirmiyor — jsPDF ile doğrudan indirilebilir bir .pdf dosyası
-// üretiyor (bkz. konuşma: "otomatik kaydedilebilir mi"). jsPDF'in yerleşik fontları (Helvetica
+// üretiyor. jsPDF'in yerleşik fontları (Helvetica
 // vb.) Türkçe karaktersiz WinAnsi kodlamasını kullanır (ş/ğ/ı/İ/ç/ö/ü YOK) — bu yüzden açık
 // kaynaklı (Apache 2.0) Roboto fontu public/fonts altına gömülüp jsPDF'e yükleniyor. Font dosyası
 // ~150KB olduğu için ana JS paketine gömülmüyor, sadece PDF'e Aktar'a tıklanınca bir kez
@@ -107,8 +107,7 @@ function parseMailGroupsText(text) {
 }
 
 // Aktif ekran (Dashboard / rapor / Gönderim Geçmişi / Ayarlar / Network görünümü) sayfa
-// yenilenince kaybolmasın diye localStorage'a yazılır (bkz. konuşma: "refresh yapınca anasayfaya
-// gidiyor, bütün sayfalar için düzelt"). Router eklemeden en basit/güvenli çözüm — mevcut
+// yenilenince kaybolmasın diye localStorage'a yazılır. Router eklemeden en basit/güvenli çözüm — mevcut
 // state-tabanlı navigasyon deseniyle tutarlı.
 const NAV_STORAGE_KEY = "varlikTakip.lastView";
 function loadNavState() {
@@ -122,10 +121,10 @@ function loadNavState() {
 
 export default function App({ user, onLogout } = {}) {
   // "aero" — kullanıcının verdiği havacılık/glassmorphism mockup'ından türetilen, seçilebilir
-  // üçüncü tema (bkz. konuşma — ışık/koyu'nun yerine değil, ek olarak). PALETTES ile 3'lü toggle
+  // üçüncü tema. PALETTES ile 3'lü toggle
   // (☀︎/☾/✈) arasında döngü kurulabiliyor.
   // Tema seçimi de aktif ekran gibi localStorage'a yazılır — sayfa yenilenince "açık"a
-  // dönmesin (bkz. konuşma: "temayı da kalıcı yap").
+  // dönmesin.
   const [theme, setTheme] = useState(() => {
     try {
       return localStorage.getItem("varlikTakip.theme") || "light";
@@ -175,7 +174,7 @@ export default function App({ user, onLogout } = {}) {
   const [selectedKeys, setSelectedKeys] = useState(new Set());
   const [selectedPerson, setSelectedPerson] = useState(null);
   // Tablodaki bir isme tıklayınca artık ayrı bir popup değil, o satırın hemen altına açılan
-  // sıralı bir liste gösteriliyor (bkz. konuşma) — hangi satırın altında açık olduğunu (rowKey)
+  // sıralı bir liste gösteriliyor — hangi satırın altında açık olduğunu (rowKey)
   // ve hangi kişi için açıldığını birlikte tutuyoruz
   const [expandedPerson, setExpandedPerson] = useState(null); // { rowKey, person } | null
   const togglePersonExpand = (rowKey, person) => {
@@ -189,8 +188,7 @@ export default function App({ user, onLogout } = {}) {
   const [mgmtReport, setMgmtReport] = useState("inaktif"); // inaktif | zimmet | disk
   const [mgmtPeriod, setMgmtPeriod] = useState("month"); // month | week | raw
   const [overviewPeriod, setOverviewPeriod] = useState("month"); // "Genel Durum" paneli dönemi
-  // Rapor durumu mini özeti (Dashboard kartları + her rapor sayfasının üst kısmı) — bkz. konuşma:
-  // "haftalık/aylık filtrelenebilecek şekilde... bütün raporlarda gözükmeli". Tek bir paylaşılan
+  // Rapor durumu mini özeti (Dashboard kartları + her rapor sayfasının üst kısmı). Tek bir paylaşılan
   // state: nerede gösterilirse gösterilsin AYNI dönem seçimini kullanır (senkronizasyon).
   const [summaryPeriod, setSummaryPeriod] = useState("week"); // week | month
   // Ana Sayfa: YENİ görünüm varsayılan (tercih hiç yazılmamışsa); kullanıcı "Eski görünüme dön" ile klasiğe geçince "0" saklanır (yerel tercih, tarayıcıda kalıcı).
@@ -206,11 +204,9 @@ export default function App({ user, onLogout } = {}) {
 
   // Üst seviyede tanımlı — hem Dashboard'un KPI kartları hem her rapor sayfasının üst kısmı
   // (activeReport === X iken render edilen generic başlık bloğu) aynı fonksiyonları çağırır,
-  // ikisi de reportSnapshots + summaryPeriod state'ini paylaşır (bkz. konuşma: "bütün raporlarda
-  // gözükmeli" + "haftalık/aylık filtrelenebilecek").
+  // ikisi de reportSnapshots + summaryPeriod state'ini paylaşır.
   const summaryFor = (reportId) => latestPeriodSummary(reportSnapshots[reportId], summaryPeriod);
-  // "extra" — SharePoint yükleme butonu gibi sağ tarafa eklenecek ek öğe (bkz. konuşma: sol okla
-  // işaretlenen buton sağdaki okun gösterdiği yere, Haftalık/Aylık seçicinin yanına taşınsın).
+  // "extra" — SharePoint yükleme butonu gibi sağ tarafa eklenecek ek öğe.
   // Özet (çözülen/yeni/bekleyen) yoksa bile "extra" varsa satır yine render edilir.
   const reportPageSummary = (reportId, extra) => {
     const s = summaryFor(reportId);
@@ -276,7 +272,7 @@ export default function App({ user, onLogout } = {}) {
   const [mgmtLbsFilter, setMgmtLbsFilter] = useState([]); // üst lokasyon çoklu seçim
   const [showSettings, setShowSettings] = useState(() => loadNavState().showSettings || false);
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
-  // Ayarlar alt sekmeleri (kullanıcı isteği): Lokasyon Mailleri / SMTP / Veri Input
+  // Ayarlar alt sekmeleri: Lokasyon Mailleri / SMTP / Veri Input
   const [settingsTab, setSettingsTab] = useState("lokasyon"); // lokasyon | smtp | veri
 
   useEffect(() => {
@@ -292,7 +288,7 @@ export default function App({ user, onLogout } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsTab]);
 
-  // Aktif ekranı localStorage'a yaz — sayfa yenilenince aynı ekranda kalınsın (bkz. konuşma).
+  // Aktif ekranı localStorage'a yaz — sayfa yenilenince aynı ekranda kalınsın.
   // settingsUnlocked KASITLI olarak dahil değil: Ayarlar'a dönülse bile admin girişi (Ayarlar —
   // Giriş) tekrar istenir, güvenlik atlanmaz.
   useEffect(() => {
@@ -315,7 +311,7 @@ export default function App({ user, onLogout } = {}) {
     d3: { inaktif: true, disk: true, zimmet: true },
   });
   const [scheduleConfig, setScheduleConfig] = useState({ enabled: false, cadence: "weekly", day: "Pazartesi", time: "09:00", recipients: "" });
-  // Üst Yönetim İstisna Listesi (bkz. konuşma: "excelden o verileri çekme hiç") — admin'in elle
+  // Üst Yönetim İstisna Listesi — admin'in elle
   // yönettiği, Kapatma Onayı vb. mail akışlarının asla göndermeyeceği e-posta listesi.
   const [ustYonetimText, setUstYonetimText] = useState("");
   const [ustYonetimLoaded, setUstYonetimLoaded] = useState(false);
@@ -332,22 +328,22 @@ export default function App({ user, onLogout } = {}) {
   const [testMailTo, setTestMailTo] = useState("");
   const [sendingTestMail, setSendingTestMail] = useState(false);
   const [backendReachable, setBackendReachable] = useState(null); // null: bilinmiyor henüz
-  const layoutMode = "classic"; // Görünüm seçici kaldırıldı — Klasik sabit varsayılan (bkz. konuşma)
+  const layoutMode = "classic"; // Görünüm seçici kaldırıldı — Klasik sabit varsayılan
   const [detailRowKey, setDetailRowKey] = useState(null); // detail modda seçili kayıt
   const [historyPopupRow, setHistoryPopupRow] = useState(null);
   // Tür/Lokasyon/Üst Lokasyon filtreleri artık Model filtresiyle aynı desende — çoklu seçim,
-  // arama kutulu (kullanıcı isteği). Boş dizi = "Tümü" (eskiden "all" string'i ile ifade ediliyordu).
+  // arama kutulu. Boş dizi = "Tümü" (eskiden "all" string'i ile ifade ediliyordu).
   const [typeFilter, setTypeFilter] = useState([]); // cihaz türü/birim filtresi
   const [locationFilter, setLocationFilter] = useState([]);
   // Model filtresi (gereksinim #3) — tüm rapor ekranlarında standart, çoklu seçim
   const [modelFilter, setModelFilter] = useState([]);
   const [windowsFilter, setWindowsFilter] = useState([]); // Windows sürümü filtresi (Zimmet Uyuşmazlığı)
-  // Durum filtresi (bkz. konuşma: "Model Tümünün yanına Durum filtresi ekle") — Model'in yanına,
+  // Durum filtresi — Model'in yanına,
   // r.statusTag üzerinden çoklu seçim.
   const [statusFilter, setStatusFilter] = useState([]);
   const [lbsParentFilter, setLbsParentFilter] = useState([]); // İnaktif gerçek veride LBS Location Parent'a göre üst filtre
   const [activeCompany, setActiveCompany] = useState("all"); // İnaktif gerçek veride "Sahibi Firma" bazlı bölüm seçimi — "all" = tüm şirketler
-  // Sayfalama (kullanıcı isteği): tüm raporlarda standart, varsayılan 25, sayfa numaralarıyla gezilebilir
+  // Sayfalama: tüm raporlarda standart, varsayılan 25, sayfa numaralarıyla gezilebilir
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
   const [mailGroupsText, setMailGroupsText] = useState(""); // yapıştırılan "Lokasyon<TAB>mail" satırları — İnaktif Cihazlar e-posta dağıtımı
@@ -368,7 +364,7 @@ export default function App({ user, onLogout } = {}) {
   const [realDiskRaw, setRealDiskAll] = useState([]);
   const [realDiskMeta, setRealDiskMeta] = useState(null);
   const [loadingRealDisk, setLoadingRealDisk] = useState(false);
-  // Zimmet Uyuşmazlığı artık gerçek SCCM envanter export'undan besleniyor (bkz. konuşma) —
+  // Zimmet Uyuşmazlığı artık gerçek SCCM envanter export'undan besleniyor —
   // İnaktif Cihazlar/Disk Alanı gibi tek seferde düz bir dizi, departman ayrımı yok
   const [realSccmAll, setRealSccmAll] = useState([]);
   // Disk Alanı dosyasında şirket sütunu yok: hostname (Name) SCCM envanterindeki cihazla eşleşirse şirket ("İştirak") oradan alınır.
@@ -380,14 +376,13 @@ export default function App({ user, onLogout } = {}) {
   }, [realDiskRaw, realSccmAll]);
   const [realSccmMeta, setRealSccmMeta] = useState(null);
   const [loadingRealSccm, setLoadingRealSccm] = useState(false);
-  // Lokasyon Mail Listesi — tüm lokasyon maillerinin TEK kaynağı (bkz. konuşma) + Lokasyon
+  // Lokasyon Mail Listesi — tüm lokasyon maillerinin TEK kaynağı + Lokasyon
   // Hostname/IP Uyuşmazlığı raporunun temel verisi.
   const [realLokasyonMailAll, setRealLokasyonMailAll] = useState([]);
   const [realLokasyonMailMeta, setRealLokasyonMailMeta] = useState(null);
   const [loadingRealLokasyonMail, setLoadingRealLokasyonMail] = useState(false);
   // TuruncuHat/Monitor Raporu artık İnaktif/Disk/SCCM ile aynı şekilde backend'in senkron
-  // klasöründen otomatik yükleniyor (bkz. konuşma: "diğerleri gibi görünmüyor" — önceden sadece
-  // tarayıcıda manuel dosya seçimiyle geliyordu, sayfa yenilenince kayboluyordu).
+  // klasöründen otomatik yükleniyor.
   const [realThAll, setRealThAll] = useState([]);
   // Yeni Kurulum / Kapatma Onayı kayıtlarının şirketi (kişi → TuruncuHat, lokasyon → SCCM)
   const recordCompanyOf = useMemo(() => buildRecordCompanyResolver({ thRows: realThAll, sccmRows: realSccmAll }), [realThAll, realSccmAll]);
@@ -399,7 +394,7 @@ export default function App({ user, onLogout } = {}) {
   // LAKESIDE "Weekly_BSOD" raporu — sadece elle dosya seçimi (bkz. bsodFileService.js)
   const [realBsodAll, setRealBsodAll] = useState([]);
   const [realBsodMeta, setRealBsodMeta] = useState(null);
-  // Ofis Bant Genişliği — monitoring aracının CSV export'u, elle yükleniyor (bkz. konuşma).
+  // Ofis Bant Genişliği — monitoring aracının CSV export'u, elle yükleniyor.
   const [realBantAll, setRealBantAll] = useState([]);
   const [realBantMeta, setRealBantMeta] = useState(null);
   const [bantSearch, setBantSearch] = useState("");
@@ -407,8 +402,7 @@ export default function App({ user, onLogout } = {}) {
   const [loadingBant, setLoadingBant] = useState(false);
   const [bantLoaded, setBantLoaded] = useState(false);
   const [bsodMailTo, setBsodMailTo] = useState("");
-  // LAKESIDE "Battery Health" — artık backend'de kalıcı saklanıyor (bkz. konuşma: "gömülü olsun
-  // her seferinde yüklemeyelim"), Ofis Bant Genişliği ile aynı desen.
+  // LAKESIDE "Battery Health" — artık backend'de kalıcı saklanıyor, Ofis Bant Genişliği ile aynı desen.
   const [realBatteryAll, setRealBatteryAll] = useState([]);
   const [realBatteryMeta, setRealBatteryMeta] = useState(null);
   const [loadingBattery, setLoadingBattery] = useState(false);
@@ -484,7 +478,7 @@ export default function App({ user, onLogout } = {}) {
     setCurrentPage(1);
   }, [activeDept, activeReport]);
 
-  // Ayarlar artık korumalı olduğu için (bkz. konuşma), sayfa açılışında herkese açık kalan
+  // Ayarlar artık korumalı olduğu için, sayfa açılışında herkese açık kalan
   // verileri (sağlık kontrolü + gönderim geçmişi) burada, Ayarlar'a özel olanları ise ayrı bir
   // effect'te (sadece giriş yapıldıktan sonra) çekiyoruz — aksi halde tek bir Promise.all içinde
   // 401 alan istek diğer başarılı isteklerin de state'e yansımasını engelliyordu
@@ -500,8 +494,7 @@ export default function App({ user, onLogout } = {}) {
         setBackendReachable(false);
       }
     })();
-    // Lokasyon-mail eşleşmeleri artık admin girişi gerektirmeden yükleniyor (bkz. konuşma:
-    // "mail gönder dediğimizde herkesin göndermesi gerekiyor") — Ayarlar'a hiç girmemiş bir
+    // Lokasyon-mail eşleşmeleri artık admin girişi gerektirmeden yükleniyor — Ayarlar'a hiç girmemiş bir
     // kullanıcı bile İnaktif Cihazlar'da "Mail Gönder"e bastığında lokasyon eşleşmesi bulunsun.
     (async () => {
       try {
@@ -574,7 +567,7 @@ export default function App({ user, onLogout } = {}) {
         // Snapshot listesini güncel tut ki yönetim paneli anında yeni dönemi görsün.
         backendClient.getSnapshots().then((s) => s && setReportSnapshots(s)).catch(() => {});
         // NOT: Rapordan çıkan cihazlar için "Rapordan Çıktı" aksiyon-geçmişi kaydı kaldırıldı
-        // (bkz. konuşma) — her yenilemede aynı cihaz için art arda gürültülü/neredeyse mükerrer
+        // — her yenilemede aynı cihaz için art arda gürültülü/neredeyse mükerrer
         // kayıtlar üretiyordu ve Cihaz Aksiyon Geçmişi'nde anlamlı bir sinyal taşımıyordu.
         // Dönemsel Devam Eden/Çözülen/Yeni istatistikleri hâlâ prevSnap karşılaştırmasından
         // (raporların kendi ekranlarında) hesaplanıyor — bu sadece device-action logunu kesiyor.
@@ -617,16 +610,16 @@ export default function App({ user, onLogout } = {}) {
   const isLokasyonIp = activeReport === "lokasyon-ip";
   // Bir kişinin ismine tıklayınca satırın altına diğer kayıtlarının açılması Zimmet'te zaten
   // vardı; İnaktif Cihazlar'da da aynı kişiye ait başka inaktif cihazlar varsa aynı şekilde
-  // görülebilsin diye açıldı (bkz. konuşma) — Disk Alanı'nda "owner" bir kişi değil hostname
+  // görülebilsin diye açıldı — Disk Alanı'nda "owner" bir kişi değil hostname
   // olduğu için bu özellik anlamsız, kapsam dışı bırakıldı.
   const canExpandPerson = isZimmet || activeReport === "inaktif";
-  // Kullanıcı isteği: "admin dışında kimse manuel dosya yüklemesi yapamasın" — Ayarlar zaten
+  // Manuel dosya yükleme yalnızca yönetici içindir. Ayarlar zaten
   // sadece master role'e açık (bkz. "Yetkiniz Bulunmamaktadır" ekranı); ama BSOD/Battery
   // Health/Ofis Bant Genişliği rapor sayfalarının KENDİ üzerinde de (Ayarlar dışında) birer
   // yükleme butonu vardı, herkese açıktı — bu bayrak o butonları gizlemek için kullanılıyor.
   const isMaster = user?.role === "master";
   // İnaktif Cihazlar ve Zimmet Uyuşmazlığı'nda SCCM ile karşılaştırma yapıldığı için, gerçek
-  // Hostname bilgisini de ayrı bir sütunda göstermek istendi (bkz. konuşma) — Disk Alanı'nda
+  // Hostname bilgisini de ayrı bir sütunda göstermek istendi — Disk Alanı'nda
   // "owner" zaten hostname olduğundan burada tekrar göstermeye gerek yok.
   const showHostname = isZimmet || isLokasyonIp || activeReport === "inaktif" || activeReport === "kullanilmayan";
   // Madde 6 — Last Logon sütunu: SCCM türevli veri taşıyan raporlarda (zimmet, inaktif). Değer
@@ -637,7 +630,7 @@ export default function App({ user, onLogout } = {}) {
   const isBattery = activeReport === "battery-health";
 
   // İnaktif Cihazlar ve Disk Alanı'nda gerçek dosya yüklendiyse departmanlar Excel'deki
-  // "Sahibi Firma" sütunundan türetiliyor — sabit Departman 1/2/3 değil (bkz. konuşma). Sol
+  // "Sahibi Firma" sütunundan türetiliyor — sabit Departman 1/2/3 değil. Sol
   // menüdeki Şirketler listesi, gerçek veri bir kez yüklendikten sonra hangi rapor sekmesinde
   // olursanız olun aynı kalır (hasRealCompanies) — veriyi filtrelemek içinse (rawRows) sadece
   // ilgili rapor sekmesindeyken devreye giren usingRealInaktif/usingRealDisk kullanılır.
@@ -655,7 +648,7 @@ export default function App({ user, onLogout } = {}) {
   }, [realThAll, realSccmAll, staleDays]);
 
   // hostname (küçük harf) -> SCCM satırı. LAKESIDE BSOD/Battery raporlarında lokasyon + kullanıcı
-  // mailini hostname ile eşleştirmek için (kullanıcı isteği: "hostname var, SCCM'den eşleştir").
+  // mailini hostname ile eşleştirmek için.
   const sccmByHostname = useMemo(() => {
     const m = new Map();
     realSccmAll.forEach((s) => {
@@ -726,7 +719,7 @@ export default function App({ user, onLogout } = {}) {
     ? "Tüm Şirketler"
     : DEPARTMENTS.find((d) => d.id === activeDept).name;
   // Disk Alanı'nda genel "Cihaz Sahibi/Seri No-Model/Lokasyon" sütunları yerine
-  // Hostname / Volume Name / Size / Free Space gösterilir (bkz. konuşma)
+  // Hostname / Volume Name / Size / Free Space gösterilir
   const isDiskReport = activeReport === "disk";
   const ownerLabel = isDiskReport ? "Hostname" : isLokasyonIp ? "Beklenen Ofis" : isUnused ? "Zimmet Sahibi" : isBsod || isBattery ? "Cihaz" : "Cihaz Sahibi";
   const serialLabel = isDiskReport ? "Volume Name" : isUnused ? "Seri No / Durum" : isBsod ? "BSOD Kodu" : isBattery ? "Batarya Sağlığı" : "Seri No / Model";
@@ -776,12 +769,11 @@ export default function App({ user, onLogout } = {}) {
 
   // TuruncuHat envanteri yüklüyse (Ayarlar > TuruncuHat ve Monitor Raporu) SCCM+TH+Monitor üçlü
   // karşılaştırması kullanılır — bu, monitörler için de gerçek doğru/hatalı zimmet tespiti verir
-  // (bkz. konuşma: "monitor kullanan kişi boş görünüyor" — SCCM tek başına monitör login bilgisi
-  // taşımıyor). TH henüz yüklenmediyse eskisi gibi salt SCCM satırlarına düşülür — mevcut
+  //. TH henüz yüklenmediyse eskisi gibi salt SCCM satırlarına düşülür — mevcut
   // davranış hiç bozulmaz.
   // isZimmet'e bağlı DEĞİL (önceden öyleydi) — Dashboard (Ana Sayfa) da bu satırları kullanıyor
   // ve rapor ekranındaki aktif sekme "zimmet" olmasa bile (ör. İnaktif Cihazlar açıkken Ana
-  // Sayfa'ya bakılıyorsa) doğru, monitör dahil sonucu göstermesi lazım (bkz. konuşma).
+  // Sayfa'ya bakılıyorsa) doğru, monitör dahil sonucu göstermesi lazım.
   const zimmetRows = useMemo(() => {
     if (realSccmAll.length === 0) return [];
     if (realThAll.length === 0) return getZimmetRows(realSccmAll);
@@ -803,7 +795,7 @@ export default function App({ user, onLogout } = {}) {
   // Madde 3 — "TH Kaydı YOK" segmenti sadece gerçekten bu tip satır varsa gösterilir.
   const anyNoThRecord = useMemo(() => isZimmet && zimmetRows.some((r) => r.statusTag === "TH Kaydı YOK"), [isZimmet, zimmetRows]);
   // "Mükerrer Çift Zimmet" segmenti — aynı kişiye birden fazla notebook zimmetli görünen kayıtlar
-  // (bkz. konuşma: "Zimmet uyuşmazlığı altına kırılım yap, mükerrer çift zimmet ekle").
+  //.
   const anyDuplicateNotebook = useMemo(() => isZimmet && zimmetRows.some((r) => r.statusTag === "Mükerrer Çift Zimmet"), [isZimmet, zimmetRows]);
 
   // Genel Bakış'taki durum akışı (Yeni/İnceleniyor/Çözüldü) dağılımı
@@ -818,7 +810,7 @@ export default function App({ user, onLogout } = {}) {
   }, [rowMeta, realSccmAll]);
 
   // İnaktif Cihazlar listesi zaten TH'den gelen "sahibi inaktif" listesi — bu yüzden TH'ye tekrar
-  // bakılmıyor (bkz. konuşma: "bu liste zaten inaktif liste, TH ile ayrıca teyide gerek yok").
+  // bakılmıyor.
   // Tek kontrol: SCCM'de bu seri no'ya aktif giriş yapan biri var mı (bkz. inaktifComparisonService.js).
   const inaktifComparisonRows = useMemo(() => {
     if (realInaktifAll.length === 0) return [];
@@ -901,8 +893,7 @@ export default function App({ user, onLogout } = {}) {
   // uyuşmazlık açıklama cümlesi taşıdığı için gerçek model "deviceModel"da (bkz.
   // sccmFileService.js); Kullanılmayan Cihazlar'da da aynı sorun — "model" alanı uzun "neden
   // kullanılmıyor" cümlesi taşıyor (bkz. unusedDeviceService.js), gerçek model yine
-  // "deviceModel"da (bkz. konuşma: "Model kısmında cihazın bilgisi yerine farklı bir bilgi
-  // geliyor ve filtre yapınca okunmuyorlar"). İnaktif/TH'de "model" doğrudan cihaz modeli;
+  // "deviceModel"da. İnaktif/TH'de "model" doğrudan cihaz modeli;
   // Disk Alanı'nda model kavramı yok (REPORTS_WITHOUT_MODEL_FILTER) — model filtresi orada gizlenir.
   const modelOf = (r) => ((isZimmet || isUnused || isLokasyonIp ? r.deviceModel : r.model) || "").trim();
   const showModelFilter = !REPORTS_WITHOUT_MODEL_FILTER.has(activeReport);
@@ -952,7 +943,7 @@ export default function App({ user, onLogout } = {}) {
       if (segment === "matched" && !r.matched) return false;
       // "Zimmet Hatalı" segmenti sadece KESİN uyuşmazlıkları göstermeli — doğrulanamayan (ör.
       // TH bazlı tasarımda "SCCM'de Bulunamadı") kayıtlar buraya karışmamalı, bunlar hatalı
-      // değil sadece doğrulanamamış demek (bkz. konuşma).
+      // değil sadece doğrulanamamış demek.
       if (segment === "unmatched" && (r.matched || (isZimmet && isZimmetUnverified(r.statusTag)))) return false;
       if (segment === "monitorIssue" && !r.monitorIssue) return false;
       if ((segment === "critical" || segment === "warning" || segment === "normal") && r.diskLevel !== segment) return false;
@@ -969,7 +960,7 @@ export default function App({ user, onLogout } = {}) {
 
   // Sayfalama — filtrelenmiş sonuç listesi büyük olabileceği için görünüm bu dilime göre render edilir;
   // Tümünü Seç / Excel'e Aktar / Mail Gönder gibi işlemler yine filteredRows'un tamamı üzerinden çalışır
-  // Gerçek sayfalama (kullanıcı isteği) — "Tümü" seçiliyse tek sayfa, aksi halde pageSize'a göre
+  // Gerçek sayfalama — "Tümü" seçiliyse tek sayfa, aksi halde pageSize'a göre
   // dilimlenir. safePage, filtre daralınca eski sayfa numarası artık mevcut olmasa bile
   // (currentPage effect'i zaten 1'e döner ama olası bir yarış durumuna karşı) sınırlar.
   const totalPages = pageSize === Infinity ? 1 : Math.max(1, Math.ceil(filteredRows.length / pageSize));
@@ -982,7 +973,7 @@ export default function App({ user, onLogout } = {}) {
 
   const matchedCount = rawRows.filter((r) => r.matched).length;
   // Doğrulanamayan (isZimmetUnverified) kayıtlar "hatalı" değil — üstteki özet kartı da segment
-  // filtresiyle (bkz. filteredRows) tutarlı olsun diye onları saymıyor (bkz. konuşma).
+  // filtresiyle (bkz. filteredRows) tutarlı olsun diye onları saymıyor.
   const unmatchedCount = isZimmet
     ? rawRows.filter((r) => !r.matched && !isZimmetUnverified(r.statusTag)).length
     : rawRows.length - matchedCount;
@@ -1056,7 +1047,7 @@ export default function App({ user, onLogout } = {}) {
   };
 
   // Filtre kombinasyonu (arama hariç) sonucu 0 kayıt bırakırsa kullanıcı sıkışıp kalmasın diye
-  // otomatik olarak filtresiz hale dönülür — bkz. konuşma (notlu filtresi + bağlam değişince oluşan tuzak)
+  // otomatik olarak filtresiz hale dönülür
   useEffect(() => {
     if (showDashboard || showHistory || showSettings) return;
     if (search.trim()) return;
@@ -1196,8 +1187,7 @@ export default function App({ user, onLogout } = {}) {
       });
     }
     if (activeReport === "inaktif") {
-      // İnaktif Cihazlar artık SCCM ile karşılaştırılan bir statusTag/actualUser taşıyor (bkz.
-      // konuşma — inaktifComparisonService.js) — export bunu düz "Eşleşti/Eşleşmedi" yerine
+      // İnaktif Cihazlar artık SCCM ile karşılaştırılan bir statusTag/actualUser taşıyor (inaktifComparisonService.js); export bunu düz "Eşleşti/Eşleşmedi" yerine
       // anlaşılır şekilde yansıtmalı: durum, hostname ve varsa fiilen kullanan kişi ayrı sütunlarda.
       return rows.map((r) => ({
         "Cihaz Sahibi (TH)": r.owner,
@@ -1354,7 +1344,7 @@ export default function App({ user, onLogout } = {}) {
   };
 
   // Excel'e Aktar ile AYNI veriyi (buildSheetData) kullanır — sütunlar birebir tutarlı olsun diye
-  // ayrı bir PDF veri şeması icat edilmedi (bkz. konuşma: "iki kez aynı şeyi yapmayalım").
+  // ayrı bir PDF veri şeması icat edilmedi.
   const handlePdfExport = async () => {
     const sortedRows = sortRowsForExport(filteredRows);
     const sheetRows = buildSheetData(sortedRows);
@@ -1497,12 +1487,10 @@ export default function App({ user, onLogout } = {}) {
     });
   };
 
-  // Zimmet Uyuşmazlığı "Mail Gönder" — ÖNCEDEN demo stub'du (bkz. konuşma: "hepsi için gidiyor mu"
-  // sorusuyla fark edildi, hiçbir zaman gerçek mail göndermiyordu). Artık gerçek gönderim: "Zimmet
+  // Zimmet Uyuşmazlığı "Mail Gönder" — ÖNCEDEN demo stub'du. Artık gerçek gönderim: "Zimmet
   // Doğru" (ve "Zimmet Doğru + Monitör Uyuşmazlığı" — zimmet kısmı zaten doğru, sorun monitörde,
   // bu akışın konusu değil) HİÇBİR ZAMAN mail almaz. "Zimmet Hatalı" VE "Mükerrer Çift Zimmet"
-  // ikisi de mail alır (bkz. konuşma: "hariç tutmayalım... çift kullanım var ise onu bilgisini
-  // verip işlem yapalım") — ama farklı içerikle: Zimmet Hatalı "cihaz size zimmetli değil ama
+  // ikisi de mail alır — ama farklı içerikle: Zimmet Hatalı "cihaz size zimmetli değil ama
   // kullanıyorsunuz, transfer edin" der; Mükerrer Çift Zimmet "üzerinize birden fazla notebook
   // zimmetli, gereksizleri iade edin" der. Aynı kişiye iki türden de kayıt varsa TEK mailde iki
   // ayrı bölüm halinde birleşir. Muhatap: cihazı fiilen kullanan kişi (SCCM'den r.mail) — bu,
@@ -1539,7 +1527,7 @@ export default function App({ user, onLogout } = {}) {
       const label = rows[0].userFull || rows[0].userLabel || "Bilinmeyen kullanıcı";
       // Mail kişi bazlı: o kişiye ait diğer türdeki kayıtlar (hedefte seçili/filtreli olmasa bile) aynı
       // mailde ikinci bölüm olarak yer alır — kişi hem zimmeti başkasında olan bir cihazı kullanıp hem de
-      // mükerrer notebook'a sahipse tek mailde ikisini de görür (bkz. konuşma: ekran görüntüsündeki format).
+      // mükerrer notebook'a sahipse tek mailde ikisini de görür.
       const personRows = zimmetRows.filter((r) => r.mail === to && isZimmetMailable(r));
       const mailRows = [...rows, ...personRows.filter((p) => !rows.some((r) => rowKeyOf(r) === rowKeyOf(p)))];
       const rowsMismatch = mailRows.filter((r) => r.statusTag === "Zimmet Hatalı");
@@ -1603,7 +1591,7 @@ export default function App({ user, onLogout } = {}) {
   // (sccmByHostname yukarıda tanımlı — Disk Alanı zenginleştirmesi + LAKESIDE BSOD/Battery eşleşmesi ortak kullanır.)
 
   // Disk Alanı kritik mail şablonu — kullanıcının verdiği TR+EN metin birebir korunuyor,
-  // sadece boş alanlar gerçek verilerle dolduruluyor (bkz. konuşma)
+  // sadece boş alanlar gerçek verilerle dolduruluyor
   const buildDiskMailText = (d) => {
     const sccm = sccmByHostname.get(String(d.owner || "").trim().toLowerCase());
     const hostname = d.owner;
@@ -1733,7 +1721,7 @@ IT Support`;
   };
 
   // Disk Alanı — gerçek gönderim: her kritik cihaz kendi (SCCM'den gelen gerçek) kullanıcı
-  // mailine ayrı bir mail alır, İnaktif'teki lokasyon-mail eşleşmesine gerek yok (bkz. konuşma)
+  // mailine ayrı bir mail alır, İnaktif'teki lokasyon-mail eşleşmesine gerek yok
   const handleDiskMail = async () => {
     let sent = 0, failed = 0, skipped = 0;
     const details = [];
@@ -1786,7 +1774,7 @@ IT Support`;
 
     // Mail gönderilemeyen (SCCM eşleşmesi ya da maili olmayan) cihazların listesi ayrı bir
     // Excel olarak iniyor — Gönderim Geçmişi'ndeki özet satırına ek olarak, kimin takip
-    // edilmesi gerektiği tek bakışta görülsün diye (bkz. konuşma)
+    // edilmesi gerektiği tek bakışta görülsün diye
     if (skippedRows.length > 0) {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(skippedRows), "Atlanan Cihazlar");
@@ -1811,8 +1799,7 @@ IT Support`;
   // Alıcı: lokasyon mail grubu (bu cihazlar müdürlük/OBS zimmetinde, lokasyon sorumlusuna gider).
   const handleUnusedMail = async () => {
     const targetRows = resolveTargetRows();
-    // Bütün lokasyon mailleri TEK kaynaktan — Lokasyon Mail Listesi (bkz. konuşma: İnaktif
-    // Cihazlar'a ek olarak Kullanılmayan Cihazlar da buraya bağlandı).
+    // Bütün lokasyon mailleri TEK kaynaktan — Lokasyon Mail Listesi.
     const byLocation = new Map();
     targetRows.forEach((r) => {
       const loc = r.location || "—";
@@ -1876,8 +1863,7 @@ IT Support`;
   };
 
   // Lokasyon Hostname ve IP Uyuşmazlığı — kişiye özel mail (lokasyon grubu değil), çünkü mesaj
-  // doğrudan cihazı kullanan kişiye "computer name'ini BT ile güncelle" diyor (bkz. konuşma —
-  // kullanıcının verdiği tam mail metni). Sadece uyuşmazlık (matched:false) satırlarına gider,
+  // doğrudan cihazı kullanan kişiye "computer name'ini BT ile güncelle" diyor. Sadece uyuşmazlık (matched:false) satırlarına gider,
   // "Doğru Ofiste Kullanılıyor" satırları için gönderilecek bir şey yok.
   // Lokasyon/IP maili önizlemesi: gönderilecek HTML ile birebir aynı (buildLocationIpMail). Seçili uyuşmazlık kayıtlarından ilkini gösterir.
   const [mailPreviewData, setMailPreviewData] = useState(null);
@@ -1950,8 +1936,7 @@ IT Support`;
 
   // LAKESIDE (BSOD + Battery Health) ortak gönderim: her satırın hostname'i SCCM ile eşleştirilip
   // gerçek kullanıcının maili (SCCM LastLogonMail) bulunur, mail KİŞİYE gider — lokasyon mail
-  // grubuna değil (bkz. konuşma: "onların excelinde kullanıcıların email adresi olacak, onlara o
-  // şekilde direkt mail atılabilir"). Aynı kişinin birden fazla olayı varsa (ör. birden fazla BSOD
+  // grubuna değil. Aynı kişinin birden fazla olayı varsa (ör. birden fazla BSOD
   // kaydı) tek mailde birleşir. SCCM'de eşleşmeyen veya maili olmayan kayıtlar için, rapor
   // ekranındaki "Mail alıcı(lar)" kutusuna adres girildiyse tek bir yedek mail; o da boşsa bu
   // kayıtlar "atlandı" olarak Gönderim Geçmişi'ne yazılır.
@@ -1961,8 +1946,7 @@ IT Support`;
     const byLoc = new Map(); // mail -> rows[]
     const noRoute = [];
     targetRows.forEach((r) => {
-      // Battery Health'te artık öncelik kendi Excel'indeki kullanıcı mailinde (r.ownerMail, bkz.
-      // konuşma: "mail gönderirken de orada mail adresi var onu baz alacağız") — SCCM eşleşmesi
+      // Battery Health'te artık öncelik kendi Excel'indeki kullanıcı mailinde (r.ownerMail) — SCCM eşleşmesi
       // (sccmUserMail) sadece bu alan boşsa (ör. BSOD, ya da Username sütunu tanınamadıysa) yedek.
       const to = r.ownerMail || r.sccmUserMail || "";
       if (to) {
@@ -2131,10 +2115,9 @@ IT Support`;
 
     // Bütün lokasyon mailleri artık TEK kaynaktan (Lokasyon Mail Listesi Excel'i, "Açık Lokasyon
     // Adı" eşleşmesiyle "Mail Adresi") geliyor — eski elle yapıştırılan metin kutusu İnaktif
-    // Cihazlar için kullanılmıyor (bkz. konuşma).
+    // Cihazlar için kullanılmıyor.
 
-    // Kullanıcı isteği: "X cihazı biri kullanıyorsa ona tıkladığımda mail şablonu değişsin, eski
-    // şablon kalsın" — "Kullanılıyor — Zimmet Aktarımı Gerekli" satırları eski lokasyon bazlı akışa
+    // Cihazı başka biri kullanıyorsa mail şablonu değişir, eski şablon korunur: "Kullanılıyor — Zimmet Aktarımı Gerekli" satırları eski lokasyon bazlı akışa
     // hiç girmiyor, ayrı bir grupta doğrudan SCCM'den gelen gerçek kullanıcının mailine gidiyor.
     const actionRows = targetRows.filter((r) => needsInaktifAction(r.statusTag));
     const inactiveRows = targetRows.filter((r) => !needsInaktifAction(r.statusTag));
@@ -2327,8 +2310,7 @@ IT Support`;
   };
 
   // Zamanlanmış Otomatik Tarama — Ayarlar > Veri Input sekmesi ilk açıldığında backend'deki
-  // gerçek durumu çeker (bkz. konuşma: önceden sadece görsel demoydu, gerçek arka planda tarayan
-  // backend/src/anomalyScheduler.js'e bağlandı).
+  // gerçek durumu çeker.
   const loadAnomalySchedule = async () => {
     try {
       const cfg = await backendClient.getAnomalySchedule();
@@ -2432,8 +2414,7 @@ IT Support`;
     }
   };
 
-  // LakeSide Battery Health — artık backend'e KALICI yükleniyor (bkz. konuşma: "gömülü olsun her
-  // seferinde yüklemeyelim"), Ofis Bant Genişliği ile aynı desen (loadRealBantData/handleManualBantFile).
+  // LakeSide Battery Health — artık backend'e KALICI yükleniyor, Ofis Bant Genişliği ile aynı desen (loadRealBantData/handleManualBantFile).
   const loadRealBatteryData = async ({ silent = false } = {}) => {
     setLoadingBattery(true);
     try {
@@ -2570,7 +2551,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   };
 
   // LAKESIDE Weekly BSOD — diğer raporlar gibi backend senkron klasöründen otomatik yükler
-  // (bkz. konuşma: elle her seferinde eklemek zorunda kalınıyordu). Klasör senkronu yoksa
+  //. Klasör senkronu yoksa
   // backend hata döner, sessizce yutulur; manuel dosya seçimi (handleManualBsodFile) yedek kalır.
   const loadRealBsodData = async ({ silent = false } = {}) => {
     try {
@@ -2586,7 +2567,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
   // Canlıya (otomatik SharePoint klasör senkronu) uzun süre geçilemeyeceği için, Ayarlar'dan
   // doğrudan bir Excel dosyası seçip elle yükleme yolu — backend/klasör yolu hiç gerekmez,
-  // dosya tamamen tarayıcıda okunup aynı mapInaktifRow/mapDiskRow ile satıra çevrilir (bkz. konuşma)
+  // dosya tamamen tarayıcıda okunup aynı mapInaktifRow/mapDiskRow ile satıra çevrilir
   const handleManualInaktifFile = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -2659,7 +2640,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     reader.readAsArrayBuffer(file);
   };
 
-  // TuruncuHat (TH) — gerçek örnek dosyadan doğrulandı (bkz. konuşma): sütun şeması İnaktif
+  // TuruncuHat (TH) — gerçek örnek dosyadan doğrulandı: sütun şeması İnaktif
   // Cihazlar ile birebir aynı, başlık satırı ilk satırda (range: 0).
   const handleManualThFile = (e) => {
     const file = e.target.files?.[0];
@@ -2745,8 +2726,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     reader.readAsArrayBuffer(file);
   };
 
-  // Ofis Bant Genişliği — monitoring aracının UTF-16 + TAB ayraçlı CSV export'u. Kullanıcı isteği:
-  // "bir kez yükleyeyim bir daha yüklemekle uğraşmayayım" — dosya artık backend'e KALICI olarak
+  // Ofis Bant Genişliği — monitoring aracının UTF-16 + TAB ayraçlı CSV export'u. Dosya artık backend'e KALICI olarak
   // yükleniyor (uploadBantFile), tekrar tekrar seçmeye gerek yok; sayfa/oturum yenilense de
   // loadRealBantData ile otomatik geri gelir.
   const loadRealBantData = async ({ silent = false } = {}) => {
@@ -2856,11 +2836,10 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   useEffect(() => {
     if (activeReport === "inaktif") {
       loadRealInaktifData({ silent: true });
-      // İnaktif Cihazlar artık SCCM ile karşılaştırılıyor (kim fiilen kullanıyor?) — bkz. konuşma,
-      // inaktifComparisonService.js. TH'ye ihtiyaç yok, liste zaten TH'den gelen inaktif listesi.
+      // İnaktif Cihazlar artık SCCM ile karşılaştırılıyor (kim fiilen kullanıyor?) (inaktifComparisonService.js). TH'ye ihtiyaç yok, liste zaten TH'den gelen inaktif listesi.
       loadRealSccmData({ silent: true });
       // Mail Gönder butonu artık lokasyon mailini Lokasyon Mail Listesi'nden (Açık Lokasyon Adı
-      // eşleşmesiyle) çekiyor — bkz. konuşma: "Bütün lokasyon mailleri tek bir yerden çekilecek".
+      // eşleşmesiyle) çekiyor.
       loadRealLokasyonMailData({ silent: true });
     }
     if (activeReport === "disk") loadRealDiskData({ silent: true });
@@ -2873,18 +2852,18 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       loadRealInaktifData({ silent: true });
       loadRealDiskData({ silent: true });
       // Mail Gönder artık lokasyon mailini Lokasyon Mail Listesi'nden çekiyor (İnaktif Cihazlar'a
-      // ek olarak — bkz. konuşma).
+      // ek olarak).
       loadRealLokasyonMailData({ silent: true });
     }
     if (activeReport === "zimmet") {
       loadRealSccmData({ silent: true });
-      // TuruncuHat/Monitor Raporu artık diğerleri gibi otomatik yükleniyor (bkz. konuşma) —
+      // TuruncuHat/Monitor Raporu artık diğerleri gibi otomatik yükleniyor —
       // klasör senkronu kurulmadıysa backend sessizce hata döner, manuel yükleme hâlâ kullanılabilir.
       loadRealThData({ silent: true });
       loadRealMonitorData({ silent: true });
     }
     // Lokasyon Hostname ve IP Uyuşmazlığı — SCCM (hostname+IP) ve Lokasyon Mail Listesi
-    // (lokasyon kodu+IP) çapraz karşılaştırılır (bkz. konuşma).
+    // (lokasyon kodu+IP) çapraz karşılaştırılır.
     if (activeReport === "lokasyon-ip") {
       loadRealSccmData({ silent: true });
       loadRealLokasyonMailData({ silent: true });
@@ -2901,7 +2880,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       loadRealThData({ silent: true });
     }
     // Kapatma Onayı Bekleyen Kayıtlar — hatırlatma mailindeki Barkod/Varlık Adı seri no üzerinden
-    // TuruncuHat'tan geliyor (bkz. konuşma: "Barkod ve Varlık Adı hep boş geliyor"). Bu ekrana
+    // TuruncuHat'tan geliyor. Bu ekrana
     // doğrudan girilip Zimmet/Kullanılmayan/Yeni Kurulum hiç ziyaret edilmemişse realThAll boş
     // kalıyor, TH bulunamıyor gibi görünüyordu — asıl sorun eşleştirme değil, veri hiç yüklenmemişti.
     if (activeReport === "kapatma-onayi") {
@@ -2917,7 +2896,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeNetworkView]);
 
-  // Battery Health — aynı desen (bkz. konuşma: "gömülü olsun her seferinde yüklemeyelim").
+  // Battery Health — aynı desen.
   useEffect(() => {
     if (isBattery && !batteryLoaded) loadRealBatteryData({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2934,7 +2913,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   }, [showDashboard, dashboardDemo]);
 
   // SCCM Ajan Raporu — dashboard'a hiç girilmeden doğrudan bu ekrana gelinirse SCCM verisi
-  // henüz yüklenmemiş olabilir (bkz. konuşma: "defaultta kullandığımız sccm listesinden al").
+  // henüz yüklenmemiş olabilir.
   useEffect(() => {
     if (activeReport === "sccm-ajan" && realSccmAll.length === 0) loadRealSccmData({ silent: true });
     if (activeReport === "darbogaz") {
@@ -2968,7 +2947,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
   // Veri yüklendiğinde/şirket listesi değiştiğinde, seçili şirket artık listede yoksa
   // (ör. farklı bir dosya yüklendi) "Tüm Şirketler"e dön — varsayılan hep tüm veriyi göstermek,
-  // dashboard'daki toplamla (465) tutarlı olsun diye tek bir şirkete zorlamıyoruz (bkz. konuşma)
+  // dashboard'daki toplamla (465) tutarlı olsun diye tek bir şirkete zorlamıyoruz
   useEffect(() => {
     if (hasRealCompanies && activeCompany !== "all" && !inaktifCompanies.includes(activeCompany)) {
       setActiveCompany("all");
@@ -2995,7 +2974,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   }, [lbsParentFilter]);
 
   // Herhangi bir filtre değişince sayfalama 1. sayfaya döner — aksi halde kullanıcı 10. sayfada
-  // filtre daraltınca boş bir sayfada kalabilirdi (kullanıcı isteği: standart sayfalama)
+  // filtre daraltınca boş bir sayfada kalabilirdi
   useEffect(() => {
     setCurrentPage(1);
   }, [typeFilter, locationFilter, modelFilter, statusFilter, lbsParentFilter, segment, search, pageSize]);
@@ -3071,8 +3050,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
         input:focus, select:focus { outline: none; }
         /* Native tarayıcı tooltip'i (title özniteliği) yerine — kullanıcı sağ üstteki sabit
            (fixed) çubukta "Çıkış Yap" tooltip'inin sayfanın üst kenarına yakın olduğu için
-           garip/kırpık göründüğünü, kullanıcı kartıyla üst üste bindiğini bildirdi (bkz.
-           konuşma). Bu özel tooltip her zaman elemanın ALTINDA açılır, konumu tamamen CSS ile
+           garip/kırpık göründüğünü, kullanıcı kartıyla üst üste bindiğini bildirdi. Bu özel tooltip her zaman elemanın ALTINDA açılır, konumu tamamen CSS ile
            kontrol edilir — üst kenara ne kadar yakın olursa olsun taşma/çakışma olmaz.
         */
         .vt-tip { position: relative; }
@@ -3107,8 +3085,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
         {/* SIDEBAR */}
         <aside ref={sidebarRef} style={{ ...styles.sidebar, maxHeight: "none", overflowY: "visible", top: sidebarTop }} className="no-print">
           {/* Tema değiştirici + Ayarlar butonu buradan kaldırılıp sağ üste (ana panel başlığına)
-              taşındı (bkz. konuşma). Logo + isim artık kendi ayrı kartında — sidebar'ın geri
-              kalanından (nav listesi) görsel olarak ayrılsın diye (bkz. konuşma — referans görsel). */}
+              taşındı. Logo + isim artık kendi ayrı kartında — sidebar'ın geri
+              kalanından (nav listesi) görsel olarak ayrılsın diye. */}
           <div style={{ borderRadius: 12, background: pal.fieldBg, border: `1px solid ${pal.line}`, padding: "14px 12px 10px", marginBottom: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <div style={{ width: "100%", height: 56, borderRadius: 8, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: pal.shadow, padding: 8 }}>
               <img src={companyLogo} alt="TK Asset Manager" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
@@ -3163,7 +3141,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       {inaktifCompanies.map((company) => {
                         const count = countSource.filter((r) => r.company === company).length;
                         // Ana sayfadayken şirket seçimi sayfadan çıkmadan sadece dashboard'u filtreler;
-                        // bir rapor sekmesindeyken eskisi gibi o rapora o şirketle geçer (bkz. konuşma)
+                        // bir rapor sekmesindeyken eskisi gibi o rapora o şirketle geçer
                         const active = showDashboard ? company === dashboardCompanyFilter : company === activeCompany && !showHistory;
                         return (
                           <div
@@ -3281,14 +3259,14 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               {mailHistory.length > 0 && <span style={{ ...styles.deptCount, ...(showHistory ? styles.deptCountActive : {}) }}>{mailHistory.length}</span>}
             </div>
             {/* Ayarlar buradan kaldırıldı — tek erişim noktası artık sağ üstteki "Ayarlar" butonu
-                butonu (bkz. konuşma). */}
+                butonu. */}
           </div>
         </aside>
 
         {/* MAIN */}
         <div style={styles.main}>
           {/* Tema değiştirici + Ayarlar + kullanıcı kartı — logo/marka satırından ayrılıp sağ
-              üste taşındı (bkz. konuşma). sticky/fixed/absolute hepsi denendi (bkz. git geçmişi)
+              üste taşındı. sticky/fixed/absolute hepsi denendi
               — hepsinde scroll edildiğinde altından geçen kartlarla çakışma/şeffaflık sorunu
               çıktı. Kullanıcı kararı: sabitlemekten TAMAMEN vazgeçildi — bu satır normal akışta,
               sayfayla birlikte kayar. Sadece sol menü (sidebar) sabit (sticky) kalıyor. */}
@@ -3299,7 +3277,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             <div className="vt-tip" data-tip="Temayı değiştir" style={styles.themeToggle}>
               <span onClick={() => setTheme("light")} style={{ ...styles.themeToggleBtn, ...(theme === "light" ? styles.themeToggleBtnActive : {}) }}>☀︎</span>
               <span onClick={() => setTheme("dark")} style={{ ...styles.themeToggleBtn, ...(theme === "dark" ? styles.themeToggleBtnActive : {}) }}>☾</span>
-              {/* "Aero" — havacılık/glassmorphism deneme teması (bkz. konuşma), ışık/koyunun yanına
+              {/* "Aero" — havacılık/glassmorphism deneme teması, ışık/koyunun yanına
                   seçilebilir üçüncü seçenek olarak eklendi. */}
               <span onClick={() => setTheme("aero")} style={{ ...styles.themeToggleBtn, ...(theme === "aero" ? styles.themeToggleBtnActive : {}) }}>✈</span>
               {/* "ITSM" — Lakeside marka mavisi + kompakt konsol görünümü (palette.js ITSM_PALETTE) */}
@@ -3353,7 +3331,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 // zimmetRows (realSccmAll değil) kullanılıyor ki TuruncuHat+Monitor Raporu
                 // yüklendiğinde dashboard da rapor ekranıyla AYNI (monitör dahil) sonucu göstersin
                 // — önceden dashboard doğrudan ham SCCM'den hesaplıyordu, monitör karşılaştırmasından
-                // tamamen habersizdi (bkz. konuşma: "dashboard'da ayrımı olacak mı").
+                // tamamen habersizdi.
                 // [ŞİRKET-FİLTRESİ] dashboard kartları seçili şirkete göre; Disk dosyasında şirket bilgisi olmadığı için
                 // şirket seçiliyken disk sayıları toplamlara dahil edilmez (diskScoped=false)
                 const dc = dashboardCompanyFilter;
@@ -3364,14 +3342,14 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 const mismatchTotal = overallZimmet.bad + overallZimmet.noRecord;
                 const zimmetMismatchRows = getAllMismatchRows(zimmetScoped);
                 const zimmetTopLocations = computeZimmetLocationBreakdown(zimmetMismatchRows, 10, { company: dashboardCompanyFilter });
-                // "Genel Trend" paneli — Sage Intelligence tarzı bar+line, bkz. konuşma. Zaman
+                // "Genel Trend" paneli — Sage Intelligence tarzı bar+line. Zaman
                 // serisi veri olmadığı için eksen lokasyon; şirket filtresi diğer bölümlerle aynı
                 // (dashboardCompanyFilter) state'i kullanır, ayrı bir seçim mekanizması icat edilmedi.
                 const locationTrend = computeCombinedLocationTrend(realInaktifAll, zimmetMismatchRows, { company: dashboardCompanyFilter });
 
                 // Disk Alanı Excel'inde gerçek bir lokasyon alanı yok (Site Code tüm kayıtlarda
                 // aynı değeri taşıyor, ör. "MHY") — bu yüzden lokasyon kırılımı yerine seçilen
-                // durumun toplam içindeki oranı gösteriliyor (bkz. konuşma)
+                // durumun toplam içindeki oranı gösteriliyor
                 const diskFilterCount =
                   dashboardDiskFilter === "critical" ? diskStats.critical : dashboardDiskFilter === "warning" ? diskStats.warning : diskStats.normal;
                 const diskFilterPct = diskStats.total ? Math.round((diskFilterCount / diskStats.total) * 100) : 0;
@@ -3400,9 +3378,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 const goDashboardReport = (id) => { goReport(id); };
 
                 // "Rapor Durumu Mini Özeti" — Dashboard KPI kartlarının üstündeki boş alan İÇİN
-                // (bkz. konuşma, madde 3) VE her rapor sayfasının üst kısmı için (bkz. konuşma:
-                // "haftalık/aylık filtrelenebilecek şekilde yapman lazım ve bütün raporlarda
-                // gözükmeli"). TEK kaynak: periodComparisonService.latestPeriodSummary +
+                // VE her rapor sayfasının üst kısmı için. TEK kaynak: periodComparisonService.latestPeriodSummary +
                 // reportSnapshots'ın KENDİSİ — bu, aynı reportSnapshots state'i zaten Çözüm/
                 // Müdahale İstatistikleri panelini ve ilgili sayfaların "problemli cihaz"
                 // sayılarını (postSnapshot'a giden aynı satırlar) beslediği için Dashboard ile
@@ -3552,7 +3528,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         Cihazlar raporundaydı, sonra o raporun üstüne taşınmıştı; kullanıcı
                         vazgeçip Ana Sayfa'nın EN ÜSTÜNE almak istedi — içinde zaten arama
                         olduğu için Dashboard'un en başında, tüm ekranlarda erişilebilir olması
-                        daha kullanışlı (bkz. konuşma). */}
+                        daha kullanışlı. */}
                     <div style={{ marginBottom: 16 }}>
                       <DeviceOverviewCard
                         sources={{
@@ -3607,7 +3583,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         {/* Sadece KESİN uyuşmazlık (overallZimmet.bad) — doğrulanamayan (noRecord)
                             kayıtlar buraya karışmaz, aksi halde TH bazlı tasarımda binlerce
                             "SCCM'de/Monitör Raporu'nda bulunamadı" kaydı sanki gerçek sorunmuş gibi
-                            görünürdü (bkz. konuşma). Doğrulanamayan sayısı alt satırda ayrı gösterilir. */}
+                            görünürdü. Doğrulanamayan sayısı alt satırda ayrı gösterilir. */}
                         {rollingMiniSummary(last2wZimmet)}
                         <span style={{ ...styles.kpiValue, color: overallZimmet.bad ? pal.bad : pal.ink }}>{overallZimmet.bad}</span>
                         <span style={styles.kpiLabel}>zimmet uyuşmazlığı</span>
@@ -3618,7 +3594,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       {/* "son veri güncelleme" KPI kartı global footer'a taşındı (madde 1). */}
                     </div>
 
-                    {/* Genel Durum — finans dashboard'u referansına göre (bkz. konuşma): cihaz sağlık
+                    {/* Genel Durum — finans dashboard'u referansına göre: cihaz sağlık
                         şelalesi + sağlıklı cihaz/zimmet uyumu göstergeleri + dönemsel bulgu/çözüm trendi. */}
                     <OverviewPanel
                       snapshots={reportSnapshots}
@@ -3766,7 +3742,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     </>
                     )}
 
-                    {/* Zimmet Uyuşmazlığı bölümü — artık gerçek SCCM envanter verisiyle hesaplanıyor (bkz. konuşma) */}
+                    {/* Zimmet Uyuşmazlığı bölümü — artık gerçek SCCM envanter verisiyle hesaplanıyor */}
                     <div style={{ ...styles.panel, padding: "20px 24px", ...styles.dashboardTwoCol }}>
                       <div style={styles.dashboardCol}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -3800,7 +3776,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                             {overallZimmet.monitorIssueCount > 0 && (
                               // Genel "Uyuşmazlık" sayısının içinde geçiyor (üstüne eklenmiyor) —
                               // sadece kaç tanesinin monitör kaynaklı olduğunu ayrıca gösteriyor
-                              // (bkz. konuşma: dashboard'da ayrımı olacak mı).
+                              //.
                               <div style={styles.legendItemRow}>
                                 <span style={styles.legendItemLeft}><span style={{ ...styles.legendDot, background: pal.warnFg }} />— bunlardan monitör kaynaklı</span>
                                 <span style={{ ...styles.legendCount, color: pal.warnFg }}>{overallZimmet.monitorIssueCount}</span>
@@ -3821,7 +3797,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       </div>
                     </div>
 
-                    {/* İnaktif Cihazlar bölümü — lokasyon bazlı liste en altta (bkz. konuşma) */}
+                    {/* İnaktif Cihazlar bölümü — lokasyon bazlı liste en altta */}
                     <div style={{ ...styles.panel, padding: "20px 24px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
                         <div>
@@ -3846,7 +3822,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             </>
           ) : showSettings ? (
             // Supervisor (master) olmayan kullanıcılar Ayarlar — Giriş mini formunu hiç görmesin,
-            // doğrudan yetkisiz mesajı gösterilsin (bkz. konuşma — test kullanıcısı isteği).
+            // doğrudan yetkisiz mesajı gösterilsin.
             user && user.role !== "master" ? (
               <div style={{ ...styles.panel, padding: "28px 24px", maxWidth: 360, margin: "40px auto", textAlign: "center" }}>
                 <p style={styles.pageTitle}>Yetkiniz Bulunmamaktadır</p>
@@ -4789,7 +4765,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
                 <p style={styles.pageTitle}>{NETWORK_ITEMS.find((n) => n.id === activeNetworkView)?.name}</p>
                 <p style={styles.pageSub}>
-                  Veri kaynağı tanımlı değil — bu rapor için şimdilik gerçek bir kaynak bağlanmadı (bkz. konuşma: manuel yükleme/SharePoint/API kararı ileride verilecek).
+                  Veri kaynağı tanımlı değil — bu rapor için şimdilik gerçek bir kaynak bağlanmadı.
                 </p>
                 <div style={{ ...styles.detailEmpty, marginTop: 8 }}>
                   Bu ekran için veri henüz tanımlı değil. Veri kaynağı netleştiğinde (SharePoint/API) otomatik olarak burada listelenecek.
@@ -4947,9 +4923,9 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     <span style={styles.statLabel}>{isZimmet ? "Zimmet Hatalı" : activeReport === "inaktif" ? "Kullanımda" : "Eşleşmeyen"}</span>
                   </div>
                   )}
-                  {/* Disk Alanı — kullanıcı isteği: "Tümü/Eşleşen/Eşleşmeyen" anlamsız (bu raporda
+                  {/* Disk Alanı — "Tümü/Eşleşen/Eşleşmeyen" anlamsız (bu raporda
                       eşleşme kavramı yok), dashboard'daki Kritik/Uyarı/Normal eşikleriyle aynı
-                      seviyelere göre filtre (bkz. konuşma, bkz. dashboardService.classifyDisk). */}
+                      seviyelere göre filtre. */}
                   {isDiskReport && (
                   <div
                     style={{ ...styles.stat, ...styles.statClickable, ...(segment === "critical" ? styles.statActive : {}) }}
@@ -5128,13 +5104,13 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
                 {/* Filtre dropdown'larından ayrı bir satır — görünüm modu (Tümü/Doğru/Hatalı/
                     Monitör) ve ek etiketler farklı bir amaca hizmet ediyor, aynı satırda arama +
-                    3-4 dropdown + segment + chip'ler sıkışık görünüyordu (bkz. konuşma). */}
+                    3-4 dropdown + segment + chip'ler sıkışık görünüyordu. */}
                 <div style={{ ...styles.toolbarFiltersRow, marginTop: 10 }}>
                   <div style={styles.segmented}>
                     {[
                       { id: "all", label: "Tümü" },
                       // Disk Alanı — Tümü/Eşleşen/Eşleşmeyen yerine dashboard'daki Kritik/Uyarı/
-                      // Normal seviyeleriyle aynı filtre (bkz. konuşma).
+                      // Normal seviyeleriyle aynı filtre.
                       ...(isDiskReport ? [
                         { id: "critical", label: "Kritik" },
                         { id: "warning", label: "Uyarı" },
@@ -5149,7 +5125,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       // Gereksinim: "bunu raporda ayırabilmem gerekiyor" — TH+Monitor Raporu
                       // yüklüyse, sadece KESİN monitör uyuşmazlığı tespit edilen satırları ayrı
                       // görebilmek için. Sadece TH'de kaydı olmayan (doğrulanamayan) monitörler
-                      // burada SAYILMAZ — bkz. konuşma, aksi halde TH eksikse rapor hep "uyumsuz"
+                      // burada SAYILMAZ; aksi halde TH eksikse rapor hep "uyumsuz"
                       // görünürdü.
                       ...(isZimmet && anyMonitorIssue ? [{ id: "monitorIssue", label: "Monitör Uyuşmazlığı" }] : []),
                       ...(isZimmet && anyNoThRecord ? [{ id: "noThRecord", label: "TH Kaydı YOK" }] : []),

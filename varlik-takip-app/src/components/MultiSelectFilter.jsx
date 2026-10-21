@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // Genel amaçlı çoklu seçim dropdown'u (gereksinim #3 — Model filtresi ve benzerleri için; ayrıca
-// kullanıcı isteğiyle Tür/Lokasyon filtreleri de aynı bileşene taşındı). İçinde arama kutusu var
-// (Lokasyon gibi 70+ seçenekli listelerde aramadan bulmak zor oluyordu — bkz. konuşma). Mevcut
+// Tür/Lokasyon filtreleri de aynı bileşene taşındı). İçinde arama kutusu var
+// (Lokasyon gibi 70+ seçenekli listelerde aramadan bulmak zor oluyordu). Mevcut
 // dropdown görünümüyle tutarlı olsun diye styles.scheduleSelect/formInput/panel/checkbox
 // token'ları kullanılır (özel bir stil sistemi icat edilmez).
 export default function MultiSelectFilter({ label, options, selected, onChange, styles, pal, placeholder }) {

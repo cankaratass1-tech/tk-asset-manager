@@ -4,7 +4,7 @@
 // diğer raporlarda (İnaktif Cihazlar vb.) bu alanlar hiç yok ya da bambaşka bir şey ifade eder
 // (İnaktif'te "matched" sadece "lokasyon bilgisi var mı" demek — zimmet doğruluğuyla alakasız).
 // Önceden isZimmet ayrımı yapılmadan hep Zimmet'e özgü alanlar gösteriliyordu; bu yüzden İnaktif
-// Cihazlar'da "Kullanan kişi" hep boş, "Durum" rozeti anlamsız/boş çıkıyordu (bkz. konuşma).
+// Cihazlar'da "Kullanan kişi" hep boş, "Durum" rozeti anlamsız/boş çıkıyordu.
 import { isZimmetUnverified } from "../../services/zimmetService";
 import { isInaktifUnverified, needsInaktifAction, inaktifUsageTone } from "../../services/inaktifComparisonService";
 import DeviceActionHistory from "./DeviceActionHistory";
@@ -28,8 +28,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
           <>
             {(() => {
               // Kişinin kendi zimmeti mi hatalı, yoksa sadece bağlı monitöründe mi sorun var —
-              // ikisi görsel olarak ayrışır (bkz. konuşma: aynı kırmızı kutuda "Zimmet Doğru"
-              // yazması kafa karıştırıyordu).
+              // ikisi görsel olarak ayrışır.
               const personOk = row.personMatched ?? row.matched;
               if (!personOk) {
                 const zItems = zimmetAlertItems(row);
@@ -124,7 +123,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
         ) : (
           // Zimmet dışındaki raporlar (İnaktif Cihazlar, Disk Alanı, TH, yeni raporlar...) —
           // bu satırlarda "zimmet doğru/hatalı" kavramı yok, sadece cihaz/sahip bilgisi gösterilir.
-          // İnaktif Cihazlar'da artık TH+SCCM çapraz doğrulaması var (bkz. konuşma) — matched:false
+          // İnaktif Cihazlar'da artık TH+SCCM çapraz doğrulaması var — matched:false
           // ise sebebi statusTag ile birlikte gösterilir, gerçekten aksiyon (zimmet devri)
           // gerektiren durumlar turuncu, kanıtsız/doğrulanamayan durumlar nötr renkte.
           <div style={{ marginTop: 14 }}>

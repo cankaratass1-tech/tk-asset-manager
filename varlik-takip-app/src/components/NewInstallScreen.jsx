@@ -60,14 +60,13 @@ function ChoiceField({ value, onChange, options, inputStyle, pal, typeable = fal
   );
 }
 
-// Diğer raporlarla aynı sayfalama seçenekleri (kullanıcı isteği — bkz. konuşma: "Yeni kurulum
-// kaydındaki kayıtlara da sayfa düzeni koyalım").
+// Diğer raporlarla aynı sayfalama seçenekleri.
 const PAGE_SIZE_OPTIONS = [25, 50, 100, Infinity];
 
 // "Yeni Kurulum Kaydı" (demo) — formdan kayıt → sistemde saklama → mevcut Excel'e satır ekleme
-// → mail hazırlama/gönderme. Bkz. konuşma: 2. adım A seçeneği (mevcut dosyaya ekleme), demoda
+// → mail hazırlama/gönderme. Demoda
 // dosya "varmış gibi" (backend YeniKurulumlar-DEMO.xlsx'i okuyup satır ekler).
-// Kullanıcının gerçek Excel başlıkları (bkz. konuşma). options = sabit açılır liste;
+// Kullanıcının gerçek Excel başlıkları. options = sabit açılır liste;
 // options: "LOCATIONS" = App.jsx'ten gelen mevcut lokasyon listesi.
 const FIELDS = [
   { k: "serial", label: "SERİ NO" },
@@ -81,7 +80,7 @@ const FIELDS = [
   { k: "processedBy", label: "İŞLEM YAPAN" },
   { k: "status", label: "DURUM", options: ["TESLİM EDİLDİ", "HAZIRLANDI"] },
   { k: "deliveryDate", label: "TESLİM TARİHİ", type: "date" },
-  // "İADE" kaldırıldı, yerine "YENİ İŞE GİRİŞ" eklendi (bkz. konuşma) — Excel'de de bu görünür.
+  // "İADE" kaldırıldı, yerine "YENİ İŞE GİRİŞ" eklendi — Excel'de de bu görünür.
   { k: "reason", label: "NEDENI", options: ["YENİ İŞE GİRİŞ", "DEĞİŞİM"] },
   { k: "returns", label: "İADELER", wide: true },
 ];
@@ -94,7 +93,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const toUpperTr = (v) => String(v ?? "").toLocaleUpperCase("tr-TR");
 // Büyük harfe çevrilecek serbest metin alanları. Sabit seçenekli alanlara (DURUM/Bitlocker/NEDENİ)
 // dokunulmaz — kod bu değerlerle karşılaştırma yapıyor ("Teslim edildi" vb.), büyütülürse eşleşme
-// bozulur (bkz. konuşma).
+// bozulur.
 const UPPER_FIELDS = new Set(["serial", "hostname", "model", "location", "userInfo", "atoNo", "processedBy"]);
 const emptyForm = (who) => Object.fromEntries(FIELDS.map((f) => [f.k, f.k === "date" ? today() : f.k === "processedBy" ? toUpperTr(who || "") : ""]));
 
@@ -196,9 +195,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
   // "Kullanıcı Bilgisi" formda serbest metin, yeni cihaz henüz TuruncuHat'ta kayıtlı olmadığı için
   // seri no üzerinden bulunamaz — ama aynı kişinin TH'de BAŞKA bir cihaza ait kaydı (ve dolayısıyla
   // "Cihaz Sahibinin Maili"si) genelde vardır. İsim TAM doğru yazılmışsa bu haritadan otomatik
-  // bulunur (bkz. konuşma: "turuncuhat envanter excelinden ilgili kişinin email bilgisini
-  // bulamaz mıyız" — Outlook "check names" gibi bir dizin servisi yok, ama TH'deki isim eşleşmesi
-  // aynı işi görür).
+  // bulunur.
   const thByOwnerName = useMemo(() => {
     const m = new Map();
     thRows.forEach((t) => {
@@ -338,7 +335,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
           .some((v) => v.includes(q))
       );
     }
-    // Yeni kurulan cihaz en üstte görünsün — takip kolaylaşsın (bkz. konuşma). createdAt yoksa
+    // Yeni kurulan cihaz en üstte görünsün — takip kolaylaşsın. createdAt yoksa
     // (eski kayıt) id/date'e düşer, en azından backend ekleme sırasının tersini verir.
     const SORT_VAL = { device: (r) => r.serial || r.hostname, user: (r) => r.userInfo, ato: (r) => r.atoNo, date: (r) => r.date, status: (r) => r.status };
     if (sort.key) return [...list].sort((a, b) => sort.dir * String(SORT_VAL[sort.key](a) ?? "").localeCompare(String(SORT_VAL[sort.key](b) ?? ""), "tr", { numeric: true }));

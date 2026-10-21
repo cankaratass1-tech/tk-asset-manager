@@ -39,7 +39,7 @@ export default function DenseGridView({
 
   const stripeColor = (r) => {
     // Disk Alanı — "matched" bu raporda hep true (eşleşme kavramı yok, bkz. diskFileService.js),
-    // gerçek renk diskLevel'dan okunmalı yoksa "Kritik" satırları bile yeşil görünüyordu (bkz. konuşma).
+    // gerçek renk diskLevel'dan okunmalı yoksa "Kritik" satırları bile yeşil görünüyordu.
     if (r.diskLevel) return r.diskLevel === "critical" ? pal.bad : r.diskLevel === "warning" ? pal.warnFg : pal.ok;
     if (r.matched) return pal.ok;
     if (r.statusTag === "Kullanım Kaydı Yok") return pal.neutralDot;

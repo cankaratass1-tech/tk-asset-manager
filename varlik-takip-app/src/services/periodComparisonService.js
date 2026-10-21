@@ -137,8 +137,7 @@ export function periodTrendSeries(periods, filterFn = () => true) {
 }
 
 // TEK kanonik "son dönem özeti" hesaplaması — Dashboard'daki mini rapor-durumu kartları VE her
-// rapor sayfasının üst kısmındaki özet AYNI fonksiyonu çağırır (bkz. konuşma: "haftalık/aylık
-// filtrelenebilecek şekilde yapman lazım ve bütün raporlarda gözükmeli"). groupSnapshotsByPeriod
+// rapor sayfasının üst kısmındaki özet AYNI fonksiyonu çağırır. groupSnapshotsByPeriod
 // ile AYNI dönem mantığını kullanır (ManagementKpiPanel'in "Aylık/Haftalık" filtresiyle birebir
 // tutarlı) — başka hiçbir yerde ayrı bir "son dönem" hesabı YAPILMAMALI, hepsi buradan geçmeli.
 //   bekleyen (devamEden) = önceki dönemde de sorunluydu, hâlâ sorunlu

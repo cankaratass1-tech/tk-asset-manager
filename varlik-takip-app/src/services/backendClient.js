@@ -1,7 +1,7 @@
 // Yerel backend servisiyle konuşan istemci (bkz. ../../../backend). "localhost" yerine sayfayı
 // servis eden host kullanılır — böylece başka bir bilgisayardan tarayıcı üzerinden erişildiğinde
 // (ağ modu) istek kendi bilgisayarına değil, sunucunun IP'sine gider.
-// Tek servis deploy'unda (ör. Render — bkz. konuşma: "canlı gösterme" için bulut deploy)
+// Tek servis deploy'unda (ör. Render)
 // frontend ve backend AYNI origin'den servis edilir; bu durumda VITE_API_BASE=/api build
 // zamanında enjekte edilir ve backend port 5000 varsayımı devre dışı kalır. Yerel geliştirmede
 // bu env değişkeni tanımlı olmadığından davranış hiç değişmez.
@@ -119,7 +119,7 @@ export const backendClient = {
 
   // /settings/mailgroups (admin şifreli) sadece Ayarlar ekranındaki düzenleme formu için;
   // "/mailgroups" (session token'ıyla, admin şifresi istemez) her oturum açmış kullanıcının Mail
-  // Gönder akışında lokasyon eşleşmelerini okuyabilmesi için — bkz. konuşma: "herkes gönderebilmeli".
+  // Gönder akışında lokasyon eşleşmelerini okuyabilmesi için.
   getMailGroups: () => request("/settings/mailgroups"),
   getMailGroupsForSending: () => request("/mailgroups"),
   saveMailGroups: (groups) => request("/settings/mailgroups", { method: "PUT", body: JSON.stringify(groups) }),
@@ -143,19 +143,18 @@ export const backendClient = {
   getAnomalySchedule: () => request("/settings/anomaly-schedule"),
   saveAnomalySchedule: (cfg) => request("/settings/anomaly-schedule", { method: "PUT", body: JSON.stringify(cfg) }),
   runAnomalyScanNow: () => request("/settings/anomaly-schedule/run-now", { method: "POST" }),
-  // Ofis Bant Genişliği — tek seferlik yükleme, backend'de kalıcı saklanır (bkz. konuşma).
+  // Ofis Bant Genişliği — tek seferlik yükleme, backend'de kalıcı saklanır.
   getBantGenisligiReport: () => request("/reports/bant-genisligi"),
   uploadBantGenisligi: (fileName, contentBase64) =>
     request("/settings/bant-genisligi-upload", { method: "POST", body: JSON.stringify({ fileName, contentBase64 }) }),
   // LakeSide Battery Health — Ofis Bant Genişliği ile aynı desen: tek seferlik yükleme, backend'de
-  // kalıcı saklanır (bkz. konuşma: "gömülü olsun her seferinde yüklemeyelim").
+  // kalıcı saklanır.
   getBatteryHealthReport: () => request("/reports/battery-health"),
   uploadBatteryHealth: (fileName, contentBase64) =>
     request("/settings/battery-health-upload", { method: "POST", body: JSON.stringify({ fileName, contentBase64 }) }),
 
   // Üst Yönetim İstisna Listesi — kim üst yönetim sayılır artık Excel'den değil, admin'in elle
-  // yönettiği bu sabit e-posta listesinden belirleniyor (bkz. konuşma: "excelden o verileri
-  // çekme hiç"). Okuma herkese açık (mail gönderim ekranları kullanır), yazma admin şifreli.
+  // yönettiği bu sabit e-posta listesinden belirleniyor. Okuma herkese açık (mail gönderim ekranları kullanır), yazma admin şifreli.
   getUstYonetimList: () => request("/ust-yonetim"),
   getUstYonetimListForSettings: () => request("/settings/ust-yonetim"),
   saveUstYonetimList: (emails) => request("/settings/ust-yonetim", { method: "PUT", body: JSON.stringify({ emails }) }),

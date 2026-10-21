@@ -2,7 +2,7 @@
 // üzerinden okuyup rapor satırı biçimine çevirir. Gerçek dosya SCCM'in "Computers with low free
 // disk space" raporu — sadece cihaz adı ve disk kullanımı var, sahip/lokasyon/şirket bilgisi YOK
 // (İnaktif Cihazlar'daki gibi bir "Sahibi Firma" sütunu bulunmuyor). Bu yüzden Disk Alanı raporu
-// şirkete göre gruplanmadan, düz bir liste olarak gösteriliyor (bkz. konuşma).
+// şirkete göre gruplanmadan, düz bir liste olarak gösteriliyor.
 import { backendClient } from "./backendClient";
 import { classifyDisk } from "./dashboardService";
 
@@ -17,7 +17,7 @@ function col(row, ...names) {
 }
 
 // Kaynak "Volume Name" alanı ("Windows", "Q Part", "UserData"...) sürücü harfini doğrudan
-// içermiyor — adında "Q" geçen birim Q, geri kalan her şey C kabul ediliyor (bkz. konuşma)
+// içermiyor — adında "Q" geçen birim Q, geri kalan her şey C kabul ediliyor
 function volumeLetter(volumeName) {
   return /q/i.test(volumeName) ? "Q" : "C";
 }
@@ -30,8 +30,8 @@ function mbToGb(mbStr) {
 }
 
 // Dashboard'daki eşiklerle (classifyDisk, bkz. dashboardService.js) birebir aynı sınıflandırma —
-// kullanıcı isteği: "Tümü/Eşleşen/Eşleşmeyen" yerine Disk Alanı'nda da aynı seviyelere göre
-// filtre (bkz. konuşma: "daha önce ayarladığımız gibi seviyelere göre ayarlamamız lazım").
+// "Tümü/Eşleşen/Eşleşmeyen" yerine Disk Alanı'nda da aynı seviyelere göre
+// filtre.
 const DISK_LEVEL_LABELS = { critical: "Kritik", warning: "Uyarı", normal: "Normal", unknown: "Bilinmiyor" };
 
 export function mapDiskRow(raw) {
@@ -41,7 +41,7 @@ export function mapDiskRow(raw) {
   const freeSpaceGb = Number.isFinite(freeSpaceMb) ? freeSpaceMb / 1024 : null;
   const diskLevel = classifyDisk(freeSpaceGb);
   return {
-    // Hostname / Volume Name (C ya da Q) / Size (GB) / Free Space (GB) — bkz. konuşma. Aynı
+    // Hostname / Volume Name (C ya da Q) / Size (GB) / Free Space (GB). Aynı
     // cihazın C ve Q gibi birden fazla birimi varsa kaynak dosyada ayrı satır olarak gelir.
     owner: col(raw, "Name", "Device ID"),
     ownerFull: "",

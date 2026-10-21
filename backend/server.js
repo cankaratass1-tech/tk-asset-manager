@@ -34,7 +34,7 @@ function createApp() {
   const app = express();
   app.disable("x-powered-by");
   // Varsayılan 100kb — Ofis Bant Genişliği CSV'si base64 olarak gönderildiğinde bunu aşabiliyor
-  // (bkz. konuşma: "bir kez yükleyeyim" — backend'e kalıcı kaydediliyor).
+  //.
   app.use(express.json({ limit: "5mb" }));
 
   // CORS: Origin başlığı olmayan istekler kabul edilir. Geliştirme için :5173 portundaki herhangi bir
@@ -87,11 +87,9 @@ function createApp() {
   // Genel uygulama ayarları (Kullanılmayan Cihazlar eşiği, LakeSide batarya kaynağı) —
   // düzenleme admin şifresiyle korunur, okuma aşağıda requireAuth ile açıktır.
   app.use("/api/settings/appconfig", requireSettingsAuth, appConfigRouter);
-  // Zamanlanmış Otomatik Tarama (bkz. konuşma: "yeni uyuşmazlıkları özetler" — artık gerçek
-  // çalışıyor, Mükerrer Çift Zimmet + Lokasyon Hostname/IP Uyuşmazlığı için).
+  // Zamanlanmış Otomatik Tarama.
   app.use("/api/settings/anomaly-schedule", requireSettingsAuth, anomalyScheduleRouter);
-  // Manuel dosya yükleme — kullanıcı isteği: "admin dışında kimse manuel dosya yüklemesi
-  // yapamasın". Bu ikisi Ayarlar dışında (ilgili rapor sayfasının kendi üzerinde) da bir yükleme
+  // Manuel dosya yükleme yalnızca yönetici tarafından yapılabilir. Bu ikisi Ayarlar dışında (ilgili rapor sayfasının kendi üzerinde) da bir yükleme
   // butonu taşıdığı için requireSettingsAuth (paylaşılan Ayarlar şifresi) yerine requireMasterAuth
   // (oturum açan kullanıcının KENDİ rolü) kullanılıyor — frontend zaten her istekte Bearer token
   // gönderiyor, ek bir şey yapmaya gerek yok.
@@ -102,8 +100,7 @@ function createApp() {
   app.use("/api/settings/ust-yonetim", requireSettingsAuth, ustYonetimRouter);
 
   // Lokasyon-mail eşleşmeleri (mailGroups) SADECE OKUMA için — Mail Gönder her oturum açmış
-  // kullanıcı tarafından kullanılabilmeli, admin şifresi istemeden (bkz. konuşma: "başkası mail
-  // atmak istediğinde admin girişi sormasın, herkes gönderebilmeli"). Düzenleme (PUT, yukarıdaki
+  // kullanıcı tarafından kullanılabilmeli, admin şifresi istemeden. Düzenleme (PUT, yukarıdaki
   // /api/settings/mailgroups) hâlâ admin şifresiyle korunuyor — sadece kim/nereye gönderileceği
   // bilgisini okumak admin yetkisi gerektirmiyor, e-posta adresinden başka hassas bir şey içermiyor.
   app.get("/api/mailgroups", requireAuth, (req, res) => {
@@ -127,8 +124,7 @@ function createApp() {
     });
   });
 
-  // Artık uygulama genelinde gerçek bir Login akışı olduğu için (bkz. konuşma — gereksinim #9,
-  // "Session/token yönetimi güvenli şekilde gerçekleştirilmeli") mail gönderme/geçmişi ve rapor
+  // Artık uygulama genelinde gerçek bir Login akışı olduğu için mail gönderme/geçmişi ve rapor
   // uçları da requireAuth ile korunuyor — önceden tamamen açıktı.
   app.use("/api/mail/history", requireAuth, mailHistoryRouter);
   app.use("/api/mail", requireAuth, mailRouter);
@@ -140,7 +136,7 @@ function createApp() {
   // Yeni Kurulum Kaydı (form → sistem → Excel → mail)
   app.use("/api/newinstalls", requireAuth, newInstallsRouter);
 
-  // Tek servis olarak deploy edilirken (ör. Render — bkz. konuşma: "arkadaşıma canlı gösterme")
+  // Tek servis olarak deploy edilirken (ör. Render)
   // frontend'in build çıktısı (varlik-takip-app/dist) aynı process'ten servis edilir; yerelde
   // ayrı bir Vite dev server (5173) kullanıldığından bu klasör yoksa hiçbir şey değişmez.
   const frontendDist = path.join(__dirname, "..", "varlik-takip-app", "dist");

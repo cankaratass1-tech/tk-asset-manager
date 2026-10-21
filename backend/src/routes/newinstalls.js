@@ -1,6 +1,6 @@
 // "Yeni Kurulum Kaydı" — kullanıcı yeni kurduğu cihazların bilgisini formdan girer; kayıtlar
 // burada (şifreli JSON section) tutulur; "Excel'e İşle" mevcut bir Excel dosyasına (excelPath)
-// satır ekler; sonrasında mail hazırlanır. Bkz. konuşma — 2. adım A seçeneği (mevcut dosyaya ekleme),
+// satır ekler; sonrasında mail hazırlanır. Mevcut dosyaya ekleme yapılır;
 // demoda dosya "varmış gibi" davranır (yoksa başlıklarla oluşturulur).
 const express = require("express");
 const fs = require("fs");
@@ -14,7 +14,7 @@ const { validateExcelPath, checkExistingXlsx } = require("../excelPathPolicy");
 const router = express.Router();
 const SECTION = "yeniKurulumlar"; // { records: [...], excelPath: "..." }
 
-// Excel sütun sırası = form alanları (kullanıcının gerçek Excel başlıkları — bkz. konuşma)
+// Excel sütun sırası = form alanları (kullanıcının gerçek Excel başlıkları)
 const COLUMNS = [
   ["serial", "SERİ NO"],
   ["hostname", "HOSTNAME"],
@@ -40,7 +40,7 @@ const DEFAULT_EXCEL = path.join(getDataDir(), "YeniKurulumlar.xlsx").replace(/\\
 // İnaktif/Disk/SCCM/TH gibi diğer raporlar repo'yla giden bir "bundled demo veri" klasörüne
 // düşüyor, bu yüzden Render'da (kalıcı olmayan disk) elle bir şey yapmadan çalışıyorlar. Yeni
 // Kurulum/Kapatma Onayı kayıtları Excel'den DEĞİL bu yerel JSON store'dan geldiği için aynı sorun
-// burada da var (bkz. konuşma: "hala eksiklerin var mesela kapatma onayı") — store hiç
+// burada da var — store hiç
 // yazılmamışsa (ilk çalıştırma / Render'da disk sıfırlanmışsa) bundled seed'den otomatik doldurulur.
 const SEED_FILE = path.join(__dirname, "..", "..", "demo-data", "newinstalls-seed.json");
 
@@ -71,7 +71,7 @@ function load() {
 function save(state) {
   writeSection(SECTION, state);
 }
-// Büyük harfle saklanan alanlar — Excel'e de bu şekilde yazılır (bkz. konuşma). DURUM/Bitlocker
+// Büyük harfle saklanan alanlar — Excel'e de bu şekilde yazılır. DURUM/Bitlocker
 // Kontrol/NEDENI da dahil — frontend'in sabit seçenekleri artık zaten büyük harfle tanımlı
 // ("TESLİM EDİLDİ" vb.), burası API'ye başka bir yoldan küçük harfle veri gelirse diye ikinci bir
 // güvence. TARİH/TESLİM TARİHİ (tarih) ve İADELER (elle yazılmayan, otomatik oluşan cümle) hariç.
@@ -136,8 +136,7 @@ router.post("/mark-mailed", (req, res) => {
 });
 
 // Kapatma onayı hatırlatma maili gönderildi işaretle — "Kapatma Onayı Bekleyen Kayıtlar"
-// ekranındaki "✉️ Gönder" butonu başarılı gönderimden sonra çağırır (bkz. konuşma: "Teslim Et
-// yerine Gönder yapacağız" — inaktif cihazlardaki gibi hatırlatma maili). mark-mailed'daki
+// ekranındaki "✉️ Gönder" butonu başarılı gönderimden sonra çağırır. mark-mailed'daki
 // mailSentAt gibi clean() whitelisti dışında, doğrudan işlenir; her gönderimde sayaç artar.
 router.post("/mark-closure-reminder-sent", (req, res) => {
   const state = load();
@@ -200,7 +199,7 @@ router.post("/sync-excel", (req, res) => {
     // Sistemde OLMAYAN (dosyada elle eklenmiş) satırları da koru — seri no + hostname anahtarıyla.
     // ÖNEMLİ: sadece "şu an" sistemde olan kayıtların anahtarına değil, sistemin BUGÜNE KADAR
     // yazdığı TÜM anahtarlara (managedKeys) bakılır. Aksi halde şu senaryoda hata oluşuyordu
-    // (bkz. konuşma — "yeni cihaz eklediğimde listeyi tekrar aynı şekilde ekliyor"): bir kayıt
+    //: bir kayıt
     // Excel'e işlenir → sonra o kayıt uygulamadan silinir (ör. yanlış girilmiş) → satırı hâlâ
     // dosyada duruyor ama artık "sistemde yok" göründüğü için bir sonraki işlemede YANLIŞLIKLA
     // "elle eklenmiş" sayılıp korunuyordu; aynı seri no ile yeni bir kayıt eklenip tekrar

@@ -1,8 +1,7 @@
-// Ofis Bant Genişliği raporu — monitoring aracının CSV export'u (bkz. konuşma). Dosya UTF-16 +
+// Ofis Bant Genişliği raporu — monitoring aracının CSV export'u. Dosya UTF-16 +
 // TAB ayraçlı; SheetJS bunu otomatik algılıyor, tek özel nokta "Uyarı Durumu" sütununun "-%15"
 // gibi metinleri sayı gibi yorumlamaması için sheet_to_json'a { raw: false } geçilmesi (App.jsx'te
-// dosya okuma tarafında yapılıyor). Dosya artık backend'de kalıcı saklanıyor (bkz. konuşma: "bir
-// kez yükleyeyim bir daha yüklemekle uğraşmayayım") — backend AYNI SheetJS mantığıyla ayrıştırıp
+// dosya okuma tarafında yapılıyor). Dosya artık backend'de kalıcı saklanıyor — backend AYNI SheetJS mantığıyla ayrıştırıp
 // zaten { raw:false } eşdeğeri düz metin değerleri döndürüyor, mapBantRow ikisinde de aynı şekilde çalışır.
 import { backendClient } from "./backendClient";
 function col(row, ...names) {

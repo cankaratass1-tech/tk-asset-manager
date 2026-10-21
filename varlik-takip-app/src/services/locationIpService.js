@@ -1,4 +1,4 @@
-// "Lokasyon Hostname ve IP Uyuşmazlığı" raporu (bkz. konuşma).
+// "Lokasyon Hostname ve IP Uyuşmazlığı" raporu.
 //
 // Fikir: hostname'in kendisi bir lokasyon kodu taşır (ör. "ABJ0B55" -> kod "ABJ0" — baştaki
 // harfler + ilk rakam). Bu kod, Lokasyon Mail Listesi'ndeki "Lokasyon Kodu" sütununda AYNI
@@ -100,7 +100,7 @@ export function computeLocationIpRows({ sccmRows = [], lokasyonRows = [] } = {})
   return rows;
 }
 
-// Uyuşmazlık maili — kullanıcı tarafından verilen tam metin (bkz. konuşma), sadece lokasyon adı
+// Uyuşmazlık maili — kullanıcı tarafından verilen tam metin, sadece lokasyon adı
 // ("Merkez Ofis" örneği) satır bazında gerçek beklenen ofis adıyla değiştiriliyor, cihaz
 // (Computer name) referansı IT'nin bileti bulabilmesi için alta ekleniyor — gövde metni aksi
 // halde AYNEN korunuyor.

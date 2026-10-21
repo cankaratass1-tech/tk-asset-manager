@@ -2,7 +2,7 @@
 // Uyuşmazlığı satırlarına çevirir. Diğer gerçek veri dosyalarından farkı: burada zaten hem
 // "zimmetli görünen kişi" hem "gerçekte kim kullanıyor" bilgisi TEK satırda bir arada geliyor
 // (Envanter* sütunları vs LastLogon* sütunları) — ayrı "assigned"/"active" listelerini
-// eşleştirmeye gerek yok, karşılaştırma satır bazında doğrudan yapılabiliyor (bkz. konuşma).
+// eşleştirmeye gerek yok, karşılaştırma satır bazında doğrudan yapılabiliyor.
 // Sütun adları gerçek dosyadan doğrulandı:
 //   Serial Number -> serial, Hostname -> yedek anahtar (Serial Number boşsa)
 //   Envanter User Name -> zimmetli kişinin kısa/sicil adı (karşılaştırma bunun üzerinden yapılır)
@@ -42,8 +42,7 @@ export function mapSccmRow(raw) {
   // Gerçekte giriş yapan kişinin sicil numarası — TuruncuHat'taki "Cihaz Sahibinin Sicili" ile
   // birebir karşılaştırılabilir (bkz. comparisonService.js). İsim bazlı karşılaştırma güvenilmez:
   // TH'de tam ad ("Ensar Bekdemir"), SCCM lastlogon'da kısa kullanıcı adı ("E_BEKDEMIR") farklı
-  // formatlarda olduğu için aynı kişi bile olsa metin olarak hiç eşleşmiyordu (bkz. konuşma —
-  // gerçek TuruncuHat verisiyle "zimmeti doğru ama neden hatalı diyor" sorunu). Sicil numarası
+  // formatlarda olduğu için aynı kişi bile olsa metin olarak hiç eşleşmiyordu. Sicil numarası
   // format bağımsız, kesin bir eşleştirme sağlıyor.
   const userSicil = col(raw, "Last LogonSicil", "Last LogonSicil ", "LastLogonSicil");
 
@@ -55,7 +54,7 @@ export function mapSccmRow(raw) {
     // "Envanter kaydı yok + SCCM'de bir kullanıcı görünüyor" tek başına KANIT değil — o kullanıcı
     // adı aylar/yıllar önceki bir oturumdan kalmış olabilir (cihaz sonradan depoya dönmüş olabilir).
     // Gerçek/güncel kullanım ancak son girişin yakın tarihli olmasıyla doğrulanır — aynı eşik
-    // (DEFAULT_STALE_DAYS) "Kullanılmayan Cihazlar" raporunda da kullanılıyor (bkz. konuşma).
+    // (DEFAULT_STALE_DAYS) "Kullanılmayan Cihazlar" raporunda da kullanılıyor.
     if (lastLogonDaysAgo != null && lastLogonDaysAgo <= DEFAULT_STALE_DAYS) {
       statusTag = "Zimmetsiz Kullanım";
       matched = false;
@@ -89,7 +88,7 @@ export function mapSccmRow(raw) {
     ownerFull: ownerFullRaw || ownerShort || "—",
     // "Tür" filtresi (App.jsx deviceTypeOf) " — " öncesini cihaz tipi olarak alıyor — burada
     // gerçek "Type" (Desktop/Laptop) sütunu kullanılmalı, "Model" (ör. "OptiPlex 7090") değil;
-    // aksi halde filtre modele göre çalışıp anlamsız düşük sayılar veriyordu (bkz. konuşma)
+    // aksi halde filtre modele göre çalışıp anlamsız düşük sayılar veriyordu
     sub: `${col(raw, "Type") || "Bilinmiyor"} — ${col(raw, "Model")}`,
     hostname,
     serial,
@@ -103,13 +102,13 @@ export function mapSccmRow(raw) {
     company: col(raw, "İştirak"),
     // Lokasyon Hostname ve IP Uyuşmazlığı raporu için — SCCM'in "IPAddresses" sütunu virgülle
     // ayrılmış birden fazla IP taşıyabilir (VPN/sanal adaptörler dahil); ham haliyle taşınır,
-    // filtreleme (172.x seçimi) locationIpService.js'te yapılır (bkz. konuşma).
+    // filtreleme (172.x seçimi) locationIpService.js'te yapılır.
     ipAddresses: col(raw, "IPAddresses"),
     office: location || "—",
     lastLogonTime: col(raw, "LastLogonTime"),
     // Disk Alanı kritik mail'i için ek alanlar — Disk Alanı Excel'inde bulunmayan Seri No/OU/
     // Bitlocker/gerçek kullanıcı maili bilgileri hostname üzerinden SCCM'den zenginleştiriliyor
-    // (bkz. konuşma). "model" alanı yukarıda zimmet açıklama cümlesi için kullanıldığından,
+    //. "model" alanı yukarıda zimmet açıklama cümlesi için kullanıldığından,
     // gerçek cihaz modeli için ayrı bir alan.
     deviceModel: col(raw, "Model"),
     ouName: col(raw, "OUName"),

@@ -6,8 +6,7 @@ import MultiSelectFilter from "./MultiSelectFilter";
 
 Chart.register(BarController, LineController, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend);
 
-// Rapor adları artık burada AYRICA hard-code edilmiyor (bkz. konuşma: "konu başlıkları hard-code
-// edilmemeli") — tek kaynak REPORT_TYPES (constants.js), sol menüdeki isimlerle aynı. Bir reportId
+// Rapor adları artık burada AYRICA hard-code edilmiyor — tek kaynak REPORT_TYPES (constants.js), sol menüdeki isimlerle aynı. Bir reportId
 // snapshot'ı olup REPORT_TYPES'ta yoksa (ör. ileride eklenen bir rapor) id'nin kendisi gösterilir,
 // uygulama hata vermez.
 const REPORT_LABEL_BY_ID = Object.fromEntries(REPORT_TYPES.map((r) => [r.id, r.name]));
@@ -63,8 +62,7 @@ export default function ManagementKpiPanel({
 
   const trend = useMemo(() => periodTrendSeries(periods, filterFn), [periods, filterFn]);
 
-  // Konu başlığına (rapor türüne) göre kırılım — bkz. konuşma: "her konu başlığı için ilgili
-  // çözüm performansı ayrı ayrı görülebilmeli". Üstteki "Rapor" seçicisi tek bir raporu detaylı
+  // Konu başlığına (rapor türüne) göre kırılım. Üstteki "Rapor" seçicisi tek bir raporu detaylı
   // gösterirken, bu tablo `snapshots` içinde geçmişi olan TÜM rapor türlerini (dinamik — hard-code
   // yok, hangi rapor snapshot yazdıysa o çıkar) aynı `period`/`lbsFilter` ile yan yana özetler.
   const topicBreakdown = useMemo(() => {
@@ -132,7 +130,7 @@ export default function ManagementKpiPanel({
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <select style={styles.scheduleSelect} value={report} onChange={(e) => setReport(e.target.value)}>
             {/* Sadece kayıt geçmişi olan (yani gerçek veriyle çalışan) raporlar listelenir —
-                dinamik, elle eklenmiş sabit bir liste değil (bkz. konuşma). */}
+                dinamik, elle eklenmiş sabit bir liste değil. */}
             {Object.keys(snapshots || {}).sort((a, b) => reportLabel(a).localeCompare(reportLabel(b), "tr")).map((id) => (
               <option key={id} value={id}>{reportLabel(id)}</option>
             ))}
@@ -146,7 +144,7 @@ export default function ManagementKpiPanel({
         </div>
       </div>
 
-      {/* Konu başlığına göre kırılım — panelin ana yeni bölümü (bkz. konuşma). Seçili tek raporun
+      {/* Konu başlığına göre kırılım — panelin ana yeni bölümü. Seçili tek raporun
           "yeterli veri" durumundan bağımsız her zaman gösterilir; her rapor türü kendi hazır olma
           durumunu ayrı ayrı taşır (aşağıda "veri bekleniyor" satırıyla). */}
       <div style={{ marginTop: 16 }}>

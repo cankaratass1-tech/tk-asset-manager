@@ -1,5 +1,4 @@
-// Lokasyon Mail Listesi — tüm lokasyon maillerinin TEK kaynağı (bkz. konuşma: "Bütün lokasyon
-// mailleri tek bir yerden çekilecek"). Sütunlar gerçek dosyadan doğrulandı: Lokasyon Kodu, Açık
+// Lokasyon Mail Listesi — tüm lokasyon maillerinin TEK kaynağı. Sütunlar gerçek dosyadan doğrulandı: Lokasyon Kodu, Açık
 // Lokasyon Adı, Mail Adresi, Node_CP_ContactMail2, IP_Address. Aynı "Açık Lokasyon Adı" birden
 // fazla "Lokasyon Kodu" satırı taşıyabilir (aynı ofisin farklı node/subnet'leri, ör. ABJ0-SD1 ve
 // ABJ1-SD1 ikisi de "ABIDJAN SATIS OFISI") — İnaktif Cihazlar mail eşleştirmesi lokasyon ADI

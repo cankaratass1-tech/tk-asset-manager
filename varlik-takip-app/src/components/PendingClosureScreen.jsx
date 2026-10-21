@@ -5,7 +5,7 @@ import Pagination from "./Pagination";
 import { mailShell, dataTable, MAIL_FOOTER } from "../services/mailLayout";
 
 // "Kapatma Onayı Bekleyen Kayıtlar" — ayrı bir veri kaynağı DEĞİL, "Yeni Kurulum Kaydı" akışının
-// bir alt kümesi (bkz. konuşma). Akış: form → cihaz hazırlanır → kullanıcıya "ATO kaydına
+// bir alt kümesi. Akış: form → cihaz hazırlanır → kullanıcıya "ATO kaydına
 // TuruncuHat'tan kapatma onayı ver, sonra teslim al" maili atılır (NewInstallScreen.sendMail,
 // markNewInstallsMailed → mailSentAt) → kullanıcı TH'de onay verip cihazı teslim alınca
 // "✓ Teslim Et" ile status "TESLİM EDİLDİ" olur. Bu ikisi arasındaki kayıtlar — mail gitmiş ama
@@ -13,7 +13,7 @@ import { mailShell, dataTable, MAIL_FOOTER } from "../services/mailLayout";
 // (/newinstalls) kaynağı kullanılır, ayrı bir Excel/API'ye ihtiyaç yoktur.
 //
 // Üst araç çubuğu düzeni kullanıcının paylaştığı "Yeni Kurulum Kaydı" ekran görüntüsüyle aynı
-// desende (bkz. konuşma): başlık+özet satırı, filtre çipleri + arama, seçim kutucukları ve altta
+// desende: başlık+özet satırı, filtre çipleri + arama, seçim kutucukları ve altta
 // Dil seçimi + tek bir birincil "Hatırlatma Gönder" butonu (seçili/filtreli/tümü kaydı kapsar).
 const norm = (v) => String(v || "").trim().toLowerCase();
 const PAGE_SIZE_OPTIONS = [25, 50, 100, Infinity];
@@ -24,11 +24,11 @@ const daysSince = (d) => {
 };
 
 
-// Kullanıcının verdiği hazır metin (bkz. konuşma) — sabit gövde + kullanıcının paylaştığı ekran
+// Kullanıcının verdiği hazır metin — sabit gövde + kullanıcının paylaştığı ekran
 // görüntüsündeki tablo şablonu: Barkod / Seri No / Varlık Adı / ATO Code / Etkilenen Kullanıcı.
 // Barkod ve Varlık Adı NewInstall kaydında yok — NewInstallScreen.buildMailHtml'deki gibi seri no
 // üzerinden TuruncuHat'a bakılıp oradan (th.barkod, th.asset || th.model) dolduruluyor.
-// TR/EN — Yeni Kurulum Kaydı'ndaki dil seçimiyle aynı desen (bkz. konuşma).
+// TR/EN — Yeni Kurulum Kaydı'ndaki dil seçimiyle aynı desen.
 const MAIL_TEXT = {
   tr: {
     subject: "Kapatma Onayı Bekleniyor — TuruncuHat",
@@ -86,7 +86,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
   const [bulkSending, setBulkSending] = useState(false); // toplu gönderim (üst bar)
   const [mailTo, setMailTo] = useState(""); // boşsa lokasyon e-posta grubu kullanılır
   const [mailLang, setMailLang] = useState("tr"); // "tr" | "en" — Yeni Kurulum Kaydı'ndaki dil seçimiyle aynı
-  // KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli (bkz. konuşma) — bu liste ARTIK Excel'den
+  // KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli — bu liste ARTIK Excel'den
   // değil, admin'in Ayarlar'dan elle yönettiği sabit e-posta listesinden geliyor (bkz.
   // ustYonetimService.js). Sayfa açılışında bir kez çekilir.
   const [ustYonetimEmails, setUstYonetimEmails] = useState(new Set());
@@ -117,8 +117,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
   }, [thRows]);
 
   // Kapatma onayı bekleyen = mail gönderildi (mailSentAt var) VE henüz teslim edilmedi. KRİTİK:
-  // üst yönetime ait kayıtlar bu ekrandan TAMAMEN gizlenir (bkz. konuşma: "üst yönetim listede
-  // gözükmesin hiç") — sadece mail engellenmiyor, görünürlük de yok.
+  // üst yönetime ait kayıtlar bu ekrandan TAMAMEN gizlenir — sadece mail engellenmiyor, görünürlük de yok.
   const pending = useMemo(
     () =>
       records.filter((r) => {
@@ -182,15 +181,13 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
     [pending, selected, filtered]
   );
 
-  // Alıcı artık TuruncuHat'taki "Cihaz Sahibinin Maili" alanından, kişiye özel gidiyor (bkz.
-  // konuşma: "onların excelinde kullanıcıların email adresi olacak, onlara o şekilde direkt mail
-  // atılabilir") — lokasyon mail grubu (mailGroupsText) burada ARTIK KULLANILMIYOR. Eşleşme yoksa
+  // Alıcı artık TuruncuHat'taki "Cihaz Sahibinin Maili" alanından, kişiye özel gidiyor — lokasyon mail grubu (mailGroupsText) burada ARTIK KULLANILMIYOR. Eşleşme yoksa
   // elle e-posta sorulur.
 
   // Tek satır — satırdaki "Gönder"/"Tekrar Hatırlat" butonu.
   const sendReminder = async (r) => {
     const th = thBySerial.get(norm(r.serial));
-    // KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli (bkz. konuşma) — bu yüzden manuel
+    // KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli — bu yüzden manuel
     // e-posta sorma adımına bile gelinmeden en başta engelleniyor.
     if (th && isUstYonetimEmail(ustYonetimEmails, th.ownerMail)) {
       showToast && showToast("⛔ Üst yönetim — bu kişiye hatırlatma e-postası gönderilmez");
@@ -229,9 +226,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
     }
   };
 
-  // Toplu — üst bardaki "Hatırlatma Gönder" birincil buton. Kullanıcı isteği (bkz. konuşma):
-  // "Birden fazla mail seçtiğimde tek mailin içinde gitmesin. Ayrı ayrı gitsin eğer bir lokasyonda
-  // birden fazla var ise tek mailde gidebilir" — yani AYNI lokasyondaki kayıtlar tek mailde
+  // Toplu — üst bardaki "Hatırlatma Gönder" birincil buton. Lokasyon başına ayrı mail gider; AYNI lokasyondaki kayıtlar tek mailde
   // (çoklu satır tablosu), FARKLI lokasyonlar ise birbirinden AYRI mail olarak gider. Üstteki
   // kutuya elle alıcı girilmişse (mailTo doluysa) bu gruplama devre dışı kalır — kullanıcı bilinçli
   // olarak tek bir hedefe göndermek istiyor demektir, hepsi o adrese tek mailde gider.
@@ -240,7 +235,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
       showToast && showToast("Gönderilecek kayıt yok");
       return;
     }
-    // KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli (bkz. konuşma) — hem manuel alıcı hem
+    // KRİTİK: üst yönetime hiçbir şekilde mail gitmemeli — hem manuel alıcı hem
     // kişiye-göre-grupla yollarından ÖNCE, en başta hedef listeden çıkarılıyor.
     const ustYonetimSkipped = targetRecs.filter((r) => {
       const th = thBySerial.get(norm(r.serial));
@@ -283,7 +278,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
       } else {
         // Kişiye göre grupla (TuruncuHat "Cihaz Sahibinin Maili") — her kişi kendi AYRI mailini
         // alır, aynı kişinin birden fazla bekleyen kaydı varsa tek mailde (çoklu satır tablosu)
-        // birleşir (bkz. konuşma).
+        // birleşir.
         const groups = new Map(); // to (email) -> records[]
         const missing = new Set();
         sendableRecs.forEach((r) => {
@@ -366,7 +361,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
             </span>
           </div>
 
-          {/* Hızlı filtre çipleri + arama — Yeni Kurulum Kaydı'ndaki desenle aynı (bkz. konuşma). */}
+          {/* Hızlı filtre çipleri + arama — Yeni Kurulum Kaydı'ndaki desenle aynı. */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "10px 0 14px" }}>
             {[
               ["all", "Tümü", pending.length],
@@ -491,7 +486,7 @@ export default function PendingClosureScreen({ styles, pal, showToast, thRows = 
                           )}
                         </td>
                         <td style={{ ...styles.td, whiteSpace: "nowrap" }}>
-                          {/* KRİTİK: üst yönetime hiçbir şekilde e-posta gitmemeli (bkz. konuşma) — gönder
+                          {/* KRİTİK: üst yönetime hiçbir şekilde e-posta gitmemeli — gönder
                               butonu bu satırlarda hiç render edilmiyor, sadece bilgilendirici bir
                               rozet gösteriliyor. Diğerlerinde: bize dönüş yapmayanlar için tekrar
                               hatırlatma — aynı buton, ilk gönderimden sonra "Tekrar Hatırlat" etiketine

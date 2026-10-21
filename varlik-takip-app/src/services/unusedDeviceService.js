@@ -10,8 +10,7 @@
 import { norm, daysSince, DEFAULT_STALE_DAYS } from "./comparisonService";
 
 // Geriye dönük uyumluluk — App.jsx ve deviceOverviewService.js bunları buradan import ediyor;
-// kanonik tanım artık comparisonService.js'te (bkz. konuşma — Zimmet Uyuşmazlığı'nın da aynı
-// eşiği kullanması gerekince döngüsel import'tan kaçınmak için oraya taşındı).
+// kanonik tanım artık comparisonService.js'te.
 export { daysSince, DEFAULT_STALE_DAYS };
 
 // BIOS/üretim tarihinden cihaz yaşını yıl olarak döndürür (yoksa null).

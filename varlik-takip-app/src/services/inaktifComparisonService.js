@@ -1,4 +1,4 @@
-// İnaktif Cihazlar — basitleştirildi (bkz. konuşma: "bence karışıklığa yol açar").
+// İnaktif Cihazlar — basitleştirildi.
 //
 // ÖNEMLİ DÜZELTME: Önceki tasarım seri no'yu ayrıca TH'de arayıp "inaktif olduğunu TH ile teyit"
 // etmeye çalışıyordu (TuruncuHat'ta Bulunamadı / İnaktif Doğrulandı / İnaktif Etiketi Hatalı gibi
@@ -19,7 +19,7 @@ import { norm } from "./comparisonService";
 export const INAKTIF_ACTION_TAG = "Kullanılıyor — Zimmet Aktarımı Gerekli";
 export const needsInaktifAction = (statusTag) => statusTag === INAKTIF_ACTION_TAG;
 
-// Rozet rengi (kullanıcı isteği): cihazı kullanan biri VARSA yeşil, hiç giriş yapan YOKSA kırmızı. Başka etiketlerde null (eski mantık).
+// Rozet rengi: cihazı kullanan biri VARSA yeşil, hiç giriş yapan YOKSA kırmızı. Başka etiketlerde null (eski mantık).
 // Not: `matched` alanının anlamı (mail hedefleme, Eşleşen/Eşleşmeyen filtresi) değişmez; yalnız görünen renk buradan gelir.
 export const INAKTIF_UNUSED_TAG = "İnaktif — Kullanılmıyor";
 export const inaktifUsageTone = (statusTag) => (statusTag === INAKTIF_ACTION_TAG ? "ok" : statusTag === INAKTIF_UNUSED_TAG ? "bad" : null);
@@ -63,9 +63,8 @@ export function computeInaktifComparisonRows({ inaktifRows = [], sccmRows = [] }
       actualUserMail: s.mail || "",
       matched: false,
       statusTag: INAKTIF_ACTION_TAG,
-      // Kullanıcı isteği: kuru/teknik cümle yerine durumu doğrudan anlatan bir metin — "bu
-      // cihazın sahibi inaktif ama X kullanıyor, zimmetlerin doğru yönetilmesi için X adına
-      // zimmet transferi yapılması gerekmektedir" (bkz. konuşma).
+      // Durumu doğrudan anlatan metin: cihazın sahibi inaktif ama X kullanıyor, X adına zimmet
+      // transferi yapılması gerekir.
       matchDetail: `${r.serial} seri numaralı cihazın sahibi (${r.owner || "—"}) inaktif, ancak SCCM kayıtlarına göre bu cihazı ${sccmUser} kullanıyor (${s.hostname || "hostname yok"}). Zimmet hareketlerinin doğru yönetilebilmesi için cihazın ${sccmUser} adına zimmet transferinin yapılması gerekmektedir.`,
     };
   });

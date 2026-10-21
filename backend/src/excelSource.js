@@ -43,7 +43,7 @@ function findLatestFile(folderPath, prefix) {
 // headerRow: bazı SCCM raporlarında gerçek sütun başlıkları ilk satırda değil (üstte rapor
 // adı/açıklama satırları oluyor) — headerRow, başlıkların bulunduğu satırın 0-tabanlı indeksidir.
 function readRows(filePath, sheetIndex = 0, headerRow = 0) {
-  // dense:true — büyük dosyalarda (bkz. konuşma: 43MB TuruncuHat exportu) SheetJS'in varsayılan
+  // dense:true — büyük dosyalarda SheetJS'in varsayılan
   // "sparse" (nesne anahtarlı) hücre depolama modu sessizce boş bir sheet döndürüyordu (Sheets
   // objesi tamamen boş kalıyordu, hata da fırlatmıyordu). "dense" mod (dizi tabanlı depolama)
   // aynı dosyayı sorunsuz okuyor — küçük dosyalarda da fark yaratmaz, güvenle her zaman açık.
@@ -56,16 +56,13 @@ function readRows(filePath, sheetIndex = 0, headerRow = 0) {
 
 // Node tek iş parçacıklı olduğu için XLSX.readFile senkron ve CPU-yoğun — büyük dosyalarda
 // (ör. 43MB TuruncuHat exportu, ~180.000 satır) ~50 saniye sürüyor ve bu süre boyunca backend
-// TÜM istekleri (health check dahil) yanıtlayamıyor (bkz. konuşma: Dashboard her açıldığında
-// TH+Monitor+SCCM+İnaktif+Disk hepsi otomatik yükleniyor, her seferinde yeniden parse etmek
-// sunucuyu tekrar tekrar kilitliyordu). Dosya değişmediği sürece (mtime aynıysa) bellekteki
+// TÜM istekleri (health check dahil) yanıtlayamıyor. Dosya değişmediği sürece (mtime aynıysa) bellekteki
 // sonucu döner — ikinci ve sonraki isteklerde anında yanıt verir. Dosya güncellenince (mtime
 // değişince) otomatik olarak yeniden okunur.
 const reportCache = new Map(); // key: filePath -> { mtimeMs, fileName, rows, modifiedAt }
 
 // Kayıtlı klasör yolu bu ortamda (ör. bulut deploy — farklı işletim sistemi/disk düzeni)
-// bulunamazsa, repo ile birlikte taşınan demo veri klasörüne düşülür — bkz. konuşma:
-// "arkadaşıma canlı gösterme" için tek seferlik bulut deploy. Yerel/gerçek klasör hep
+// bulunamazsa, repo ile birlikte taşınan demo veri klasörüne düşülür (tek servis bulut deploy). Yerel/gerçek klasör hep
 // önceliklidir; bu sadece o klasör YOKSA devreye girer, mevcut davranışı bozmaz.
 const BUNDLED_DEMO_DATA_DIR = path.join(__dirname, "..", "demo-data", "current");
 

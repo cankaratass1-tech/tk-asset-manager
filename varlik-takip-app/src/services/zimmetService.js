@@ -1,5 +1,5 @@
 // Zimmet Uyuşmazlığı artık sahte MOCK_ZIMMET verisi yerine gerçek SCCM envanter export'undan
-// besleniyor (bkz. konuşma). mapSccmRow (sccmFileService.js) her satırı zaten owner/userLabel/
+// besleniyor. mapSccmRow (sccmFileService.js) her satırı zaten owner/userLabel/
 // matched/statusTag ile birlikte üretiyor — burada departman bazlı sahte "assigned"/"active"
 // eşleştirmesi yok, doğrudan hazır satırlar üzerinde filtreleme/istatistik/zincir hesabı yapılıyor.
 const NOT_A_PERSON = new Set(["—", "Tespit Edilemedi"]);
@@ -9,7 +9,7 @@ const isPerson = (name) => name && !NOT_A_PERSON.has(name);
 // (KANIT DEĞİL). Zimmet rozetlerinin (TableView/RecordPopup/DetailAside/App.jsx Gönderim
 // Geçmişi) hepsinde aynı nötr (gri) renkle gösterilsin diye tek yerden dışa aktarılıyor —
 // dağınık kopyalar aynı listeyi ayrı ayrı tutunca biri unutulup diğeri güncellenirse tutarsızlık
-// çıkar (bkz. konuşma — geçmişte mail.js/smtp.js'te yaşanan aynı sınıf hata).
+// çıkar.
 export const ZIMMET_UNVERIFIED_TAGS = new Set([
   "Kullanım Kaydı Yok",
   "SCCM'de Bulunamadı",
@@ -19,7 +19,7 @@ export const ZIMMET_UNVERIFIED_TAGS = new Set([
   "TH Kaydı YOK",
   // Envanter kaydı yok + SCCM'de eski/tazeliği belirsiz bir kullanıcı görünüyor — son giriş çok
   // eskiyse (veya hiç yoksa) bu "kesin kullanım kanıtı" sayılmaz, cihaz depoya dönmüş olabilir
-  // (bkz. konuşma — sccmFileService.js DEFAULT_STALE_DAYS eşiği).
+  //.
   "Zimmetsiz Kullanım (Doğrulanamadı)",
 ]);
 export const isZimmetUnverified = (statusTag) => ZIMMET_UNVERIFIED_TAGS.has(statusTag);
@@ -37,16 +37,16 @@ export function computeOverallZimmetStats(sccmRows) {
   rows.forEach((r) => {
     // "Müdürlük Zimmeti (OBS)" — comparisonService.js (TH+Monitor Raporu yüklüyse) matched:true
     // döner ama statusTag "Zimmet Doğru" değildir; ok'a sayılmazsa istatistik yanlış "hatalı"
-    // görünür (bkz. konuşma — monitör karşılaştırması bağlandığında ortaya çıkan yeni statusTag).
+    // görünür.
     if (r.statusTag === "Zimmet Doğru" || r.statusTag === "Müdürlük Zimmeti (OBS)") ok++;
     // Doğrulanamayan (kanıt olmayan) durumlar "hatalı" değil, ayrı bir "kayıt yok" kovasında —
-    // bkz. konuşma: TH bazlı tasarımda bir cihaz SCCM'de/Monitor Raporu'nda henüz görünmüyor
+    // TH bazlı tasarımda bir cihaz SCCM'de/Monitor Raporu'nda henüz görünmüyor
     // olabilir, bu "yanlış kullanılıyor" anlamına gelmez.
     else if (isZimmetUnverified(r.statusTag)) noRecord++;
     else bad++; // "Zimmet Hatalı" + "Zimmetsiz Kullanım" + "... + Monitör Uyuşmazlığı"
     // Kişinin kendi zimmeti doğru olsa bile bağlı monitöründe kesin bir uyuşmazlık varsa bu ayrı
     // sayılır — dashboard'da "Zimmet Uyuşmazlığı" ile "Monitör Uyuşmazlığı" birbirine karışmasın
-    // diye (bkz. konuşma: "dashboard'da ayrımı olacak mı").
+    // diye.
     if (r.monitorIssue) monitorIssueCount++;
   });
   return { total: rows.length, ok, bad, noRecord, monitorIssueCount };
@@ -54,7 +54,7 @@ export function computeOverallZimmetStats(sccmRows) {
 
 // Sadece KESİN uyuşmazlıkları döner — doğrulanamayan (isZimmetUnverified) kayıtlar hariç, aksi
 // halde "En fazla uyuşmazlık bulunan lokasyon" gibi listeler binlerce "SCCM'de/Monitor'da
-// bulunamadı" kaydıyla boğulur, gerçek sorunlu lokasyonlar görünmez olur (bkz. konuşma).
+// bulunamadı" kaydıyla boğulur, gerçek sorunlu lokasyonlar görünmez olur.
 export function getAllMismatchRows(sccmRows) {
   return (sccmRows || []).filter((r) => !r.matched && !isZimmetUnverified(r.statusTag));
 }

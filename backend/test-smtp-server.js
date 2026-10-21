@@ -1,5 +1,5 @@
 // Yerel test SMTP sunucusu — mail göndermez, gelen bağlantıyı/mesajı kabul edip loglar. Üretimde kullanılmaz.
-// Şablon içeriğini de doğrulayabilmek için (bkz. konuşma: "yaptığını test etmemiz lazım") her
+// Şablon içeriğini de doğrulayabilmek için her
 // mesajın ham içeriği inbox/ altına kaydediliyor, konsola da To/Subject özeti basılıyor.
 const { SMTPServer } = require("smtp-server");
 const fs = require("fs");

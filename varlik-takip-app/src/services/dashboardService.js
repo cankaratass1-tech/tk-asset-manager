@@ -1,6 +1,6 @@
 // IT Operations Dashboard için İnaktif Cihazlar ve Disk Alanı gerçek verisinden özet/istatistik
 // hesaplar. Hiçbir sayı uydurulmaz; Disk Alanı eşikleri kullanıcıyla netleştirilen sabit
-// değerlerdir (bkz. konuşma) — Excel'de bu eşiği belirten bir sütun yoktur, SCCM raporu zaten
+// değerlerdir — Excel'de bu eşiği belirten bir sütun yoktur, SCCM raporu zaten
 // "belirtilen MB'den az boş alanı olan" cihazları listeler.
 export const DISK_THRESHOLDS_GB = { criticalMax: 10, warningMax: 20 };
 
@@ -55,15 +55,14 @@ export function computeDiskDashboard(rows) {
 }
 
 // Zimmet için mismatch satırları (office alanına göre) — bkz. zimmetService.getAllMismatchRows
-// company opsiyonel — Ana Sayfa'daki Şirket filtresiyle tutarlı olsun diye (bkz. konuşma:
-// "Genel Trend" paneli, computeInaktifDashboard ile aynı desende) eklendi.
+// company opsiyonel — Ana Sayfa'daki Şirket filtresiyle tutarlı olsun diye eklendi.
 export function computeZimmetLocationBreakdown(mismatchRows, n = 10, { company } = {}) {
   const scoped = company && company !== "all" ? mismatchRows.filter((r) => r.company === company) : mismatchRows;
   return topByCount(scoped, (r) => r.office, n);
 }
 
 // Ana Sayfa "Genel Trend" paneli için — İnaktif Cihazlar ve Zimmet Uyuşmazlığı'nı AYNI lokasyon
-// ekseninde birleştirir (bkz. konuşma: Sage Intelligence tarzı bar+line trend grafiği örneği).
+// ekseninde birleştirir.
 // Lokasyon kümesi: iki listenin de en çok kayıt taşıyan N'i birleştirilip (union), her biri için
 // her iki sayı da hesaplanır — sadece birinde üst sırada olan bir lokasyon diğerinde 0 görünsün
 // diye (yok sayılmasın).

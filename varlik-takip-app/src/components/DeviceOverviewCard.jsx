@@ -57,7 +57,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
           onChange={(e) => {
             const v = e.target.value;
             setQuery(v);
-            // Arama kutusu tamamen silinince eski sonuç ekranda asılı kalmasın — bkz. konuşma
+            // Arama kutusu tamamen silinince eski sonuç ekranda asılı kalmasın
             // ("aradığımda X, bir şeyi sildiğimde sonuçta gitsin oradan").
             if (!v.trim()) setSubmitted("");
           }}
@@ -152,8 +152,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
             ))}
           </div>
 
-          {/* Geniş ekranlarda auto-fill 6 kartı tek satıra sığdırıp etiketleri kırpıyordu
-              (bkz. konuşma — kullanıcı ekran görüntüsü: "Last Lo...", "SYN..." gibi kesik metinler).
+          {/* Geniş ekranlarda auto-fill 6 kartı tek satıra sığdırıp etiketleri kırpıyordu.
               minmax alt sınırı yükseltildi + grid genişliği sınırlandı, böylece geniş ekranda da
               en fazla 3 sütun (3+3 satır) oluşuyor, dar ekranda ise otomatik azalıp alt alta diziliyor. */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12, maxWidth: 920 }}>
@@ -169,7 +168,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
                         <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                           <span style={{ fontWeight: 600 }}>{it.value}</span>
                           {/* it.badgeLabel varsa (örn. monitör zimmet karşılaştırması "Doğru"/"Hatalı") genel
-                              OK/Kritik yerine onu göster — bkz. konuşma */}
+                              OK/Kritik yerine onu göster */}
                           {/* Değeri olan bilgi satırlarında (Build, Toplam, Şarj döngüsü…) "Veri Yok" rozeti yanıltıcıydı — yalnız durum/eksik veri için rozet */}
                           {(it.state !== "none" || it.badgeLabel || /veri yok|^yok/i.test(String(it.value))) && (
                             <span style={{ background: st.bg, color: st.fg, borderRadius: 6, padding: "1px 7px", fontSize: 12, fontWeight: 700 }} title={it.note || ""}>{it.badgeLabel || st.label}</span>

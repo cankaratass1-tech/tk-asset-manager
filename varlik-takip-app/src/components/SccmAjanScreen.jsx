@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Pagination from "./Pagination";
 
-// SCCM Ajan Raporu — kullanıcı isteği (bkz. konuşma): "Excel ile aynı yap her şeyi görelim
-// sayfada". Ayrı bir dosya/kaynak DEĞİL, diğer raporların (Zimmet Uyuşmazlığı vb.) zaten
+// SCCM Ajan Raporu: Excel'deki tüm alanlar tek sayfada gösterilir. Ayrı bir dosya/kaynak DEĞİL, diğer raporların (Zimmet Uyuşmazlığı vb.) zaten
 // kullandığı SCCM envanteri (realSccmAll) — ama burada mapSccmRow'un dönüştürdüğü/özetlediği
 // alanlar değil, Excel'deki HAM sütunlar birebir gösteriliyor (rows prop = ham satırlar,
 // sccmFileService.mapSccmRow'daki r._raw). Sütun listesi hardcode edilmiyor — ilk satırın
@@ -13,7 +12,7 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100, Infinity];
 // sütunun kaç farklı değeri olduğu önemli değil (Hostname gibi neredeyse benzersiz sütunlarda
 // bile çalışır). Sadece pencere içindeki checkbox listesi çok uzunsa (arama daraltılmadıysa)
 // DOM'u şişirmemek için gösterimi sınırlıyoruz — bir önceki "sayfa bomboş beyaz kalıyor" sorunu
-// tam da binlerce seçeneği HER ZAMAN render etmekten kaynaklanmıştı (bkz. konuşma).
+// tam da binlerce seçeneği HER ZAMAN render etmekten kaynaklanmıştı.
 const MAX_VISIBLE_OPTIONS = 300;
 
 // Bir sütunun Excel AutoFilter'ı — başlığa tıklayınca açılan arama + checkbox listesi.

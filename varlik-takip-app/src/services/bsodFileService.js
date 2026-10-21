@@ -1,4 +1,4 @@
-// LAKESIDE "Weekly_BSOD" Excel'i — gerçek dosyadan doğrulanan şema (bkz. konuşma):
+// LAKESIDE "Weekly_BSOD" Excel'i — gerçek dosyadan doğrulanan şema:
 //   1. satır boş, 2. satır başlık: "Crash Date" | "Machine Name" | "Application Name" | "BSOD Count"
 //   veri: 46272 (Excel tarih serisi) | "AMS2B03.MHYNET.MHY.COM.TR" | "BSOD :  VIDEO_TDR_FAILURE" | 1
 // Başlık 2. satırda olduğu için okuma `range: 1` ile yapılır (bkz. handleManualBsodFile).
@@ -34,7 +34,7 @@ export function mapBsodRow(raw) {
   return {
     rowKey: `bsod|${machine}|${appName}|${when}`,
     hostname: machine,
-    hostShort: shortHost(machine), // mail içeriği ilk noktadan sonrasını atar (kullanıcı isteği)
+    hostShort: shortHost(machine), // mail içeriği ilk noktadan sonrasını atar
     bsodCode: appName,
     bsodName: kb.name,
     bsodHex: kb.code || "",
@@ -66,8 +66,7 @@ export function mapBsodRows(rawRows) {
 }
 
 // Diğer raporlar (İnaktif/Disk/SCCM/TH/Monitor) gibi backend'in senkron klasöründen otomatik
-// yükler — sayfa yenilenince kaybolmaz (bkz. konuşma: "raporunu her seferinde tekrar eklemek
-// zorunda kalıyorum"). Klasör senkronu kurulmadıysa manuel dosya seçimi (handleManualBsodFile,
+// yükler — sayfa yenilenince kaybolmaz. Klasör senkronu kurulmadıysa manuel dosya seçimi (handleManualBsodFile,
 // App.jsx) hâlâ kullanılabilir.
 export async function fetchBsodRowsFromFile() {
   const result = await backendClient.getBsodReport();

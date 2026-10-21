@@ -7,7 +7,7 @@ const batteryStore = require("../batteryHealthStore");
 const router = express.Router();
 
 // Ofis Bant Genişliği — Ayarlar > Veri Input'tan tek seferlik yüklenip kalıcı saklanan CSV
-// (bkz. konuşma: "bir kez yükleyeyim bir daha yüklemekle uğraşmayayım"). Henüz yüklenmediyse
+//. Henüz yüklenmediyse
 // 404 döner, frontend "henüz yüklenmedi" mesajını gösterir.
 router.get("/bant-genisligi", (req, res) => {
   const loaded = bantStore.load();
@@ -16,7 +16,7 @@ router.get("/bant-genisligi", (req, res) => {
 });
 
 // LakeSide Battery Health — Ayarlar > Veri Input'tan tek seferlik yüklenip kalıcı saklanan Excel
-// (bkz. konuşma: "gömülü olsun her seferinde yüklemeyelim"). Henüz yüklenmediyse 404 döner.
+//. Henüz yüklenmediyse 404 döner.
 router.get("/battery-health", (req, res) => {
   const loaded = batteryStore.load();
   if (!loaded) return res.status(404).json({ ok: false, message: "Henüz bir Battery Health dosyası yüklenmedi" });
@@ -25,7 +25,7 @@ router.get("/battery-health", (req, res) => {
 
 // İnaktif Cihazlar: SharePoint/OneDrive senkron klasöründeki "İnaktifCihazlar_yyyyMMddHHmmss.xlsx"
 // dosyalarının en güncelini okuyup ham satırları döner. Kullanılacak veri dosyanın 2. sheet'inde
-// (1. sheet değil) — bkz. konuşma. Sütun -> rapor alanı eşlemesi frontend'de yapılır.
+// (1. sheet değil). Sütun -> rapor alanı eşlemesi frontend'de yapılır.
 router.get("/inaktif-cihazlar", (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
@@ -55,7 +55,7 @@ router.get("/disk-alani", (req, res) => {
   }
 });
 
-// SCCM envanter raporu: Zimmet Uyuşmazlığı artık bu gerçek veriden hesaplanıyor (bkz. konuşma).
+// SCCM envanter raporu: Zimmet Uyuşmazlığı artık bu gerçek veriden hesaplanıyor.
 // Dosya adı diğerleri gibi tarih damgalı değil ("SCCM Inventory Report-W Collection.xlsx"),
 // findLatestFile bu durumda prefix ile başlayan en son değiştirilmiş dosyaya düşer. Gerçek
 // sütun başlıkları 1. satırda değil, 4. satırda (headerRow: 3, 0-tabanlı) — üstte rapor
@@ -75,7 +75,7 @@ router.get("/sccm", (req, res) => {
 
 // Lokasyon Mail Listesi: tüm lokasyon mailleri (İnaktif Cihazlar mail dağıtımı) ve Lokasyon
 // Hostname/IP Uyuşmazlığı raporu için TEK kaynak — Lokasyon Kodu, Açık Lokasyon Adı, Mail
-// Adresi, Node_CP_ContactMail2, IP_Address sütunları (bkz. konuşma). Başlıklar 1. satırda.
+// Adresi, Node_CP_ContactMail2, IP_Address sütunları. Başlıklar 1. satırda.
 router.get("/lokasyon-mail", (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
@@ -94,7 +94,7 @@ router.get("/lokasyon-mail", (req, res) => {
 // değiştirilmiş dosyaya düşer (SCCM uçundaki gibi). Başlıklar 1. satırda (headerRow: 0).
 // Diğer üç rapor (İnaktif/Disk/SCCM) gibi backend'den otomatik yüklenebilsin diye eklendi —
 // önceden sadece tarayıcıda manuel dosya seçimiyle geliyordu, sayfa yenilenince kayboluyordu
-// (bkz. konuşma: "diğerleri gibi görünmüyor").
+//.
 router.get("/th-envanteri", (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
@@ -112,7 +112,7 @@ router.get("/th-envanteri", (req, res) => {
 // en güncelini okur. Dosyada 1. satır boş, gerçek başlıklar 2. satırda (headerRow: 1) —
 // "Crash Date | Machine Name | Application Name | BSOD Count" (bkz. bsodFileService.js).
 // Önceden sadece tarayıcıda elle dosya seçimiyle geliyordu, sayfa yenilenince kayboluyordu
-// (bkz. konuşma) — diğer raporlar gibi backend'den otomatik yüklensin diye eklendi.
+// — diğer raporlar gibi backend'den otomatik yüklensin diye eklendi.
 router.get("/bsod", (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {

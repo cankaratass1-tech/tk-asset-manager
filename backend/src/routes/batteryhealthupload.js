@@ -4,7 +4,7 @@ const { checkWorkbook, summarize } = require("../fileSchemas");
 const batteryStore = require("../batteryHealthStore");
 
 // Battery Health Excel'ini Ayarlar > Veri Input'tan TEK SEFERLİK yükleyip backend'e kalıcı
-// kaydeder (bkz. konuşma: "gömülü olsun her seferinde yüklemeyelim") — bantgenisligiupload.js
+// kaydeder — bantgenisligiupload.js
 // ile aynı desen.
 const router = express.Router();
 

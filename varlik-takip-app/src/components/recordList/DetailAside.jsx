@@ -61,7 +61,7 @@ function NoteRow({ note, pal, styles, onSave, onDelete }) {
   );
 }
 
-// Zimmet not listesi — İşlem/durum alanı kaldırıldı, sadece notlar kaldı (bkz. konuşma)
+// Zimmet not listesi — İşlem/durum alanı kaldırıldı, sadece notlar kaldı
 // Satır değişince (key=rowKey) taslak metin sıfırlanır
 function NotesBlock({ row, rowMeta, addNote, editNote, deleteNote, styles, pal }) {
   const [draft, setDraft] = useState("");
@@ -137,13 +137,12 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
 
       {(() => {
         // Kişinin kendi zimmeti mi hatalı, yoksa sadece bağlı monitöründe mi sorun var —
-        // ikisi görsel olarak ayrışmalı (bkz. konuşma: aynı kırmızı kutuda "Zimmet Doğru" yazması
-        // kafa karıştırıyordu). personMatched sadece comparisonService satırlarında var; düz SCCM
+        // ikisi görsel olarak ayrışmalı. personMatched sadece comparisonService satırlarında var; düz SCCM
         // satırlarında (TH yüklenmemişse) row.matched zaten kişi düzeyinde tek gerçek.
         const personOk = row.personMatched ?? row.matched;
         if (!isZimmet) {
           if (row.matched) return null;
-          // İnaktif Cihazlar TH+SCCM ile çapraz doğrulanan bir statusTag taşıyor (bkz. konuşma) —
+          // İnaktif Cihazlar TH+SCCM ile çapraz doğrulanan bir statusTag taşıyor —
           // "Zimmet Aktarımı Gerekli"/"İnaktif Etiketi Hatalı" gerçek bir aksiyon gerektirdiği için
           // turuncu, "Doğrulanamadı"/"TuruncuHat'ta Bulunamadı" kanıt değil olduğu için nötr renkte.
           if (row.statusTag) {

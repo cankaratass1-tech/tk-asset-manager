@@ -11,10 +11,9 @@ export function buildStyles(p) {
     },
     // maxWidth kaldırıldı — sidebar tam sola yaslı, ana içerik ekranın tamamını kullanır.
     // "1fr" tek başına minmax(auto,1fr) demektir — geniş bir tablo geldiğinde sütun küçülmeyip
-    // sayfayı ekran dışına taşırır, o yüzden minmax(0,1fr) kullanıyoruz (bkz. konuşma)
+    // sayfayı ekran dışına taşırır, o yüzden minmax(0,1fr) kullanıyoruz
     shell: { width: "100%", display: "grid", gridTemplateColumns: "244px minmax(0, 1fr)", gap: 16 },
-    // Sabit (sticky) sidebar — kullanıcı isteği: "sol menü sabit kalsın, sayfayı aşağı
-    // indirdiğimde inmesin". body padding'i (16px) ile aynı top değeri; kendi içeriği ekran
+    // Sabit (sticky) sidebar; sayfa kayarken sabit kalır. body padding'i (16px) ile aynı top değeri; kendi içeriği ekran
     // boyundan uzun olursa (çok sayıda rapor linki) sidebar'ın kendisi kayar, sayfa değil.
     sidebar: {
       background: p.panel, backdropFilter: "blur(18px)", border: `1px solid ${p.line}`, borderRadius: 16,
@@ -59,8 +58,7 @@ export function buildStyles(p) {
     searchInput: { border: "none", background: "transparent", fontSize: 14, width: "100%", fontFamily: "inherit", color: p.ink },
     searchClear: { cursor: "pointer", color: p.inkSoft, fontSize: 12, flexShrink: 0, padding: "2px 3px" },
     // Metin ("Zimmet Doğru", "Monitör Uyuşmazlığı" gibi) dar bir satırda kalınca sarmalanıp
-    // segment butonlarını çirkin iki satırlı kutucuklara çeviriyordu — bkz. konuşma ("bu kısım
-    // bence güzel durmuyor"). whiteSpace:nowrap + overflowX:auto ile taşarsa yatay kaydırılır,
+    // segment butonlarını çirkin iki satırlı kutucuklara çeviriyordu. whiteSpace:nowrap + overflowX:auto ile taşarsa yatay kaydırılır,
     // asla satır kırmaz.
     segmented: { display: "flex", background: p.fieldBg, borderRadius: 8, padding: 2, overflowX: "auto", maxWidth: "100%" },
     seg: { padding: "7px 15px", fontSize: 14, borderRadius: 6, color: p.inkSoft, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 },
@@ -68,8 +66,7 @@ export function buildStyles(p) {
     chipToggle: { fontSize: 13, color: p.inkSoft, background: p.fieldBg, padding: "8px 13px", borderRadius: 8, cursor: "pointer" },
     // display: "inline-flex" (flex DEĞİL) — "flex" blok seviyeli kutu ürettiği için birden fazla
     // buton yan yana (ör. bir tablo satırının Aksiyon hücresinde) konduğunda her biri kendi
-    // satırına düşüp dikey istifleniyordu; bu da satır yüksekliğini anormal şişiriyordu (bkz.
-    // konuşma — "Kayıtlar kısmında çok fazla boşluk var"). inline-flex, buton içindeki ikon+metin
+    // satırına düşüp dikey istifleniyordu; bu da satır yüksekliğini anormal şişiriyordu. inline-flex, buton içindeki ikon+metin
     // hizalamasını korurken butonun kendisini satır içi (yan yana dizilebilir) yapıyor.
     btnGhost: { border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "inherit", background: p.fieldBg, color: p.ink },
     btnPrimary: { border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "inherit", background: p.accent, color: "#fff" },
@@ -80,7 +77,7 @@ export function buildStyles(p) {
     clickableName: { cursor: "pointer", textDecoration: "underline", textDecorationColor: p.accentSoft, textUnderlineOffset: 2 },
     cellSub: { color: p.inkSoft, fontSize: 13, marginTop: 2 },
     // Seri no birincil/tanımlayıcı bilgi olduğu için tam kontrastlı (p.ink) — önceden inkSoft
-    // (soluk gri) kullanıyordu, okunurluğu düşüyordu (bkz. konuşma)
+    // (soluk gri) kullanıyordu, okunurluğu düşüyordu
     serial: { fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 600, color: p.ink },
     badge: { display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 20, fontSize: 12, fontWeight: 600 },
     badgeDot: { width: 6, height: 6, borderRadius: "50%", display: "inline-block" },
@@ -185,7 +182,7 @@ export function buildStyles(p) {
     // gap eklendi: değer kısa olduğunda (ör. "SUBE-C") space-between zaten geniş boşluk
     // bırakıyordu, ama uzun bir cümle (ör. Kullanılmayan Cihazlar'daki inaktif açıklama metni)
     // satırı doldurup "boşta kalan alanı" sıfırlayınca etiket ve değer bitişik/boşluksuz
-    // görünüyordu (bkz. konuşma — ekran görüntüsüyle işaretlendi: "ModelSYNOB000000..."). gap,
+    // görünüyordu. gap,
     // içerik ne kadar uzun olursa olsun aralarında asgari boşluğu garanti eder.
     detailFieldRow: { display: "grid", gridTemplateColumns: "minmax(110px, 36%) minmax(0, 1fr)", columnGap: 16, alignItems: "start", justifyItems: "start", padding: "13px 0", borderBottom: `1px solid ${p.line}`, fontSize: 14, lineHeight: 1.45 },
     detailAlert: { padding: "16px 18px", borderRadius: 10, background: p.badBg, border: `1px solid ${p.bad}33` },

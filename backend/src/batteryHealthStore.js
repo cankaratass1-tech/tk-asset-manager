@@ -1,5 +1,4 @@
-// LakeSide Battery Health Excel'ini KALICI olarak diske yazar — kullanıcı isteği: "gömülü olsun
-// her seferinde yüklemeyelim" (bkz. konuşma). Ofis Bant Genişliği ile AYNI desen: dosya kendine
+// LakeSide Battery Health Excel'ini KALICI olarak diske yazar; bir kez yüklenir, tekrar yüklemek gerekmez. Ofis Bant Genişliği ile AYNI desen: dosya kendine
 // özgü bir isimle geldiği (LakeSide export'u, klasör senkronuna uygun sabit bir prefix yok) için
 // diğer raporlar gibi otomatik klasör senkronu yerine Ayarlar > Veri Input'tan TEK SEFERLİK
 // yükleme + backend'de saklama modeli kullanılıyor.

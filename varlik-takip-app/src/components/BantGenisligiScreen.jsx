@@ -29,7 +29,7 @@ export default function BantGenisligiScreen({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  // Lokasyon Kodu -> Açık Lokasyon Adı (Lokasyon Mail Listesi zaten yüklüyse, bkz. konuşma —
+  // Lokasyon Kodu -> Açık Lokasyon Adı (Lokasyon Mail Listesi zaten yüklüyse;
   // aynı "Lokasyon Kodu" biçimi, ör. "ABJ1-SD1"). Yüklenmemişse kod aynen gösterilir.
   const nameByCode = useMemo(() => {
     const m = new Map();
@@ -43,7 +43,7 @@ export default function BantGenisligiScreen({
   const warningCount = useMemo(() => rows.filter((r) => r.isWarning).length, [rows]);
 
   // Genel ortalama — tüm yüklü hatların Bant Genişliği/Averaj/Seviye değerlerinin aritmetik
-  // ortalaması (bkz. konuşma: "yukarı bir küçük dashboard koyalım genel ortalamayı görmek için").
+  // ortalaması.
   const avgStats = useMemo(
     () => ({
       bandwidth: mean(rows.map((r) => r.bandwidthMbps).filter((v) => v != null)),

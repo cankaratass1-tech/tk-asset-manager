@@ -1,4 +1,4 @@
-// Low Battery / LakeSide Battery Health demo verisi — bkz. konuşma: "gerçekçi olsun". Rapor
+// Low Battery / LakeSide Battery Health demo verisi. Rapor
 // tamamen client-side manuel Excel seçimiyle çalışıyor (App.jsx handleManualBatteryFile, backend
 // persistence yok), bu yüzden burada üretilen .xlsx doğrudan kullanıcıya teslim edilip "Battery
 // Health Excel Seç…" ile yüklenmesi bekleniyor. Gerçekçilik için gerçek SCCM laptop envanterindeki
@@ -48,7 +48,7 @@ const out = sample.map((r) => {
   health = Math.max(28, Math.min(100, health));
   const cycles = Math.max(5, Math.round(ageYears * (150 + rnd() * 220) + rnd() * 60));
 
-  // Kullanıcı isteği (bkz. konuşma): gerçek LakeSide export'unda "System" FQDN, "Username" ise
+  // Gerçek LakeSide export'unda "System" FQDN, "Username" ise
   // e-posta formatında gelir — uygulama tarafında noktadan/@'den sonrası kesilir. Burada da o
   // gerçek formatı taklit ediyoruz ki kesme mantığı gerçek veriyle test edilsin.
   const username = r["LastLogon UserName"] ? `${r["LastLogon UserName"]}@mhy.com.tr` : "";

@@ -1,7 +1,7 @@
 // "Kapatma Onayı Bekleyen Kayıtlar" ekranı Excel'den DEĞİL, backend'in yerel şifreli JSON
 // store'undaki "yeniKurulumlar" section'ından besleniyor (bkz. routes/newinstalls.js) — bu yüzden
 // gerçekçi demo verisi için Excel'i düzeltmek yetmiyor, store'un kendisine gerçekçi kayıt
-// yazılması gerekiyor (bkz. konuşma: "hala eksiklerin var mesela kapatma onayı"). Ayrıca Render'ın
+// yazılması gerekiyor. Ayrıca Render'ın
 // diskinin kalıcı olmaması ihtimaline karşı bundled bir seed dosyası da üretiliyor (demo-data/
 // newinstalls-seed.json) — diğer raporlardaki bundled-fallback deseniyle aynı mantık.
 const XLSX = require("xlsx");
@@ -56,7 +56,7 @@ let atoSeq = 300301;
 const records = [];
 for (let i = 0; i < TOTAL; i++) {
   // Üst yönetim örneği bilerek "kapatma onayı bekleyen" (HAZIRLANDI + mail atılmış) durumda —
-  // özelliğin demoda gerçekten görünür olması için (bkz. konuşma: "hiçbir şekilde mail gitmemeli").
+  // özelliğin demoda gerçekten görünür olması için.
   const isUstDemo = i === 3 && ustYonetimCandidate;
   const th = isUstDemo ? ustYonetimCandidate : pickCandidate();
   const hostname = `SVC${1000 + i}x${String(Math.floor(rnd() * 30)).padStart(2, "0")}`;

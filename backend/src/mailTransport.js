@@ -1,7 +1,7 @@
 // Tüm SMTP transport oluşturma mantığı burada — mail.js (gerçek gönderim) ve smtp.js
 // (Bağlantıyı Test Et) AYNI fonksiyonu kullanır. Daha önce ikisi ayrı kopyalardı, biri
 // düzeltilip diğeri unutulunca "test başarılı ama gerçek gönderim başarısız" tutarsızlığına
-// yol açtı (bkz. konuşma) — bir daha olmasın diye tek kaynağa indirildi.
+// yol açtı — bir daha olmasın diye tek kaynağa indirildi.
 const nodemailer = require("nodemailer");
 
 function buildTransport(cfg) {

@@ -4,7 +4,7 @@ const { checkWorkbook, summarize } = require("../fileSchemas");
 const bantStore = require("../bantGenisligiStore");
 
 // Ofis Bant Genişliği CSV'sini Ayarlar > Veri Input'tan TEK SEFERLİK yükleyip backend'e kalıcı
-// kaydeder (bkz. konuşma) — dosya adı sabit bir desene uymadığı için diğer raporlar gibi klasör
+// kaydeder — dosya adı sabit bir desene uymadığı için diğer raporlar gibi klasör
 // senkronu yerine bu yol kullanılıyor.
 const router = express.Router();
 

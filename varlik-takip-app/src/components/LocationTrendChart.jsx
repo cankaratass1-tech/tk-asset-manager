@@ -4,8 +4,7 @@ import { Chart, BarController, LineController, CategoryScale, LinearScale, BarEl
 Chart.register(BarController, LineController, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend);
 
 // Ana Sayfa "Genel Trend" paneli — İnaktif Cihaz + Zimmet Uyuşmazlığı sayılarını lokasyon
-// ekseninde çubuk, uyuşmazlık oranını (%) çizgi olarak gösterir (bkz. konuşma: Sage Intelligence
-// referansına göre uyarlanmış örnek). Uygulamada zaman serisi veri yok (Excel dosyaları hep en
+// ekseninde çubuk, uyuşmazlık oranını (%) çizgi olarak gösterir. Uygulamada zaman serisi veri yok (Excel dosyaları hep en
 // son hal), bu yüzden "trend" burada lokasyon kırılımı anlamına geliyor — bu netleştirildi.
 export default function LocationTrendChart({ data, pal, height = 260 }) {
   const canvasRef = useRef(null);

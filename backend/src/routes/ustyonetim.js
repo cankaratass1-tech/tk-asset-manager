@@ -1,5 +1,5 @@
 // Üst Yönetim İstisna Listesi — kim üst yönetim sayılır bilgisi ARTIK Excel'den (TH'nin ünvan
-// sütunundan) OKUNMUYOR (bkz. konuşma: "excelden o verileri çekme hiç") — kritik "üst yönetime
+// sütunundan) OKUNMUYOR — kritik "üst yönetime
 // hiçbir şekilde mail gitmemeli" kuralı, Excel veri kalitesine/satır satır doğruluğuna bağlı
 // olmasın diye burada admin tarafından elle yönetilen, sabit bir e-posta listesi olarak tutuluyor.
 const express = require("express");
@@ -9,7 +9,7 @@ const { readSection, writeSection } = require("../store");
 
 const router = express.Router();
 const SECTION = "ustYonetimListesi";
-// Render'ın diski kalıcı olmayabilir (bkz. konuşma) — store hiç yazılmamışsa bundled seed'den
+// Render'ın diski kalıcı olmayabilir — store hiç yazılmamışsa bundled seed'den
 // (demo amaçlı, TH'deki gerçek isimlerden türetilmiş) otomatik doldurulur; admin sonradan
 // Ayarlar'dan düzenleyebilir.
 const SEED_FILE = path.join(__dirname, "..", "..", "demo-data", "ust-yonetim-seed.json");

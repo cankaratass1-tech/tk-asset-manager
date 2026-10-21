@@ -1,12 +1,10 @@
-// TuruncuHat (TH) ↔ SCCM ↔ Monitor Raporu üçlü karşılaştırma motoru (bkz. konuşma).
+// TuruncuHat (TH) ↔ SCCM ↔ Monitor Raporu üçlü karşılaştırma motoru.
 //
 // ÖNEMLİ MİMARİ KARAR: Temel liste artık SCCM DEĞİL, TuruncuHat — kullanıcının kendi ifadesiyle
 // "TH gerçek/tam envanter, Zimmet Uyuşmazlığı listesi oradan gelmeli". Önceki tasarımda temel
 // liste SCCM'in 21.044 kaydıydı (ajanın gördüğü her şey — sunucu, kiosk, vs. dahil, TuruncuHat'ta
 // hiç kaydı olmayan binlerce satır da dahil) ve TH sadece doğrulama için kullanılıyordu. Şimdi
-// tam tersi: TH'nin "Desktop/Laptop/Monitor" tipindeki (kullanıcı isteği — telefon/tablet/hat gibi
-// ~180.000 TH satırının büyük kısmını oluşturan alakasız kategoriler hariç, gerçek değerler
-// TH'nin "Model" sütununda doğrulandı: "DESKTOP", "NOTEBOOK", "MONITOR") satırları temel alınır;
+// tam tersi: TH'nin "Desktop/Laptop/Monitor" tipindeki satırları temel alınır;
 // SCCM (gerçek kullanan kişi/PC için) ve Monitor Raporu (gerçek kullanan kişi/monitör için) çapraz
 // referans olarak kullanılır. Monitörler artık PC'nin popup'ında gizli bir alt liste değil, kendi
 // başlarına birer satır.
@@ -17,9 +15,8 @@
 //                            (bir PC'ye bağlı monitörleri popup'ta göstermek için ayrıca
 //                             MonitorRaporu.hostname <-> SCCM.hostname de kullanılıyor)
 //
-// Kullanıcı doğrulaması (format bağımsız, KESİN karşılaştırma — bkz. konuşma: "isim
-// karşılaştırması güvenilmez, TH'de tam ad, SCCM/Monitor'da kısa kullanıcı adı farklı
-// formatlarda"): öncelik TH "Owner Username" ↔ SCCM/Monitor kısa kullanıcı adı; o yoksa TH
+// Kullanıcı doğrulaması (format bağımsız, KESİN karşılaştırma; TH'de tam ad, SCCM/Monitor'da kısa kullanıcı adı olduğundan
+// isim karşılaştırması güvenilmez): öncelik TH "Owner Username" ↔ SCCM/Monitor kısa kullanıcı adı; o yoksa TH
 // "Cihaz Sahibinin Sicili" ↔ SCCM "Last LogonSicil" sicil numarası.
 //
 // Zimmet iki türde olabilir — TuruncuHat'ın "Konum Kategorisi" sütunu bunu taşır: "User" =
@@ -28,7 +25,7 @@
 export const norm = (v) => String(v || "").trim().toLowerCase();
 
 // Genel "son X günden eski mi" yardımcı fonksiyonu — Kullanılmayan Cihazlar raporu ve Zimmet
-// Uyuşmazlığı'ndaki "gerçek/güncel kullanım kanıtı" kontrolleri AYNI eşiği paylaşır (bkz. konuşma).
+// Uyuşmazlığı'ndaki "gerçek/güncel kullanım kanıtı" kontrolleri AYNI eşiği paylaşır.
 // Kanonik kaynak burası — unusedDeviceService.js ve sccmFileService.js buradan alır, döngüsel
 // import'tan kaçınmak için (comparisonService zaten en alttaki ortak yardımcı modül).
 export const DEFAULT_STALE_DAYS = 90;
@@ -39,12 +36,10 @@ export function daysSince(dateStr) {
   return Math.floor((Date.now() - d.getTime()) / 86400000);
 }
 
-// Kullanıcı isteği: "Model olarak Desktop, Laptop, Monitor kullanacağız, geri kalan şu anlık
-// lazım değil" — TH'nin ham "Model" sütunundaki gerçek değerler (büyük harf, İngilizce).
+// Yalnızca Desktop, Laptop ve Monitor kullanılır — TH'nin ham "Model" sütunundaki gerçek değerler (büyük harf, İngilizce).
 const RELEVANT_TH_TYPES = new Set(["DESKTOP", "NOTEBOOK", "MONITOR"]);
 
-// Kullanıcı isteği: "Konum kategorisinde sadece User ve OBS baz alınacak, geri kalanlara
-// ihtiyacımız yok" — gerçek dosyada "Konum Kategorisi" 6 farklı değer taşıyor: User, Warehouse,
+// Konum kategorisinde yalnızca User ve OBS esas alınır — gerçek dosyada "Konum Kategorisi" 6 farklı değer taşıyor: User, Warehouse,
 // OBS, Site, Supplier (ve boş). Depoda duran (Warehouse) ya da sahada olan (Site) bir cihaz
 // kişiye zimmetli değildir — "zimmet uyuşmazlığı" kavramı bunlar için anlamsız, listeye hiç
 // girmemeli (önceden hepsi sessizce "User" sayılıyordu, bu yanlıştı).
@@ -94,8 +89,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
   // "Mükerrer Çift Zimmet" (madde: kırılım) — aynı kişiye (Owner Username, yoksa Sicil, yoksa
   // isim) User kategorisinde BİRDEN FAZLA NOTEBOOK zimmetli görünmesi — normalde bir kişiye bir
   // laptop beklenir, ikinci bir laptop görülmesi kendi başına bir uyuşmazlık (kullanım eşleşmesi
-  // doğru olsa bile). Sadece NOTEBOOK için — kullanıcı isteği: "2. seçenekte sadece istediğimiz
-  // notebook" (bkz. konuşma) — Desktop/Monitor bu kurala dahil değil.
+  // doğru olsa bile). Sadece NOTEBOOK için; Desktop/Monitor bu kurala dahil değil.
   const ownerIdentity = (th) => norm(th.ownerUsername) || norm(th.ownerSicil) || norm(th.owner);
   const notebookOwnerCounts = new Map(); // identity -> seri no listesi
   relevantTh
@@ -246,8 +240,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
 
     if (!s) {
       // SCCM'de kaydı yok (ör. ajan hiç kurulmamış/silinmiş) — bunu otomatik "hatalı" saymak
-      // yanlış olur, bilgi eksikliği olarak işaretlenir (bkz. konuşma — TH tarafı için de aynı
-      // ilke: eksik veri kanıt değildir).
+      // yanlış olur, bilgi eksikliği olarak işaretlenir.
       statusTag = "SCCM'de Bulunamadı";
       matched = false;
       userDetail = `${th.serial} seri numaralı cihaz TuruncuHat'ta ${th.owner || "—"}'e zimmetli, ama SCCM envanterinde kaydı yok — kim kullandığı doğrulanamıyor.`;
@@ -385,8 +378,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
     }));
 
   // TH'de "Warehouse" (depoda, zimmetsiz) görünen ama SCCM'de YAKIN TARİHLİ bir aktif kullanım
-  // kaydı olan cihazlar (bkz. konuşma: "TH'de depoda gözüküyor ama ben 1 hafta önce login
-  // olmuşum, bunu nasıl gösterebiliriz"). RELEVANT_ASSIGNMENT_TYPES filtresi Warehouse'u normalde
+  // kaydı olan cihazlar. RELEVANT_ASSIGNMENT_TYPES filtresi Warehouse'u normalde
   // TAMAMEN dışlıyor (aksi halde depoda gerçekten boşta duran binlerce cihaz "Zimmet Hatalı"
   // sayılırdı) — burada SADECE staleDays içinde gerçek/güncel kullanım kanıtı varsa (aynı eşik,
   // sccmFileService.js'teki "Zimmetsiz Kullanım" ile tutarlı) ayrıca gösteriliyor; eski/bilinmeyen

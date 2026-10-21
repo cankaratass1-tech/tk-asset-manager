@@ -1,6 +1,6 @@
 // SharePoint/OneDrive senkron klasöründeki "İnaktifCihazlar_yyyyMMddHHmmss.xlsx" dosyasını
 // (Power Automate'in manuel olarak beslediği liste) backend üzerinden okuyup rapor satırı
-// biçimine çevirir. Sütun adları gerçek dosyadan doğrulandı (bkz. konuşma):
+// biçimine çevirir. Sütun adları gerçek dosyadan doğrulandı:
 //   Seri No -> serial, Sahibi -> owner (isim soyisim), Cihaz Sahibinin LBS'i -> location,
 //   Asset (boşsa Model) -> model, Sahibi Firma -> company (sol menüdeki bölüm),
 //   LBS Location Parent -> lbsParent (lokasyon üst filtresi)
@@ -37,7 +37,7 @@ export function mapInaktifRow(raw) {
     lbsParent: col(raw, "LBS Location Parent"),
     company: col(raw, "Sahibi Firma"),
     // Zimmet "User" (kişiye) ya da "OBS" (müdürlüğe) olabilir — gerçek dosyada doğrulandı
-    // (bkz. konuşma): 465 kayıttan 440'ı User, 25'i OBS. Müdürlük zimmetli cihazlarda birden
+    //: 465 kayıttan 440'ı User, 25'i OBS. Müdürlük zimmetli cihazlarda birden
     // fazla kişinin kullanması normal, "zimmet uyuşmazlığı" sayılmamalı.
     assignmentType: col(raw, "Konum Kategorisi") || "User",
     matched: Boolean(location),

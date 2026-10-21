@@ -1,4 +1,4 @@
-// Monitor Raporu ("Attached Monitors Report.xlsx") — gerçek dosyadan doğrulandı (bkz. konuşma).
+// Monitor Raporu ("Attached Monitors Report.xlsx") — gerçek dosyadan doğrulandı.
 // Başlık satırı 2. satırda (range: 1, 0-tabanlı) — üstte tek bir rapor başlığı satırı var.
 // KVKK gereği kullanıcı bilgileri sınırlandırılmış olabilir (Username az doldurulmuş olabilir) —
 // eşleştirme için esas kullanılacak alanlar (Hostname, Monitor Serial Number) kişisel veri değil.
@@ -37,7 +37,7 @@ export function mapMonitorRows(rawRows) {
 }
 
 // Diğer üç rapor (İnaktif/Disk/SCCM) ile aynı desen — backend'in senkron klasöründen otomatik
-// yükler, sayfa yenilenince kaybolmaz (bkz. konuşma: "diğerleri gibi görünmüyor"). Manuel dosya
+// yükler, sayfa yenilenince kaybolmaz. Manuel dosya
 // seçimi (handleManualMonitorFile, App.jsx) klasör senkronu kurulmadıysa hâlâ kullanılabilir.
 export async function fetchMonitorRowsFromFile() {
   const result = await backendClient.getMonitorReport();

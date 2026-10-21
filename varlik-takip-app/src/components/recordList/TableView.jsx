@@ -4,7 +4,7 @@ import { isInaktifUnverified, inaktifUsageTone } from "../../services/inaktifCom
 import { ownerTitleOf } from "../../services/ownerName";
 
 // Klasik tablo görünümü — Zimmet'te durum/not/ertele kontrolleri artık tabloda değil,
-// satır seçilince sağda açılan DetailAside'da (bkz. konuşma)
+// satır seçilince sağda açılan DetailAside'da
 export default function TableView({
   rows,
   isZimmet,
@@ -32,8 +32,8 @@ export default function TableView({
   setDetailRowKey,
 }) {
   // showHostname açıkken (İnaktif Cihazlar/Zimmet Uyuşmazlığı — SCCM ile karşılaştırıldığında)
-  // bir sütun daha eklendiği için colSpan'lar buna göre +1 olmalı (bkz. konuşma). Zimmet'te
-  // "Zimmet Türü" (User/OBS) sütunu eklendiği için +1 daha (kullanıcı isteği).
+  // bir sütun daha eklendiği için colSpan'lar buna göre +1 olmalı. Zimmet'te
+  // "Zimmet Türü" (User/OBS) sütunu eklendiği için +1 daha.
   const baseColSpan = isZimmet ? 7 : splitModel ? 6 : 5;
   const emptyColSpan = baseColSpan + (showHostname ? 1 : 0) + (showLastLogon ? 1 : 0) + (showDeviceAge ? 1 : 0);
   // Madde 6 — "Last Logon" sütunu. Değer yoksa "Veri Yok" (gri), uygulama hata vermez.
@@ -151,7 +151,7 @@ export default function TableView({
                     {r.hostname || <span style={{ fontFamily: "var(--font-sans)", color: pal.inkSoft, fontStyle: "italic" }}>SCCM verisiyle eşleşmedi</span>}
                   </div>
                   {/* İnaktif Cihazlar'da hostname'in altında kimin fiilen kullandığı da gösterilsin
-                      istendi (bkz. konuşma: "hem hostname hem kimin kullandığını gösterelim") —
+                      istendi.
                       Zimmet ekranında bu bilgi zaten ayrı "Kullanan Kişi" sütununda olduğu için tekrar edilmiyor. */}
                   {/* Zimmet: Lokasyon filtresi ofis (r.office) üzerinden çalıştığı için değer tabloda da görünsün —
                       ayrı sütun yerine hostname altında (tablo sıkışmasın diye) */}
@@ -201,7 +201,7 @@ export default function TableView({
                 ) : r.diskLevel ? (
                   // Disk Alanı — statusTag "Kritik/Uyarı/Normal" taşıyor ama r.matched hep true
                   // (bu raporda "eşleşme" kavramı yok, bkz. diskFileService.js); renk r.matched'e
-                  // bakarsa hepsi yeşil ("Kritik" yazıp yeşil görünüyordu, bkz. konuşma) — renk
+                  // bakarsa hepsi yeşil ("Kritik" yazıp yeşil görünüyordu) — renk
                   // burada gerçek seviyeden (diskLevel) okunmalı.
                   <span
                     style={{
@@ -214,7 +214,7 @@ export default function TableView({
                   </span>
                 ) : r.statusTag ? (
                   // İnaktif Cihazlar artık TH+SCCM ile çapraz doğrulanan bir statusTag taşıyor
-                  // (bkz. konuşma — inaktifComparisonService.js) — "Doğrulanamadı"/"TuruncuHat'ta
+                  // — "Doğrulanamadı"/"TuruncuHat'ta
                   // Bulunamadı" kanıt değil, nötr (gri) gösterilir; diğer raporlar (Disk Alanı vb.)
                   // statusTag taşımadığı için aşağıdaki eski Eşleşti/Eşleşmedi rozetine düşer.
                   <span style={{ ...styles.badge, ...(inaktifUsageTone(r.statusTag) === "ok" ? styles.badgeOk : inaktifUsageTone(r.statusTag) === "bad" ? styles.badgeBad : r.matched ? styles.badgeOk : isInaktifUnverified(r.statusTag) ? styles.badgeNeutral : styles.badgeBad) }}>

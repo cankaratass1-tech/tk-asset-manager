@@ -1,5 +1,4 @@
-// Tek seferlik düzeltme scripti — bkz. konuşma: "demo veriyi gerçekçi yapmanı söylemiştim ama
-// hala eksiklerin var". TH'deki "Sentetik" OBS satırlarını, Kapatma Onayı/Yeni Kurulum
+// Tek seferlik düzeltme scripti: demo verideki gerçekçi olmayan kayıtları düzeltir. TH'deki "Sentetik" OBS satırlarını, Kapatma Onayı/Yeni Kurulum
 // dosyasındaki "KULLANICI 117" tarzı placeholder'ları, SCCM/Lokasyon Mail'deki test
 // satırlarını gerçekçi verilerle değiştirir; TH'ye "Cihaz Sahibinin Unvan Kademesi" sütunu ekler
 // (üst yönetim mail-hariç-tutma özelliği için, bkz. ustYonetimService.js).

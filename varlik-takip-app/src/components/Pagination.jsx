@@ -1,6 +1,4 @@
-// Genel amaçlı sayfalama kontrolü — tüm rapor ekranlarında standart (kullanıcı isteği: "Bütün
-// raporlarda sayfala sayıları olsun, her sayfada min 25 default olarak görünsün, sayfa
-// değiştirilebilsin aşağıdan"). App.jsx'teki tek ortak tableFooter/pagedRows pipeline'ı zaten
+// Genel amaçlı sayfalama kontrolü — tüm rapor ekranlarında standart. App.jsx'teki tek ortak tableFooter/pagedRows pipeline'ı zaten
 // tüm raporlar için aynı olduğundan, bu bileşen buraya bir kez bağlanınca her rapor ekranında
 // otomatik çalışır.
 function pageWindow(current, total) {
@@ -35,7 +33,7 @@ export default function Pagination({ page, totalPages, onChange, styles, pal }) 
   );
 
   const items = [];
-  // En başa / en sona git (kullanıcı isteği)
+  // En başa / en sona git
   items.push(btn("«", 1, page === 1, false));
   items.push(btn("‹", Math.max(1, page - 1), page === 1, false));
   windowed.forEach((p, i) => {

@@ -1,5 +1,5 @@
 // LAKESIDE "Battery Health" Excel'i — kullanıcı dosyayı elle seçer, ama artık backend'e KALICI
-// olarak yükleniyor (bkz. konuşma: "gömülü olsun her seferinde yüklemeyelim") — Ofis Bant
+// olarak yükleniyor — Ofis Bant
 // Genişliği ile aynı desen (uploadBatteryFile / fetchBatteryRowsFromFile).
 //
 // Gerçek kolon adları LakeSide export'una göre değişebildiğinden esnek eşleme yapılır; kolon
@@ -36,7 +36,7 @@ export function mapBatteryRow(raw) {
   const machine = norm(
     col(raw, "Machine Name", "MachineName", "Device Name", "DeviceName", "Computer Name", "ComputerName", "Hostname", "Host", "Cihaz", "Cihaz Adı", "System")
   );
-  // Kullanıcı isteği (bkz. konuşma): "System" sütunu FQDN olabilir (ör. "ABJ1B03.mhynet.mhy.com.tr")
+  // "System" sütunu FQDN olabilir (ör. "ABJ1B03.mhynet.mhy.com.tr")
   // — hostShort zaten ilk noktadan sonrasını atıyor, ayrıca burada tekrar uygulamaya gerek yok.
   // "Username" sütunu email formatında gelir (ör. "ahmet.yilmaz@mhy.com.tr") — mail gönderirken TAM
   // halin kullanılır (ownerMail), tabloda ise sadece @ öncesi kısa kullanıcı adı gösterilir.
@@ -69,8 +69,7 @@ export function mapBatteryRow(raw) {
     batterySerial: serial,
     deviceModel: model,
     durum,
-    // Kullanıcı adı (@ öncesi, görüntüleme) ve mail gönderiminde KULLANILACAK tam e-posta (bkz.
-    // konuşma: "mail gönderirken de orada mail adresi var onu baz alacağız") — SCCM eşleşmesi
+    // Kullanıcı adı (@ öncesi, görüntüleme) ve mail gönderiminde KULLANILACAK tam e-posta — SCCM eşleşmesi
     // yerine artık öncelik bu alanda (App.jsx sendLakesideMailByLocation, ownerMail'i tercih eder).
     username,
     ownerMail,

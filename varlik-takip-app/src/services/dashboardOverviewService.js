@@ -1,4 +1,4 @@
-// Ana Sayfa "Genel Durum" paneli — finans dashboard'u referansına göre (bkz. konuşma) IT
+// Ana Sayfa "Genel Durum" paneli — finans dashboard'u referansına göre IT
 // operasyon metriklerine uyarlanmış birleşik özet. Dönemsel seri snapshot geçmişinden
 // (reportSnapshots) türetilir; anlık sayılar App.jsx'ten geçirilir.
 import { groupSnapshotsByPeriod, comparePeriods } from "./periodComparisonService.js";

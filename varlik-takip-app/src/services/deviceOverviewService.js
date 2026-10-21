@@ -36,8 +36,7 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
   const monitors = monitorRows.filter((m) => norm(m.hostname) === hostKey);
 
   // Monitörün TuruncuHat'taki kendi zimmet kaydını seri no ile bul (comparisonService.js'deki
-  // buildMonitorDetails ile AYNI mantık — bkz. konuşma: "monitor zimmeti uyuşmuyor ama düzgün
-  // belirtilmemiş, sağ tarafta data eksik diye mi" sorusu üzerine eklendi). Önceden bu karşılaştırma
+  // buildMonitorDetails ile AYNI mantık). Önceden bu karşılaştırma
   // HİÇ yapılmıyordu, her monitör satırı ne olursa olsun state:NONE ("Veri Yok") gösteriyordu —
   // gerçek bir zimmet uyuşmazlığı olsa bile.
   const monitorStatus = (m) => {
@@ -47,8 +46,7 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
     if (reg.assignmentType === "OBS") return { state: OK, badgeLabel: "Doğru", status: "Müdürlük Zimmeti (OBS)" };
     const cmp = compareAssignment({ actualUsername: monitorUser, actualSicil: "", thUsername: reg.ownerUsername, thSicil: reg.ownerSicil });
     if (!cmp.verifiable) return { state: NONE, status: "Bilgi Eksik (doğrulanamadı)" };
-    // Kullanıcı isteği — genel OK/Kritik rozeti yerine bu karta özel net etiket: bkz. konuşma
-    // ("Kritik yazmasın hatalı ise hatalı doğru ise doğru yazsın").
+    // Genel OK/Kritik rozeti yerine bu karta özel net etiket (Doğru/Hatalı).
     if (cmp.isMatch) return { state: OK, badgeLabel: "Doğru", status: "Doğru — Kendi Monitörünü Kullanıyor" };
     return { state: CRIT, badgeLabel: "Hatalı", status: "Hatalı — Başkasının Monitörünü Kullanıyor" };
   };

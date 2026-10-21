@@ -1,5 +1,4 @@
-// Ofis Bant Genişliği CSV'sini KALICI olarak diske yazar — kullanıcı isteği: "bir kez yükleyeyim
-// bir daha yüklemekle uğraşmayayım" (bkz. konuşma). Dosya kendine özgü/tekil bir isimle geldiği
+// Ofis Bant Genişliği CSV'sini KALICI olarak diske yazar; bir kez yüklenir, tekrar yüklemek gerekmez. Dosya kendine özgü/tekil bir isimle geldiği
 // (monitoring aracının export adı, klasör senkronuna uygun sabit bir prefix yok) için diğer
 // raporlar gibi otomatik klasör senkronu yerine Ayarlar > Veri Input'tan TEK SEFERLİK yükleme +
 // backend'de saklama modeli kullanılıyor.
@@ -13,7 +12,7 @@ const SECTION = "bantGenisligiUpload";
 
 // İnaktif/Disk/SCCM/TH gibi diğer raporlar repo'yla birlikte giden bir "bundled demo veri"
 // klasörüne (backend/demo-data/current) düşüyor, bu yüzden Render'da elle bir şey yapmadan
-// çalışıyorlar (bkz. konuşma: "diğerleri nasıl geliyor da bu gelmiyor"). Ofis Bant Genişliği için
+// çalışıyorlar. Ofis Bant Genişliği için
 // de aynı mantık — repo'ya gömülü bir örnek dosya, kullanıcı henüz kendi dosyasını YÜKLEMEMİŞSE
 // yedek olarak kullanılır. Kullanıcı Ayarlar'dan kendi dosyasını yüklerse o ÖNCELİKLİDİR, bundled
 // olan sadece hiç yükleme yapılmamışsa devreye girer.

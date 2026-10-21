@@ -1,6 +1,6 @@
 // Açık tema — önceki sürümde bg (#F5F5F3) ile panel (yarı saydam %70 beyaz)
 // neredeyse aynı tonda olduğu için kartlar sayfadan hiç ayrışmıyor, gölgeler
-// görünmeyecek kadar hafifti ("sönük" görünüm şikayeti — bkz. konuşma). Aynı
+// görünmeyecek kadar hafifti ("sönük" görünüm şikayeti). Aynı
 // sıcak/turuncu kimlik korunarak: zemin biraz daha koyu/sıcak, kartlar tam
 // opak beyaz (gerçekten "kalkıyor"), aksan daha doygun, gölgeler katmanlı ve
 // belirgin hale getirildi.
@@ -74,8 +74,7 @@ export const DARK_PALETTE = {
   warnBg: "rgba(240,172,78,0.16)",
 };
 
-// "Aero" teması — kullanıcının verdiği havacılık/glassmorphism mockup'ından türetildi (bkz.
-// konuşma). Işık/koyu temanın YERİNE değil, EKLENTİ olarak: seçilebilir üçüncü bir tema.
+// "Aero" teması — kullanıcının verdiği havacılık/glassmorphism mockup'ından türetildi. Işık/koyu temanın YERİNE değil, EKLENTİ olarak: seçilebilir üçüncü bir tema.
 // panel token'ı (panelSolid'den farklı olarak) burada BİLEREK yarı saydam (rgba) — sidebar/panel
 // stillerinde zaten uygulanan backdropFilter:blur(18px) ancak zemin saydamsa görünür olur; ışık/
 // koyu temada "sönük" görünmesin diye panel bilerek tam opaktı (bkz. yukarıdaki yorum), aero'da
@@ -89,7 +88,7 @@ export const AERO_PALETTE = {
   line: "rgba(255,255,255,0.12)",
   // ink/inkSoft mockup'takinden (E2E8F0/94A3B8) bilerek daha parlak — panel neredeyse tamamen
   // saydam (rgba(255,255,255,0.04)) olduğu için zemin koyu gri kalıyor, düşük kontrastlı metin
-  // "sönük" duruyordu (bkz. konuşma — "beyaz yazılar daha net olabilir, bütün hepsini kapsa").
+  // "sönük" duruyordu.
   // ink artık saf beyaz, inkSoft/neutralFg de belirgin şekilde açıldı.
   ink: "#FFFFFF",
   inkSoft: "#CBD5E1",

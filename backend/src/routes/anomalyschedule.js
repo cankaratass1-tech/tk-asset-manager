@@ -3,7 +3,7 @@ const { readSection, writeSection } = require("../store");
 const { runScan, currentConfig, SECTION } = require("../anomalyScheduler");
 
 // Zamanlanmış Otomatik Tarama ayarları — Ayarlar > Veri Input ekranındaki "Zamanlanmış Otomatik
-// Tarama" bölümünü gerçek backend'e bağlar (bkz. konuşma). Okuma requireAuth, yazma/manuel
+// Tarama" bölümünü gerçek backend'e bağlar. Okuma requireAuth, yazma/manuel
 // çalıştırma requireSettingsAuth (server.js'te mount edilirken uygulanıyor, appconfig ile aynı desen).
 const router = express.Router();
 
