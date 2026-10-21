@@ -6,6 +6,7 @@ echo === Senkronlama basliyor (dal: %DAL%) ===
 
 rem 1) Bu bilgisayardaki degisiklikleri kaydet (yerel ayar ve gorsel klasorleri haric)
 git add -A -- . ":!backend/data/settings.enc.json" ":!yedekler" ":!maddeli-gorseller" ":!tipografi-gorseller"
+git reset -q -- backend/data >nul 2>&1
 git diff --cached --quiet
 if errorlevel 1 (
   git commit -q -m "Senkron: %COMPUTERNAME% %DATE% %TIME%"
