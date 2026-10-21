@@ -1,0 +1,62 @@
+name: Testler
+
+on:
+  push:
+    branches: [main, "yedek-*", "test-*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: testler-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  birim-ve-backend:
+    name: Birim + backend + derleme
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            varlik-takip-app/package-lock.json
+            backend/package-lock.json
+      - name: Bağımlılıklar
+        run: |
+          npm ci --prefix varlik-takip-app
+          npm ci --prefix backend
+      - name: Birim testleri
+        working-directory: varlik-takip-app
+        run: node --test src/services/*.test.js
+      - name: Backend testleri
+        run: npm test --prefix backend
+      - name: Ön yüz derlemesi
+        working-directory: varlik-takip-app
+        run: npx vite build --logLevel error
+
+  e2e:
+    name: Tarayıcı testleri (tüm paketler)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            varlik-takip-app/package-lock.json
+            backend/package-lock.json
+      - name: Bağımlılıklar
+        run: |
+          npm ci --prefix varlik-takip-app
+          npm ci --prefix backend
+      - name: Chromium
+        working-directory: varlik-takip-app
+        run: npx playwright-core install --with-deps chromium
+      - name: Tüm testler
+        working-directory: varlik-takip-app
+        run: npm run test:all

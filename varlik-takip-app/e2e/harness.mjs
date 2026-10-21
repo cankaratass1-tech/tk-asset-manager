@@ -80,9 +80,9 @@ export async function startBackend({ port = 5055 } = {}) {
 // testler kendi "1"/"0" değerlerini sonra yazarak bunu ezebilir. { freshStorage: true } ile gerçek varsayılan test edilir.
 export async function launchBrowser({ freshStorage = false } = {}) {
   const { chromium } = require("playwright-core");
-  const executablePath = EDGE_PATHS.find((p) => existsSync(p));
-  if (!executablePath) throw new Error("Edge/Chrome bulunamadı");
-  const browser = await chromium.launch({ executablePath, headless: true });
+  // Yerelde yüklü Edge/Chrome; yoksa (ör. GitHub Actions) Playwright'in kendi Chromium'u (npx playwright install chromium)
+  const executablePath = process.env.E2E_BROWSER_PATH || EDGE_PATHS.find((p) => existsSync(p));
+  const browser = await chromium.launch({ ...(executablePath ? { executablePath } : {}), headless: true });
   if (!freshStorage) {
     const orig = browser.newContext.bind(browser);
     browser.newContext = async (...args) => {
