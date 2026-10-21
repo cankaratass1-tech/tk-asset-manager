@@ -82,7 +82,7 @@ export const backendClient = {
 
   // Genel kimlik doğrulama (gereksinim #6-#9)
   getSetupStatus: () => request("/auth/setup-status"),
-  setupMaster: ({ username, password }) => request("/auth/setup-master", { method: "POST", body: JSON.stringify({ username, password }) }),
+  setupMaster: ({ username, password, setupCode }) => request("/auth/setup-master", { method: "POST", body: JSON.stringify({ username, password, setupCode }) }),
   getAuthDomain: () => request("/auth/domain"),
   login: ({ domain, username, password }) =>
     request("/auth/login", { method: "POST", body: JSON.stringify({ domain, username, password }) }).then((res) => {
@@ -177,7 +177,8 @@ export const backendClient = {
   updateNewInstall: (id, rec) => request(`/newinstalls/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(rec) }),
   deleteNewInstall: (id) => request(`/newinstalls/${encodeURIComponent(id)}`, { method: "DELETE" }),
   setNewInstallExcelPath: (excelPath) => request("/newinstalls/config/excel-path", { method: "PUT", body: JSON.stringify({ excelPath }) }),
-  syncNewInstallExcel: (excelPath) => request("/newinstalls/sync-excel", { method: "POST", body: JSON.stringify({ excelPath }) }),
+  // Hedef yol sunucuda kayıtlı ayardan alınır (yalnızca Master değiştirir), istekle gönderilmez
+  syncNewInstallExcel: () => request("/newinstalls/sync-excel", { method: "POST", body: JSON.stringify({}) }),
   markNewInstallsMailed: (ids) => request("/newinstalls/mark-mailed", { method: "POST", body: JSON.stringify({ ids }) }),
   markClosureReminderSent: (ids) => request("/newinstalls/mark-closure-reminder-sent", { method: "POST", body: JSON.stringify({ ids }) }),
 

@@ -22,8 +22,11 @@ const batteryHealthUploadRouter = require("./src/routes/batteryhealthupload");
 const importFileRouter = require("./src/routes/importfile");
 const ustYonetimRouter = require("./src/routes/ustyonetim");
 const anomalyScheduler = require("./src/anomalyScheduler");
-const { verifyCredentials, requireSettingsAuth } = require("./src/auth");
+const { attemptAdminLogin, requireSettingsAuth } = require("./src/auth");
 const { requireAuth, requireMasterAuth } = require("./src/authMiddleware");
+const { blockedResponse } = require("./src/rateLimit");
+const { announceSetupCode } = require("./src/setupCode");
+const users = require("./src/users");
 const { readSection } = require("./src/store");
 const { errorCodeMiddleware } = require("./src/errorCodes");
 
@@ -66,7 +69,9 @@ function createApp() {
   // isteğinde header olarak gönderir (bkz. requireSettingsAuth)
   app.post("/api/settings/login", (req, res) => {
     const { username, password } = req.body || {};
-    if (verifyCredentials(username, password)) return res.json({ ok: true });
+    const result = attemptAdminLogin(req, username, password);
+    if (result.status === "ok") return res.json({ ok: true });
+    if (result.status === "blocked") return blockedResponse(res, result.retryAfterSec);
     res.status(401).json({ ok: false, message: "Kullanıcı adı veya şifre hatalı" });
   });
 
@@ -165,6 +170,7 @@ function startServer({ port = process.env.PORT || 5000, host = process.env.HOST 
     const app = createApp();
     const server = app.listen(port, host, () => {
       console.log(`Varlık Takip backend http://${host}:${port} adresinde çalışıyor`);
+      if (!users.hasMasterUser()) announceSetupCode();
       anomalyScheduler.start();
       resolve(server);
     });

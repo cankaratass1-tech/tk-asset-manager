@@ -33,9 +33,10 @@ export async function startBackend({ port = 5055 } = {}) {
   if (existsSync(demo)) cpSync(demo, imports, { recursive: true });
 
   const adminPass = randomBytes(9).toString("hex");
+  const setupCode = randomBytes(16).toString("hex");
   const child = spawn(process.execPath, ["server.js"], {
     cwd: backendDir,
-    env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", DATA_DIR: dataDir, ADMIN_USERNAME: "smoke-admin", ADMIN_PASSWORD: adminPass },
+    env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", DATA_DIR: dataDir, ADMIN_USERNAME: "smoke-admin", ADMIN_PASSWORD: adminPass, SETUP_CODE: setupCode },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let log = "";
@@ -57,7 +58,7 @@ export async function startBackend({ port = 5055 } = {}) {
   const res = await fetch(`${base}/api/auth/setup-master`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: "smoke", password }),
+    body: JSON.stringify({ username: "smoke", password, setupCode }),
   });
   const body = await res.json();
   if (!body.ok) throw new Error(`Test kullanıcısı açılamadı: ${JSON.stringify(body)}`);

@@ -1,6 +1,6 @@
 # TK Asset Manager (Varlık Takip) — Bilgi Güvenliği Bilgilendirme Notu
 
-Sürüm: 2 — 21.10.2026
+Sürüm: 2.1 — 21.10.2026 (BUL-01, BUL-02 ve BUL-03 giderildi, Bölüm 15)
 Önceki sürüm: 1 (yalnızca tek kullanıcılı yerel masaüstü senaryosunu anlatıyordu)
 
 Bu doküman, Bilgi Güvenliği ekibinin inceleme sürecinde soracağı soruları yanıtlamak için hazırlanmıştır.
@@ -85,14 +85,31 @@ Uygulamada **iki ayrı yetki mekanizması** bir arada çalışır:
 - Ayarlar uçları (veri kaynağı, SMTP, mail grupları, dosya kaynağı, uygulama ayarları, otomatik tarama, üst yönetim
   listesi) tek bir paylaşımlı kullanıcı adı/şifre ile korunur. Bilgiler her istekte `x-admin-username` ve
   `x-admin-password` başlıklarıyla gönderilir.
-- Bilgiler ilk çalıştırmada üretilir (kullanıcı `admin`, 12 karakterlik rastgele şifre) ya da `ADMIN_USERNAME` /
-  `ADMIN_PASSWORD` ortam değişkenlerinden alınır.
+- Sunucu/geliştirme modunda bilgiler ilk çalıştırmada üretilir (kullanıcı `admin`, 12 karakterlik rastgele şifre,
+  konsola yazılır) ya da `ADMIN_USERNAME` / `ADMIN_PASSWORD` ortam değişkenlerinden alınır.
+- **Masaüstü paketinde (exe)** konsol olmadığı için, `admin-credentials.json` yoksa **varsayılan `admin` / `can`**
+  kullanılır (BUL-18).
+
+**Deneme sınırı (BUL-03 düzeltmesi):** Giriş, yönetici girişi (ayarlar uçları dahil), ilk kurulum ve şifre değiştirme
+uçlarında bellek içi sınırlayıcı çalışır. Aynı kullanıcı + IP için 5 ardışık hatadan sonra 30 saniye bekleme
+uygulanır, her yeni hatada bekleme ikiye katlanır (en çok 15 dakika). Aynı kullanıcı adına tüm IP'lerden 20 ardışık
+hata (dağıtık deneme) ve aynı IP'den 10 dakikada 40 hata da engellenir. Sınır aşılınca HTTP 429 ve `Retry-After`
+başlığı döner. Bekleme süresince doğru şifre de reddedilir. Başarılı giriş ilgili sayacı sıfırlar. İstemci IP'si
+soket adresinden alınır (proxy başlıklarına güvenilmez); bir ters vekil arkasında tüm istekler aynı IP görünür,
+bu durumda kullanıcı bazlı katmanlar esas korumayı sağlar.
+
+**İlk kurulum kodu (BUL-02 düzeltmesi):** Master User oluşturmak için kurulum kodu gerekir. Kod, Master yokken sunucu
+açılışında konsola yazılır (ya da `SETUP_CODE` ortam değişkeninden, en az 16 karakter, alınır), diske kaydedilmez. Masaüstü
+uygulamada kod her açılışta rastgele üretilir ve yalnızca uygulamanın kendi penceresine iletilir. Kod sabit zamanlı
+karşılaştırılır, hatalı denemeler sınırlanır, Master oluştuktan sonra uç 409 döner.
 
 **Uç koruma özeti**
 
 | Uç grubu | Koruma |
 |---|---|
-| `/api/health`, `/api/auth/login`, `/api/auth/setup-status`, `/api/auth/setup-master`, `/api/auth/domain`, `/api/settings/login` | Kimliksiz |
+| `/api/health`, `/api/auth/setup-status`, `/api/auth/domain` | Kimliksiz |
+| `/api/auth/login`, `/api/settings/login` | Kimliksiz, deneme sınırlı |
+| `/api/auth/setup-master` | Kurulum kodu gerekir, deneme sınırlı |
 | `/api/mail`, `/api/mail/history`, `/api/reports`, `/api/devices`, `/api/snapshots`, `/api/newinstalls`, `GET /api/mailgroups`, `GET /api/ust-yonetim`, `GET /api/appconfig` | Oturum açmış herhangi bir kullanıcı |
 | Kimlik doğrulama yapılandırması, bant genişliği/batarya/rapor dosyası yükleme | Yalnızca `master` rolü |
 | Diğer `/api/settings/*` (veri kaynağı, SMTP, mail grupları, dosya kaynağı, uygulama ayarları, otomatik tarama, üst yönetim listesi) | Paylaşımlı yönetici şifresi |
@@ -164,7 +181,11 @@ sonlandıran bir ters vekil (reverse proxy) olmadan **HTTP üzerinden düz metin
   yükleme 100 MB, JSON gövde 5 MB.
 - Excel işleme kütüphanesi SheetJS **0.20.3** olup yayıncının kendi dağıtım adresinden (`cdn.sheetjs.com`) sürüm
   kilitli çekilir (npm'deki eski sürümlerde bilinen açıklar vardır).
-- **İstisna:** Yeni Kurulum ekranındaki `sync-excel` ucu keyfi bir yol kabul eder (BUL-01).
+- **Yeni Kurulum Excel çıktısı (BUL-01 düzeltmesi):** Hedef yol yalnızca Master User tarafından kaydedilir, istekle
+  gelen yol kullanılmaz. Yol mutlak olmalı, uzantısı `.xlsx` olmalı, uygulama kodu/veri/yüklenen rapor klasörlerinde
+  olamaz, ayrılmış aygıt adı ve kontrol karakteri içeremez. Veri klasörü dışındaki yollarda klasör önceden var olmalıdır
+  (keyfi klasör oluşturulmaz). Hedefte dosya varsa geçerli bir `.xlsx` (ZIP imzası) olmalıdır, aksi halde okunmaz ve
+  üzerine yazılmaz.
 
 ## 11. İstemci ve masaüstü güvenliği
 
@@ -180,7 +201,8 @@ sonlandıran bir ters vekil (reverse proxy) olmadan **HTTP üzerinden düz metin
 ## 12. Loglama ve izlenebilirlik
 
 - Backend konsola yazar, merkezi log toplama yoktur.
-- Başarısız girişler kullanıcı adı ve zamanla kaydedilir, **kaynak IP yazılmaz**. Başarılı girişler kaydedilmez.
+- Başarısız girişler (kullanıcı, yönetici, kurulum, şifre değiştirme) kullanıcı adı, **kaynak IP** ve zamanla kaydedilir.
+  Başarılı girişler kaydedilmez.
 - **Ayarlar değişiklikleri için denetim kaydı (audit trail) yoktur.** Paylaşımlı yönetici hesabı kullanıldığı için
   değişikliği kimin yaptığı ayırt edilemez (BUL-12).
 - İstemciye hata ayrıntısı/stack trace sızdırılmaz (genel "İstek işlenemedi" mesajı).
@@ -229,9 +251,9 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
 
 | No | Önem | Bulgu | Etki | Öneri |
 |---|---|---|---|---|
-| BUL-01 | Yüksek | `POST /api/newinstalls/sync-excel` ve `PUT /api/newinstalls/config/excel-path`, **oturum açmış herhangi bir kullanıcıdan** `excelPath` alır. Yol doğrulanmaz, klasör özyinelemeli oluşturulur, hedef dosya varsa okunur ve üzerine yazılır. | Sunucu bilgisayarında keyfi yola dosya yazma/üzerine yazma (SheetJS'in desteklediği uzantılarla). Var olan bir dosya okunup aynı yola yeniden yazılır, içeriği yanıtta dönmez (yalnızca satır sayısı döner). | Uca yalnızca yöneticiyi/master'ı kabul et; yolu önceden tanımlı bir klasörle sınırla; uzantıyı `.xlsx`'e zorla. |
-| BUL-02 | Yüksek | `POST /api/auth/setup-master` **kimliksizdir**. Master henüz yoksa uca erişen ilk kişi Master olur. | Yeni kurulumda (özellikle ağa/internete açık) yetki ele geçirme. | Kurulum yalnızca `127.0.0.1`'den kabul edilsin ya da tek kullanımlık kurulum kodu istensin. |
-| BUL-03 | Yüksek | `/api/auth/login` ve `/api/settings/login` için **deneme sınırı ve hesap kilidi yok**. | Şifre deneme saldırısı (bcrypt maliyeti yalnızca yavaşlatır). Dış sağlayıcıda dizin hesaplarında kilitlenme riski de oluşturur. | IP ve kullanıcı bazlı oran sınırlama, artan bekleme, kilit. |
+| BUL-01 | **Giderildi** (21.10.2026, eski önem: Yüksek) | `POST /api/newinstalls/sync-excel` ve `PUT /api/newinstalls/config/excel-path`, oturum açmış herhangi bir kullanıcıdan `excelPath` alıyordu. Yol doğrulanmıyor, klasör özyinelemeli oluşturuluyor, hedef dosya varsa okunup üzerine yazılıyordu. | Eski etki: sunucu bilgisayarında keyfi yola dosya yazma/üzerine yazma. | **Uygulanan:** yol yalnızca Master tarafından kaydedilir (`excel-path` ucu Master ister), `sync-excel` istek gövdesindeki yolu kullanmaz. Yol politikası: mutlak, `.xlsx`, uygulama/veri/yüklenen rapor klasörleri yasak, klasör keyfi oluşturulmaz, hedefteki dosya geçerli `.xlsx` değilse dokunulmaz. 6 otomatik test. |
+| BUL-02 | **Giderildi** (21.10.2026, eski önem: Yüksek) | `POST /api/auth/setup-master` kimliksizdi, Master yokken uca erişen ilk kişi Master olabiliyordu. | Eski etki: yeni kurulumda yetki ele geçirme. | **Uygulanan:** kurulum kodu zorunlu (sunucu konsolu/`SETUP_CODE`, masaüstünde otomatik), sabit zamanlı karşılaştırma, hatalı kod denemeleri sınırlı, eşzamanlı iki kurulum isteğine karşı yeniden kontrol. 3 otomatik test. |
+| BUL-03 | **Giderildi** (21.10.2026, eski önem: Yüksek) | Giriş ve yönetici girişi uçlarında deneme sınırı ve hesap kilidi yoktu. | Eski etki: şifre deneme saldırısı. | **Uygulanan:** kullanıcı+IP, kullanıcı ve IP katmanlı sınırlayıcı, artan bekleme (30 sn'den 15 dk'ya), 429 + `Retry-After`. Giriş, yönetici girişi (tüm ayarlar uçları dahil), ilk kurulum ve şifre değiştirme kapsanır. Yönetici şifresi karşılaştırması sabit zamanlıya çevrildi. Metin olmayan kullanıcı adı/şifre 400 döner. 7 otomatik test. |
 | BUL-04 | Orta | `POST /api/mail/send` oturum açmış **her kullanıcıya** açıktır, alıcı, konu ve HTML gövde istemciden gelir. | Şirketin SMTP kimliğiyle serbest içerikle iç/dış e-posta gönderme (oltalama, istenmeyen posta). | Alıcıyı sunucuda mail grupları/izinli alan adlarıyla sınırla, gövdeyi sunucuda şablondan üret, oran sınırı. |
 | BUL-05 | Orta | Şirket seçimi (AJET/TKAO) yalnızca arayüz filtresidir, rapor uçları tüm satırları döner. Grup/yetki yoktur. | Her oturum açmış kullanıcı tüm şirketlerin tüm verisini görebilir. | Sunucu tarafı şirket/grup bazlı yetkilendirme (planlı: İstanbul / Yurt İçi / Yurt Dışı). |
 | BUL-06 | Orta | SMTP bağlantısında sertifika zinciri doğrulanmaz (`rejectUnauthorized: false`). | Ağ içi ortadaki adam saldırısıyla SMTP kimlik bilgisi/e-posta okunabilir. | Şirket kök CA'sını Node'a tanıt (`NODE_EXTRA_CA_CERTS`), doğrulamayı aç. |
@@ -245,7 +267,8 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
 | BUL-14 | Düşük | Dış sağlayıcıda `ldaps` kapalı seçilirse LDAP şifresi düz metin gider. RADIUS ve TACACS+ protokolleri kendi doğaları gereği MD5 tabanlı gizleme kullanır. | Ağ dinlemesiyle kimlik bilgisi ele geçirilebilir. | LDAPS zorunlu kıl, RADIUS/TACACS+ yalnızca yönetim ağında kullan. |
 | BUL-15 | Düşük | Veri kaynağı test ucu, yöneticinin verdiği URL'ye sunucudan istek atar. | Yönetici yetkisiyle iç ağ adreslerine istek (SSRF). | Hedef adres listesi/alan adı kısıtı. |
 | BUL-16 | Düşük | `/api/appconfig` her oturumlu kullanıcıya sunucudaki klasör yolunu döner. | Sunucu dizin yapısı bilgisi sızar. | Yolu yalnızca yöneticiye göster. |
-| BUL-17 | Bilgi | `render.yaml` ile bulut demo dağıtım tanımı depoda durur (HOST=0.0.0.0, kullanıcı adı `admin`). | Yayındaysa BUL-02 ve BUL-03 internete açık olur. | Bölüm 16'daki teyit. Gerekmiyorsa dosyayı kaldır. |
+| BUL-17 | Bilgi | `render.yaml` ile bulut demo dağıtım tanımı depoda durur (HOST=0.0.0.0, kullanıcı adı `admin`). | Yayındaysa internete açıktır. BUL-02 ve BUL-03 giderildi, ancak BUL-04, BUL-05, BUL-09 geçerliliğini korur. Render'da `SETUP_CODE` ortam değişkeni tanımlı değilse kurulum kodu yalnızca Render günlüğünde görünür. | Bölüm 16'daki teyit. Gerekmiyorsa dosyayı kaldır. |
+| BUL-18 | Orta | Masaüstü paketinde (exe) `admin-credentials.json` yoksa yönetici girişi **varsayılan `admin` / `can`** olarak ayarlanır (`electron/main.cjs`). Şifre kaynak kodda ve açıklamada yazılıdır. | Aynı bilgisayardaki herhangi bir kullanıcı/işlem, ayarlar uçlarına (SMTP, veri kaynağı, dosya kaynağı, mail grupları) yönetici olarak erişebilir. Erişim yalnızca `127.0.0.1` üzerinden olduğu için ağdan kullanılamaz. | İlk açılışta rastgele şifre üret ve yalnızca Master'a göster, ya da ayarlar yetkisini Master oturumuna taşı (BUL-08 ile birlikte). |
 
 ## 16. Proje sahibinden teyit beklenen noktalar
 
@@ -265,6 +288,8 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
 - Tüm ayar ve işlenen veri bölümleri AES-256-GCM ile şifreli saklanır, gizler arayüze geri döndürülmez.
 - Oturum token'ı imzalı, süreli, sabit zamanlı doğrulanır, rol her istekte yeniden okunur.
 - Rapor, mail, cihaz ve anlık görüntü uçları kimlik doğrulaması gerektirir (önceden açıktı).
+- Giriş uçlarında deneme sınırı, ilk kurulumda kurulum kodu, Excel çıktı yolunda sıkı yol politikası vardır, bunlar
+  otomatik güvenlik testleriyle (`backend/src/security.test.js`) sürekli doğrulanır.
 - Yükleme dosya adları sunucu üretimidir, yol manipülasyonu görülmedi.
 - Hata yanıtları ayrıntı sızdırmaz, `x-powered-by` kapalıdır.
 - CSP etkin, Electron sertleştirilmiş (izolasyon, sandbox, gezinme engeli).
@@ -284,5 +309,7 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
 - **"Veritabanı var mı?"** Yok. Şifreli bir JSON dosyası ve yüklenen Excel/CSV dosyaları var.
 - **"Kişisel veri işleniyor mu?"** Evet: ad-soyad, sicil, kullanıcı adı, e-posta, hostname, IP. Yüklenen dosyalar
   diskte şifresizdir.
-- **"En önemli açıklar neler?"** BUL-01 (keyfi yola dosya yazma), BUL-02 (kimliksiz Master kurulumu), BUL-03 (deneme
-  sınırı yok). Üçü de ağa açık kullanımdan önce kapatılmalıdır.
+- **"En önemli açıklar neler?"** Yüksek önemdeki üç bulgu (BUL-01 keyfi yola dosya yazma, BUL-02 kimliksiz Master
+  kurulumu, BUL-03 deneme sınırı yok) 21.10.2026'da giderildi ve otomatik testlerle doğrulandı. Kalan en önemli
+  maddeler: BUL-04 (serbest içerikli e-posta gönderimi), BUL-05 (grup/yetki yok), BUL-08 ve BUL-18 (paylaşımlı
+  yönetici şifresi, exe'de varsayılan şifre), BUL-09 (TLS yok).

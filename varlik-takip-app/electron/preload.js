@@ -4,4 +4,5 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("varlikTakipDesktop", {
   pickFolder: () => ipcRenderer.invoke("pick-folder"),
+  getSetupCode: () => ipcRenderer.invoke("get-setup-code"),
 });

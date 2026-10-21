@@ -8,6 +8,8 @@ const path = require("path");
 const XLSX = require("xlsx");
 const { readSection, writeSection } = require("../store");
 const { getDataDir } = require("../crypto");
+const { requireMasterAuth } = require("../authMiddleware");
+const { validateExcelPath, checkExistingXlsx } = require("../excelPathPolicy");
 
 const router = express.Router();
 const SECTION = "yeniKurulumlar"; // { records: [...], excelPath: "..." }
@@ -153,12 +155,12 @@ router.post("/mark-closure-reminder-sent", (req, res) => {
   res.json({ ok: true, marked });
 });
 
-// Excel yolu ayarı
-router.put("/config/excel-path", (req, res) => {
+// Excel yolu ayarı: yalnızca Master User değiştirebilir, yol politikaya (excelPathPolicy.js) uymalıdır
+router.put("/config/excel-path", requireMasterAuth, (req, res) => {
+  const checked = validateExcelPath(req.body?.excelPath);
+  if (!checked.ok) return res.status(400).json({ error: checked.message });
   const state = load();
-  const p = String(req.body?.excelPath || "").trim();
-  if (!p) return res.status(400).json({ error: "Yol boş olamaz" });
-  state.excelPath = p;
+  state.excelPath = checked.path;
   save(state);
   res.json({ excelPath: state.excelPath });
 });
@@ -167,14 +169,19 @@ router.put("/config/excel-path", (req, res) => {
 // (COLUMNS sırasıyla) tek sayfaya yazılır (idempotent — "eklenmiş gibi" ama mükerrer satır olmaz).
 router.post("/sync-excel", (req, res) => {
   const state = load();
-  const target = String(req.body?.excelPath || state.excelPath || DEFAULT_EXCEL).trim();
+  // Hedef yol yalnızca kayıtlı (Master tarafından belirlenen) ayardan alınır; istek gövdesindeki yol kullanılmaz.
+  const checked = validateExcelPath(state.excelPath || DEFAULT_EXCEL);
+  if (!checked.ok) return res.status(400).json({ error: `Kayıtlı Excel yolu geçersiz: ${checked.message}` });
+  const target = checked.path;
   try {
-    fs.mkdirSync(path.dirname(target), { recursive: true });
+    if (checked.createParent) fs.mkdirSync(path.dirname(target), { recursive: true });
+
+    const current = checkExistingXlsx(target);
+    if (!current.ok) return res.status(400).json({ error: current.message });
 
     let existingRows = [];
-    let existed = false;
-    if (fs.existsSync(target)) {
-      existed = true;
+    const existed = current.existed;
+    if (existed) {
       const wb = XLSX.readFile(target);
       const ws = wb.Sheets[wb.SheetNames[0]];
       if (ws) existingRows = XLSX.utils.sheet_to_json(ws, { defval: "" });

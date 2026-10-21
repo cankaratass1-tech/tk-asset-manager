@@ -12,9 +12,10 @@ Son güncelleme: 21.10.2026
 - [ ] **Cihaz Aksiyon Geçmişi / zimmet devri:** gerçek TH export'undaki "Son Güncelleme Tarihi" sütununun tam adı doğrulanacak (`hafiza-notlari/cihaz-aksiyon-gecmisi-plan.md`).
 
 ## Güvenlik bulguları (bkz. GUVENLIK-BILGILENDIRME.md, Bölüm 15)
-- [ ] **BUL-01 (yüksek):** `newinstalls/sync-excel` ve `config/excel-path` keyfi yol kabul ediyor, yalnızca yönetici/master'a aç, klasörü ve `.xlsx` uzantısını sınırla.
-- [ ] **BUL-02 (yüksek):** `setup-master` kimliksiz, yalnızca localhost'tan veya kurulum koduyla kabul et.
-- [ ] **BUL-03 (yüksek):** login ve settings-login için deneme sınırı/kilit ekle.
+- [x] **BUL-01 (yüksek):** `newinstalls` Excel yolu: yalnızca Master, yol politikası, istekle yol gelmez. Giderildi 21.10.2026.
+- [x] **BUL-02 (yüksek):** `setup-master` kurulum koduyla korunuyor. Giderildi 21.10.2026.
+- [x] **BUL-03 (yüksek):** giriş, yönetici girişi, kurulum, şifre değiştirme için deneme sınırı. Giderildi 21.10.2026.
+- [ ] **BUL-18 (orta):** exe'de varsayılan yönetici girişi `admin` / `can`, rastgele şifreye veya Master oturumuna geçir.
 - [ ] **BUL-04 (orta):** `/api/mail/send` alıcı ve gövdeyi sunucuda sınırla.
 - [ ] **BUL-11 (orta):** `npm audit fix`, Electron/Express/Nodemailer güncelle.
 - [ ] Bilgi Güvenliği ekibine göndermeden önce Bölüm 16'daki teyit sorularını yanıtla (render.yaml yayında mı? yönetici hesabı gerçek mi?).

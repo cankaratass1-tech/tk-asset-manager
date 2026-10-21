@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { getDataDir } = require("./crypto");
+const { authLimiter, clientIp, blockedResponse } = require("./rateLimit");
 
 const CREDENTIALS_PATH = path.join(getDataDir(), "admin-credentials.json");
 
@@ -39,18 +40,40 @@ function loadOrCreateCredentials() {
   return cached;
 }
 
+const digest = (v) => crypto.createHash("sha256").update(String(v)).digest();
+const safeEqual = (a, b) => crypto.timingSafeEqual(digest(a), digest(b));
+
 function verifyCredentials(username, password) {
-  if (!username || !password) return false;
+  if (typeof username !== "string" || typeof password !== "string" || !username || !password) return false;
   const creds = loadOrCreateCredentials();
-  return username === creds.username && password === creds.password;
+  // iki karşılaştırma da her zaman yapılır (erken çıkış zamanlama farkı yaratmasın)
+  const userOk = safeEqual(username, creds.username);
+  const passOk = safeEqual(password, creds.password);
+  return userOk && passOk;
+}
+
+// Yönetici girişi denemesi: deneme sınırı uygulanır. Dönen durum: "ok" | "bad" | "blocked" | "missing".
+// "missing": kimlik bilgisi hiç gönderilmemiş (giriş yapmamış istemci), hata sayılmaz.
+function attemptAdminLogin(req, username, password) {
+  const ctx = { scope: "admin", ip: clientIp(req), username: typeof username === "string" ? username : "" };
+  const gate = authLimiter.check(ctx);
+  if (!gate.allowed) return { status: "blocked", retryAfterSec: gate.retryAfterSec };
+  if (!password) return { status: "missing" };
+  if (verifyCredentials(username, password)) {
+    authLimiter.success(ctx);
+    return { status: "ok" };
+  }
+  authLimiter.fail(ctx);
+  console.warn(`[auth] Başarısız yönetici girişi denemesi — ip: ${ctx.ip}  zaman: ${new Date().toISOString()}`);
+  return { status: "bad" };
 }
 
 // Express middleware — x-admin-username / x-admin-password header'larını doğrular
 function requireSettingsAuth(req, res, next) {
-  const username = req.headers["x-admin-username"];
-  const password = req.headers["x-admin-password"];
-  if (verifyCredentials(username, password)) return next();
+  const result = attemptAdminLogin(req, req.headers["x-admin-username"], req.headers["x-admin-password"]);
+  if (result.status === "ok") return next();
+  if (result.status === "blocked") return blockedResponse(res, result.retryAfterSec, "error");
   res.status(401).json({ error: "Yetkisiz — Ayarlar için giriş gerekli" });
 }
 
-module.exports = { loadOrCreateCredentials, verifyCredentials, requireSettingsAuth };
+module.exports = { loadOrCreateCredentials, verifyCredentials, attemptAdminLogin, requireSettingsAuth };

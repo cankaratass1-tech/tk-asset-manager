@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, dialog, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 // Tek kopya: ikinci kez açılırsa yeni süreç başlatmak yerine mevcut pencere öne gelir
 if (!app.requestSingleInstanceLock()) {
@@ -25,6 +26,10 @@ async function startBackend() {
   const dataDir = path.join(app.getPath("userData"), "backend-data");
   process.env.DATA_DIR = dataDir;
   process.env.HOST = "127.0.0.1";
+  // İlk kurulum (Master User) kodu: her açılışta rastgele üretilir, yalnızca bu uygulamanın penceresine iletilir
+  if (!process.env.SETUP_CODE || process.env.SETUP_CODE.length < 16) {
+    process.env.SETUP_CODE = crypto.randomBytes(16).toString("hex");
+  }
 
   // Ayarlar ekranı girişi: konsol olmayan exe'de rastgele üretilen şifre görülemeyeceği için, daha önce
   // bir giriş dosyası oluşturulmadıysa bilinen demo girişi kullanılır (admin / can). Ortam değişkeni
@@ -96,6 +101,13 @@ ipcMain.handle("pick-folder", async () => {
   const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
   if (result.canceled || result.filePaths.length === 0) return null;
   return result.filePaths[0];
+});
+
+// İlk kurulum ekranı kurulum kodunu buradan alır; yalnızca uygulamanın kendi backend origin'indeki sayfaya yanıt verilir
+ipcMain.handle("get-setup-code", (event) => {
+  const url = (event.senderFrame && event.senderFrame.url) || "";
+  if (!backendPort || !url.startsWith(`http://127.0.0.1:${backendPort}/`)) return null;
+  return process.env.SETUP_CODE || null;
 });
 
 // Pencere içeriği kendi backend origin'i dışına gezinemez; yeni pencere/sekme açma denemeleri sistem tarayıcısına yönlendirilir

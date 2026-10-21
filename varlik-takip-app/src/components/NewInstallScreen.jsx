@@ -274,7 +274,7 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
       await backendClient.updateNewInstall(r.id, { ...r, status: "TESLİM EDİLDİ", deliveryDate: String(d).trim() });
       let synced = false;
       try {
-        const res = await backendClient.syncNewInstallExcel(excelPath || undefined);
+        const res = await backendClient.syncNewInstallExcel();
         setLastSync(res);
         synced = true;
       } catch (e) {
@@ -375,10 +375,21 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
       return n;
     });
 
+  const isMaster = user?.role === "master";
+  const saveExcelPath = async () => {
+    try {
+      const res = await backendClient.setNewInstallExcelPath(excelPath);
+      setExcelPath(res.excelPath || excelPath);
+      showToast("Excel yolu kaydedildi");
+    } catch (err) {
+      showToast(`Excel yolu kaydedilemedi — ${err.message}`);
+    }
+  };
+
   const syncExcel = async () => {
     setSyncing(true);
     try {
-      const res = await backendClient.syncNewInstallExcel(excelPath || undefined);
+      const res = await backendClient.syncNewInstallExcel();
       setLastSync(res);
       await reload();
       showToast(`Excel'e işlendi: ${res.file} · ${res.totalRows} satır (${res.newlyMarked} yeni)`);
@@ -823,7 +834,18 @@ export default function NewInstallScreen({ styles, pal, user, locationOptions = 
           </div>
           <details data-yk-settings style={{ fontSize: 13, color: pal.inkSoft }}>
             <summary style={{ cursor: "pointer", color: pal.accent, fontWeight: 600, width: "fit-content" }}>Gönderim ayarları (Excel dosya yolu)</summary>
-            <input type="text" value={excelPath} onChange={(e) => setExcelPath(e.target.value)} style={{ ...inp, marginTop: 8, maxWidth: 560, fontFamily: "var(--font-mono)", fontSize: 12 }} placeholder="Excel dosya yolu" />
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+              <input
+                type="text"
+                value={excelPath}
+                readOnly={!isMaster}
+                onChange={(e) => setExcelPath(e.target.value)}
+                style={{ ...inp, maxWidth: 560, fontFamily: "var(--font-mono)", fontSize: 12, ...(isMaster ? {} : { opacity: 0.75 }) }}
+                placeholder="Excel dosya yolu (.xlsx)"
+                title={isMaster ? "Tam yol, .xlsx uzantılı" : "Yolu yalnızca Master User değiştirebilir"}
+              />
+              {isMaster && <button style={styles.btnGhost} onClick={saveExcelPath}>Yolu Kaydet</button>}
+            </div>
           </details>
 
           {lastSync && (
