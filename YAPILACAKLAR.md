@@ -11,6 +11,14 @@ Son güncelleme: 21.10.2026
 - [ ] **Hostname değişikliği kurgusu:** şimdilik mevcut sistem aynen kalacak, sunum sonrası tekrar ele alınacak (`hafiza-notlari/hostname-degisikligi-kurgu-beklemede.md`).
 - [ ] **Cihaz Aksiyon Geçmişi / zimmet devri:** gerçek TH export'undaki "Son Güncelleme Tarihi" sütununun tam adı doğrulanacak (`hafiza-notlari/cihaz-aksiyon-gecmisi-plan.md`).
 
+## Güvenlik bulguları (bkz. GUVENLIK-BILGILENDIRME.md, Bölüm 15)
+- [ ] **BUL-01 (yüksek):** `newinstalls/sync-excel` ve `config/excel-path` keyfi yol kabul ediyor, yalnızca yönetici/master'a aç, klasörü ve `.xlsx` uzantısını sınırla.
+- [ ] **BUL-02 (yüksek):** `setup-master` kimliksiz, yalnızca localhost'tan veya kurulum koduyla kabul et.
+- [ ] **BUL-03 (yüksek):** login ve settings-login için deneme sınırı/kilit ekle.
+- [ ] **BUL-04 (orta):** `/api/mail/send` alıcı ve gövdeyi sunucuda sınırla.
+- [ ] **BUL-11 (orta):** `npm audit fix`, Electron/Express/Nodemailer güncelle.
+- [ ] Bilgi Güvenliği ekibine göndermeden önce Bölüm 16'daki teyit sorularını yanıtla (render.yaml yayında mı? yönetici hesabı gerçek mi?).
+
 ## Verilen kararlar
 - Gizli dosyaların (`backend/data`) git'ten çıkarılması ve anahtar yenileme: **şimdilik gerekmiyor** (21.10.2026). GitHub proje bitene kadar geçici, SMTP Ethereal test verisi. Dosyalar yerelde `skip-worktree` ile korunuyor.
 

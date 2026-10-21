@@ -1,162 +1,288 @@
-# Varlık Takip Uygulaması — Siber Güvenlik Bilgilendirme Notu
+# TK Asset Manager (Varlık Takip) — Bilgi Güvenliği Bilgilendirme Notu
 
-Bu doküman, Siber Güvenlik ekibinin test/inceleme sürecinde soracağı olası sorulara
-cevap verebilmek için hazırlanmıştır. Uygulamanın mimarisini, veri akışını,
-kimlik bilgisi/şifreleme yaklaşımını ve bilinen kısıtları özetler.
+Sürüm: 2 — 21.10.2026
+Önceki sürüm: 1 (yalnızca tek kullanıcılı yerel masaüstü senaryosunu anlatıyordu)
 
-## 1. Uygulama nedir, ne amaçla yazıldı
+Bu doküman, Bilgi Güvenliği ekibinin inceleme sürecinde soracağı soruları yanıtlamak için hazırlanmıştır.
+Uygulamanın mimarisini, kimlik doğrulama ve yetkilendirme yapısını, veri saklamasını, dış bağlantılarını,
+bağımlılık durumunu ve **tespit edilen açıkları** içerir.
 
-Şirket içinde daha önce Excel eki + Power Automate mail tetikleyicisiyle yürütülen
-iki raporlama süreci (inaktif cihaz bildirimi, disk alanı uyarısı) ile yeni eklenen
-bir "zimmet uyuşmazlığı" karşılaştırma özelliğini tek bir masaüstü uygulamasında
-toplayan, şirketin iç envanter/varlık API'sine bağlanan bir raporlama aracıdır.
-Excel dosyası taşıma/mail eki mantığı tamamen kaldırılmıştır; veri doğrudan API'den
-okunur.
+> **Kapsam ve sınırlar:** Bu doküman kaynak kod incelemesine (backend, istemci, Electron kabuğu, CI tanımı) ve
+> `npm audit` çıktısına dayanır. Sızma testi, dinamik güvenlik taraması veya gerçek AD/RADIUS/TACACS+ ortamında
+> doğrulama yapılmamıştır. Bulgular kodda görülen davranışı yansıtır; sömürülebilirlik, dağıtım biçimine göre
+> değişir (Bölüm 3).
 
-Tek kullanıcılı, yerel (masaüstünde çalışan) bir araç olarak tasarlanmıştır — çok
-kullanıcılı, sunucuda barındırılan bir web servisi değildir.
+## 1. Önceki sürümden farklar
 
-## 2. Genel mimari
+Sürüm 1'deki şu ifadeler **artık geçerli değildir**:
 
-Uygulama üç ayrı bileşenden oluşur:
-
-- **Frontend**: React 19 + Vite ile yazılmış tek sayfa uygulama (SPA). Arayüz,
-  raporları görüntüleme, filtreleme, Excel/PDF'e aktarma gibi işleri yapar.
-- **Backend**: Node.js + Express ile yazılmış küçük bir yerel servis. Sadece
-  `127.0.0.1` (localhost) üzerinden dinler, dışarıdan erişilemez. Görevi:
-  - Kimlik bilgilerini (SMTP şifresi, API anahtarı, veri kaynağı şifresi) diske
-    şifreli yazmak,
-  - Kurumsal API'ye bağlanırken NTLM/Basic/API Key gibi kimlik doğrulama
-    yöntemlerini yürütmek (tarayıcıdan CORS/güvenlik kısıtlamaları nedeniyle
-    NTLM yapılamıyor, bu yüzden ayrı bir yerel servis gerekiyor),
-  - Mail göndermek (nodemailer üzerinden SMTP).
-- **Electron kabuğu**: Dağıtılan `.exe` içinde frontend ve backend, Electron ile
-  tek bir masaüstü uygulaması olarak paketlenir. Backend, Electron'un kendi Node.js
-  çalışma zamanı içinde `require()` ile başlatılır — ayrı bir process/servis kurulumu
-  gerekmez, kullanıcı sadece `.exe`'yi çalıştırır.
-
-Backend'e sadece frontend erişir; frontend dışarıya (internete) doğrudan sır/kimlik
-bilgisi göndermez, her şey backend üzerinden yürür.
-
-## 3. Kullanılan teknolojiler
-
-| Katman | Teknoloji |
+| Sürüm 1'deki ifade | Güncel durum |
 |---|---|
-| Frontend | React 19, Vite 8 |
-| Masaüstü paketleme | Electron 43 (electron-builder ile NSIS/portable .exe) |
-| Backend | Node.js, Express 4 |
-| Mail | Nodemailer (SMTP) |
-| Windows kimlik doğrulama | `httpntlm` (NTLM type1/2/3 el sıkışması) |
-| Excel export | SheetJS (`xlsx`) |
-| Şifreleme | Node.js yerleşik `crypto` modülü (AES-256-GCM) |
+| Uygulama içinde kullanıcı girişi/rol sistemi yoktur | Vardır: giriş ekranı, Master/User rolleri, oturum token'ı (Bölüm 5) |
+| Tek kullanıcılı yerel araçtır | Çok kullanıcılı, sunucu modunda da çalışabilir (Bölüm 3) |
+| Yalnızca `settings.enc.json` ve `secret.key` tutulur | Ek olarak oturum anahtarı, yönetici hesabı, yüklenen rapor dosyaları vardır (Bölüm 6) |
+| Envanter verisi diske yazılmaz | Yüklenen Excel/CSV raporları ve anlık görüntüler (snapshot) diske yazılır (Bölüm 6) |
+| Veri doğrudan API'den canlı çekilir | Raporlar ağırlıklı olarak yüklenen/senkronize edilen Excel dosyalarından okunur (Bölüm 4) |
 
-Harici bir veritabanı yoktur. Kalıcı veri, düz JSON dosyaları halinde yerel diskte
-tutulur (bkz. madde 4).
+## 2. Uygulama nedir
 
-## 4. Veri nerede saklanıyor
+Şirket içinde Excel eki ve Power Automate ile yürütülen envanter/varlık raporlama süreçlerini tek bir uygulamada
+toplar: inaktif ve kullanılmayan cihazlar, disk alanı, zimmet uyuşmazlığı, BSOD, batarya sağlığı, ofis bant
+genişliği, yeni kurulum kaydı ve kapatma onayı. Raporlardan e-posta gönderebilir, değişiklikleri izler, belirlenen
+sıklıkla otomatik tarama yapıp yeni uyuşmazlıkları e-postayla bildirir. Şirket seçimi (AJET / TKAO) ve Türkçe arayüz
+vardır.
 
-- **Paketlenmiş `.exe` çalışırken**: `%APPDATA%\varlik-takip-app\backend-data\`
-  klasörü altında.
-- **Geliştirme modunda** (backend ayrı çalıştırıldığında): `backend/data/` klasörü
-  altında.
+## 3. Mimari ve dağıtım modelleri
 
-Bu klasörde iki tür dosya olur:
+**Bileşenler**
+- **İstemci:** React 19 + Vite tek sayfa uygulaması.
+- **Backend:** Node.js + Express 4. Ayarları, kullanıcıları ve işlenen veriyi saklar, kimlik doğrulamayı yürütür,
+  e-posta gönderir, dosya okur/yazar.
+- **Masaüstü kabuğu:** Electron 43. Backend, Electron'un Node çalışma zamanı içinde başlatılır, pencere
+  `http://127.0.0.1:<port>/` adresini açar.
 
-1. `secret.key` — şifreleme anahtarı (aşağıda madde 5).
-2. `settings.enc.json` — SMTP ayarları, veri kaynağı (API) bağlantı ayarları ve
-   mail gönderim geçmişi. Bu dosyanın içindeki **şifre/API anahtarı alanları
-   AES-256-GCM ile şifreli** tutulur (madde 5); host/URL/kullanıcı adı gibi
-   hassas olmayan alanlar şifresiz durur.
+**Dağıtım modelleri** (backend'in dinlediği adres `HOST` ortam değişkeniyle belirlenir, varsayılan `127.0.0.1`):
 
-Uygulama, işlediği envanter/zimmet verisini (cihaz, kişi, seri no vb.) diske
-kalıcı yazmaz — bu veri API'den her seferinde canlı çekilir, sadece tarayıcı
-belleğinde/oturumda tutulur.
+| Model | Dinleme | Kimler erişir | Not |
+|---|---|---|---|
+| Masaüstü (Electron) | `127.0.0.1` | Yalnızca aynı bilgisayar | Ağdan erişilemez |
+| Şirket içi sunucu | `HOST=0.0.0.0` ile ağa açılır | Ağdaki kullanıcılar | Uygulama kendisi TLS sunmaz, HTTP üzerinden çalışır (BUL-09) |
+| Bulut demo (`render.yaml`) | `HOST=0.0.0.0` | İnternet | Depoda tanımlıdır. **Fiilen yayında olup olmadığı Bölüm 16'da teyit edilecek.** |
 
-## 5. Kimlik bilgileri ve şifreleme
+Bulguların önemi dağıtım modeline bağlıdır: Masaüstü modunda birçok bulgu yalnızca aynı bilgisayardaki kullanıcıyı
+ilgilendirir, ağa açık modda ise ağdaki her kullanıcıyı.
 
-- SMTP şifresi, veri kaynağı API şifresi/API anahtarı, backend tarafında
-  **AES-256-GCM** ile şifrelenip diske öyle yazılır. Tarayıcıya (frontend'e) bu
-  sırlar hiçbir zaman ham olarak geri gönderilmez — API sadece "kayıtlı mı"
-  (`hasPassword`, `hasApiKey`) bilgisini döner, arayüzde alanlar maskeli görünür.
-- Şifreleme anahtarı kaynağı:
-  - `BACKEND_SECRET_KEY` ortam değişkeni tanımlıysa o kullanılır,
-  - tanımlı değilse ilk çalıştırmada 32 byte rastgele anahtar üretilip
-    `secret.key` dosyasına yazılır ve sonraki çalıştırmalarda oradan okunur.
-- **Bilinen zayıflık**: `secret.key` dosyası işletim sistemi düzeyinde sadece o
-  Windows kullanıcı hesabının erişebildiği bir klasörde durur; Windows Credential
-  Manager/DPAPI gibi bir OS anahtar zincirine entegre değildir. Tek kullanıcılı
-  masaüstü senaryosu için kabul edilebilir görülmüştür, ama kurumsal/çok kullanıcılı
-  bir dağıtımda bir secret manager'a taşınması önerilir — bu, ekibe iletilecek en
-  net iyileştirme maddesidir.
+## 4. Veri kaynakları ve işlenen veri
 
-## 6. Ağ maruziyeti / dinlenen portlar
+- **Excel/CSV dosyaları:** Ayarlar'da tanımlı bir klasörden (ör. OneDrive/SharePoint senkron klasörü) ya da
+  Master kullanıcının arayüzden yüklediği dosyalardan okunur. Türler: İnaktif Cihazlar, Disk Alanı, SCCM
+  envanteri, TuruncuHat (TH) envanteri, Attached Monitors, Lokasyon Mail Listesi, Weekly BSOD, Battery Health,
+  Ofis Bant Genişliği.
+- **Kurumsal API:** Ayarlar'dan tanımlanabilir (NTLM, Basic, API Key veya kimlik doğrulamasız). Test ve bağlantı
+  backend'den yapılır.
+- **Yeni kurulum kayıtları:** Form üzerinden girilir, istenirse yapılandırılan yola Excel olarak yazılır.
 
-- Backend yalnızca **`127.0.0.1:5000`** üzerinde dinler; `0.0.0.0` değil — yani
-  ağdaki başka bir makineden bu porta erişilemez, sadece aynı bilgisayardaki
-  frontend erişebilir.
-- Backend'in CORS ayarı, sadece `http://localhost:5173` ve
-  `http://127.0.0.1:5173` origin'lerine (geliştirme modu) ve Electron'un
-  `file://` kaynaklı isteklerine (origin header'ı olmayan istekler) izin verir.
-- Dışarıya giden bağlantılar: (a) kurumsal envanter API'sine (kullanıcının
-  Ayarlar'da girdiği URL), (b) SMTP sunucusuna (yine kullanıcının girdiği host).
-  Uygulama başka hiçbir üçüncü parti sunucuya veri göndermez, telemetri/analitik
-  yoktur.
+**Kişisel veri:** Raporlar ad-soyad, sicil, kullanıcı adı, e-posta, hostname, IP ve seri numarası içerir. Bu veri
+KVKK kapsamında kişisel veri sayılabilir. Uygulama **hiçbir veriyi üçüncü taraf servise göndermez**, telemetri
+yoktur (Bölüm 8).
 
-## 7. Kimlik doğrulama / yetkilendirme (uygulama içi)
+## 5. Kimlik doğrulama ve yetkilendirme
 
-Uygulamanın kendi içinde bir kullanıcı girişi / rol sistemi **yoktur**. Bu bilinçli
-bir tasarım kararıdır: uygulama tek kullanıcılı, yerel bir masaüstü aracı olarak
-düşünülmüştür — çalıştığı Windows hesabına giren kişi uygulamayı kullanabilir.
-Çok kullanıcılı / merkezi sunucuda barındırma senaryosuna geçilirse (şu an
-planlanmıyor), bir oturum/yetkilendirme katmanının eklenmesi gerekir.
+Uygulamada **iki ayrı yetki mekanizması** bir arada çalışır:
 
-## 8. Kurumsal API'ye bağlanma yöntemleri
+**A) Kullanıcı oturumu (genel giriş)**
+- Giriş: etki alanı + kullanıcı adı + şifre. Kimlik doğrulama sırası: önce yerel kullanıcı deposuna, eşleşme yoksa
+  Ayarlar'da seçili dış sağlayıcıya (LDAP/AD, RADIUS veya TACACS+) bakılır.
+- Yerel hesaplar (Master dahil): şifre **bcrypt** (maliyet 12) ile özetlenir, en az 8 karakter. Şifre özeti
+  arayüze döndürülmez.
+- Dış sağlayıcı kullanıcıları ilk girişte `user` rolüyle yerel kayıt olarak oluşturulur, şifre saklanmaz.
+- Oturum token'ı: HMAC-SHA256 ile imzalı opak token, **12 saat** geçerlidir. İmza anahtarı `session.key` ayrı
+  dosyadır. Doğrulamada sabit zamanlı karşılaştırma kullanılır, rol her istekte kullanıcı deposundan okunur
+  (token'daki rol esas alınmaz).
+- Roller: `master` ve `user`.
 
-Ayarlar ekranından dört yöntem seçilebilir:
-- **Windows/NTLM** — `httpntlm` ile NTLM type1/2/3 el sıkışması (tarayıcı değil,
-  backend yürütür).
-- **Temel Kimlik Doğrulama (Basic)** — `Authorization: Basic ...` header.
-- **API Key** — `x-api-key` header.
-- **Yok** — kimlik doğrulama olmadan.
+**B) Paylaşımlı yönetici şifresi (Ayarlar)**
+- Ayarlar uçları (veri kaynağı, SMTP, mail grupları, dosya kaynağı, uygulama ayarları, otomatik tarama, üst yönetim
+  listesi) tek bir paylaşımlı kullanıcı adı/şifre ile korunur. Bilgiler her istekte `x-admin-username` ve
+  `x-admin-password` başlıklarıyla gönderilir.
+- Bilgiler ilk çalıştırmada üretilir (kullanıcı `admin`, 12 karakterlik rastgele şifre) ya da `ADMIN_USERNAME` /
+  `ADMIN_PASSWORD` ortam değişkenlerinden alınır.
 
-NTLM implementasyonu henüz gerçek bir kurumsal Active Directory sunucusuna karşı
-uçtan uca doğrulanmadı; standart el sıkışmayı yürütür ve desteklenmeyen bir
-sunucuya karşı anlaşılır hata döner, ama IT ile birlikte gerçek ortamda test
-edilmesi gerekiyor.
+**Uç koruma özeti**
 
-## 9. Loglama
+| Uç grubu | Koruma |
+|---|---|
+| `/api/health`, `/api/auth/login`, `/api/auth/setup-status`, `/api/auth/setup-master`, `/api/auth/domain`, `/api/settings/login` | Kimliksiz |
+| `/api/mail`, `/api/mail/history`, `/api/reports`, `/api/devices`, `/api/snapshots`, `/api/newinstalls`, `GET /api/mailgroups`, `GET /api/ust-yonetim`, `GET /api/appconfig` | Oturum açmış herhangi bir kullanıcı |
+| Kimlik doğrulama yapılandırması, bant genişliği/batarya/rapor dosyası yükleme | Yalnızca `master` rolü |
+| Diğer `/api/settings/*` (veri kaynağı, SMTP, mail grupları, dosya kaynağı, uygulama ayarları, otomatik tarama, üst yönetim listesi) | Paylaşımlı yönetici şifresi |
 
-Backend, hataları sunucu konsoluna (`console.error`) yazar; istemciye stack
-trace veya dosya yolu sızdırılmaz (genel hata middleware'i sadece "İstek
-işlenemedi" gibi genel bir mesaj döner). Ayrı bir log dosyası/merkezi log
-toplama yoktur.
+**Grup/yetki ayrımı yoktur.** Oturum açmış her kullanıcı tüm raporlardaki tüm kayıtları görebilir. Sol menüdeki
+şirket seçimi (AJET/TKAO) yalnızca arayüzde bir filtredir, backend tüm satırları döner; yetki sınırı değildir
+(BUL-05). Grup/yetki sistemi planlanmaktadır.
 
-## 10. Bilinen kısıtlar / ekip ile paylaşılabilecek riskler
+## 6. Veri nerede saklanıyor
 
-- Tek kullanıcılı senaryo için tasarlandı; kimlik doğrulama/yetkilendirme katmanı
-  yok (madde 7).
-- Şifreleme anahtarı OS anahtar zincirine değil, dosya sistemine yazılıyor
-  (madde 5).
-- NTLM entegrasyonu gerçek AD ortamında henüz doğrulanmadı.
-- Uygulama kod imzasız (code signing sertifikası yok) — Windows SmartScreen
-  "tanınmayan yayıncı" uyarısı verebilir; bu bir güvenlik açığı değil, imzasız
-  dağıtımın beklenen bir sonucu.
-- `xlsx` (SheetJS) paketi npm registry yerine doğrudan SheetJS'in kendi CDN'inden
-  (`cdn.sheetjs.com`) sürüm kilitli olarak çekiliyor — npm'deki eski/ücretsiz
-  olmayan sürüm yerine yayıncının resmi dağıtım kanalı tercih edilmiş; bağımlılık
-  taramasında bu URL'nin neden npm registry dışı olduğu sorulabilir.
+Veri klasörü: masaüstü paketinde `%APPDATA%\varlik-takip-app\backend-data\`, geliştirme/sunucu modunda
+`backend/data/` (`DATA_DIR` ile değiştirilebilir).
 
-## 11. Özet — sık sorulabilecek sorulara hızlı cevaplar
+| Dosya | Biçim | Koruma |
+|---|---|---|
+| `settings.enc.json` | Kullanıcılar (bcrypt özetleriyle), SMTP, kimlik doğrulama yapılandırması, kurumsal API ayarı, mail grupları, gönderim geçmişi ve detayları, anlık görüntüler, cihaz notları/aksiyonları, yeni kurulum kayıtları, üst yönetim listesi | **Bölüm bazında AES-256-GCM şifreli** (hepsi, yalnızca sırlar değil) |
+| `secret.key` | Şifreleme anahtarı (hex) | Düz dosya, dosya izni `0600` (Windows'ta etkisi sınırlı) |
+| `session.key` | Oturum imza anahtarı (hex) | Düz dosya |
+| `admin-credentials.json` | Paylaşımlı yönetici şifresi | **Düz metin** (`ADMIN_PASSWORD` verilmezse) |
+| `imports/*.xlsx`, `uploads/*` | Yüklenen rapor dosyaları (kişisel veri içerir) | **Şifresiz** düz dosya |
+| Yeni kurulum Excel çıktısı | Yapılandırılan yola yazılır | Şifresiz |
 
-- **"Şifreler nasıl saklanıyor?"** → AES-256-GCM ile şifreli, diskte; tarayıcıya
-  hiç ham gönderilmiyor.
-- **"Uygulama internete açık mı?"** → Hayır, backend sadece localhost'ta dinliyor.
-- **"Hangi dışarıya bağlantılar var?"** → Sadece kullanıcının Ayarlar'da girdiği
-  kurumsal API ve SMTP sunucusu; başka hiçbir üçüncü parti servis yok.
-- **"Çoklu kullanıcı / yetkilendirme var mı?"** → Yok, tek kullanıcılı masaüstü
-  aracı olarak tasarlandı.
-- **"Veritabanı var mı?"** → Yok, sadece küçük şifreli bir ayar dosyası (JSON);
-  envanter verisi diske yazılmıyor, her seferinde API'den canlı çekiliyor.
-- **"Kaynak kodu incelenebilir mi?"** → Evet, kapalı kaynak/obfuscate edilmiş bir
-  dağıtım değil, tüm kod (frontend + backend) proje deposunda düz JavaScript/JSX
-  olarak duruyor.
+Tüm bölümler tek bir anahtarla (`secret.key` ya da `BACKEND_SECRET_KEY`) şifrelenir. Anahtar şifreli verinin
+yanındaki klasörde durur; bu nedenle klasöre erişen biri hem veriyi hem anahtarı alabilir.
+
+## 7. Şifreleme ve sır yönetimi
+
+- Algoritma: AES-256-GCM, her yazımda rastgele 12 baytlık IV, kimlik doğrulama etiketi saklanır.
+- `BACKEND_SECRET_KEY` (64 hex karakter) verilirse o kullanılır, yoksa ilk çalıştırmada `secret.key` üretilir.
+- Dış sağlayıcı gizleri (LDAP bind şifresi, RADIUS/TACACS+ paylaşımlı anahtarı), SMTP şifresi ve API anahtarı
+  arayüze **hiç geri döndürülmez**, yalnızca "tanımlı mı" bilgisi döner.
+- Şifreler ve gizler loglanmaz (başarısız girişte yalnızca kullanıcı adı ve zaman yazılır).
+- Anahtar OS anahtar zincirine (DPAPI/Credential Manager) veya bir secret manager'a bağlı değildir.
+
+## 8. Ağ maruziyeti ve dış bağlantılar
+
+**Dinleme:** Varsayılan `127.0.0.1:5000`. `HOST=0.0.0.0` verilirse tüm arayüzlerde dinler.
+
+**CORS:** Herhangi bir ana makinede `:5173` portundan gelen origin'e ve isteğin kendi ana makinesiyle aynı olan
+origin'e izin verilir; origin başlığı olmayan istekler kabul edilir. Cookie kullanılmadığı için (kimlik `Authorization`
+başlığıyla taşınır) CORS tek başına kimlik hırsızlığı aracı sayılmaz.
+
+**İçerik Güvenlik Politikası (CSP):** `script-src 'self'`, `object-src 'none'`, `base-uri 'self'`. `connect-src`
+`http:`/`https:` içerir (kullanıcının girdiği API adresine bağlanabilmek için).
+
+**Dışa giden bağlantılar** (hepsi yöneticinin yapılandırdığı hedefler, başka üçüncü taraf yok):
+- Kurumsal veri kaynağı API'si (NTLM/Basic/API Key).
+- SMTP sunucusu.
+- LDAP/AD, RADIUS (UDP 1812), TACACS+ sunucuları (Kimlik Doğrulama ayarındaki adresler).
+
+**TLS:** Uygulama kendisi TLS sunmaz. Sunucu modunda kullanıcı adı/şifre, oturum token'ı ve yönetici şifresi, TLS
+sonlandıran bir ters vekil (reverse proxy) olmadan **HTTP üzerinden düz metin** gider (BUL-09).
+
+## 9. E-posta gönderimi
+
+- Nodemailer ile yapılandırılan SMTP sunucusu üzerinden gönderilir. Gövde HTML'dir, kullanıcıya gösterilen veriler
+  ortak yardımcı (`esc`) ile HTML'e kaçırılarak yerleştirilir.
+- Otomatik tarama (5 dakikada bir kontrol) yeni uyuşmazlık bulunca yapılandırılan alıcılara kendiliğinden e-posta
+  atar.
+- Gönderim geçmişi kaydedilir (şifreli bölüm).
+- SMTP TLS: STARTTLS/TLS kullanılır, ancak **sertifika zinciri doğrulanmaz** (`rejectUnauthorized: false`),
+  kurumsal/self-signed CA'lar nedeniyle bilinçli bir tercih olarak (BUL-06).
+
+## 10. Dosya işleme
+
+- Yüklenen dosyanın sunucudaki adı **sunucu tarafından üretilir** (`<önek>_<tarih>.xlsx`), kullanıcı girdisinden
+  oluşmaz; dosya türü sabit bir listeden seçilir. Bu yolla yol manipülasyonu görülmedi.
+- Yüklenen `.xlsx` dosyası "PK" imzası ve SheetJS ile okunabilirlik açısından kontrol edilir. Boyut sınırı: ham
+  yükleme 100 MB, JSON gövde 5 MB.
+- Excel işleme kütüphanesi SheetJS **0.20.3** olup yayıncının kendi dağıtım adresinden (`cdn.sheetjs.com`) sürüm
+  kilitli çekilir (npm'deki eski sürümlerde bilinen açıklar vardır).
+- **İstisna:** Yeni Kurulum ekranındaki `sync-excel` ucu keyfi bir yol kabul eder (BUL-01).
+
+## 11. İstemci ve masaüstü güvenliği
+
+- **Oturum token'ı `localStorage`'da** tutulur (BUL-07).
+- **HTML önizleme:** Mail önizlemesi `dangerouslySetInnerHTML` kullanır. İçerik uygulamanın kendi şablonundan
+  gelir ve veriler kaçırılarak yerleştirilir. Kaçırma, çağıran kodun sorumluluğundadır (şablon yardımcısı bunu
+  belirtir), kaçırılmamış yeni bir alan eklenirse XSS oluşur.
+- **Electron:** `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. Renderer'a yalnızca tek bir
+  köprü fonksiyonu (klasör seçme) sunulur. Pencere kendi sunucusu dışına gezinemez, yeni pencere istekleri
+  engellenir, `http(s)` bağlantıları sistem tarayıcısında açılır.
+- Uygulama kod imzasızdır (SmartScreen uyarısı verebilir).
+
+## 12. Loglama ve izlenebilirlik
+
+- Backend konsola yazar, merkezi log toplama yoktur.
+- Başarısız girişler kullanıcı adı ve zamanla kaydedilir, **kaynak IP yazılmaz**. Başarılı girişler kaydedilmez.
+- **Ayarlar değişiklikleri için denetim kaydı (audit trail) yoktur.** Paylaşımlı yönetici hesabı kullanıldığı için
+  değişikliği kimin yaptığı ayırt edilemez (BUL-12).
+- İstemciye hata ayrıntısı/stack trace sızdırılmaz (genel "İstek işlenemedi" mesajı).
+
+## 13. Bağımlılık güvenliği (`npm audit`, 21.10.2026)
+
+| Paket grubu | Toplam | Kritik | Yüksek | Orta | Düşük |
+|---|---|---|---|---|---|
+| Backend (tümü) | 6 | 1 | 1 | 4 | 0 |
+| Backend (yalnızca üretim) | 5 | 1 | 1 | 3 | 0 |
+| İstemci/Electron (tümü) | 18 | 0 | 9 | 8 | 1 |
+| İstemci/Electron (yalnızca üretim) | 1 | 0 | 0 | 0 | 1 |
+
+**Backend, üretimde etkili olanlar**
+- **`proxy-addr` (kritik, dolaylı, `express` üzerinden):** "güvenilen alt ağ" ile IP sahteciliği. Uygulama
+  `trust proxy` ayarını açmaz ve istemci IP'sini hiçbir yerde kullanmaz; bu nedenle mevcut yapılandırmada
+  sömürülebilir değildir. Yine de paket güncellenmelidir.
+- **`nodemailer` (yüksek, doğrudan):** eski imza ile `resolveContent()` çağrıldığında dosya/URL erişim kısıtını
+  atlama. Uygulama bu çağrı biçimini kullanmaz, ancak güncelleme önerilir.
+
+**İstemci/Electron:** Yüksek bulguların çoğu derleme/geliştirme araçlarındadır (`vite`, `electron-builder`
+zinciri) ve çalışan uygulamaya girmez. `electron` paketlenmiş uygulamanın içinde çalışan çalışma zamanıdır:
+"sandbox'lı pencereden açılan pencereler sandbox'ı devralmaz" bulgusu vardır; uygulama kendi dışına pencere
+açtırmadığı için (yukarıdaki engelleme) etkisi sınırlıdır. Electron sürümü güncellenmelidir.
+
+Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenler ayrıca değerlendirilmelidir.
+
+## 14. Kaynak kod yönetimi ve CI
+
+- Kod, GitHub'da **private** bir depoda tutulur. GitHub kullanımı proje tamamlanana kadar geçicidir, sonrasında
+  uygulama şirket ağında çalışacaktır.
+- Depoda `backend/data/` içindeki dört dosya (`secret.key`, `session.key`, `admin-credentials.json`,
+  `settings.enc.json`) **geçmişte git'e eklenmiştir** ve git geçmişinde durur. Güncel çalışma kopyalarında bu
+  dosyalar yerelde `skip-worktree` ile korunur (yanlışlıkla commit edilmez), ancak depoda ve geçmişte kalan
+  sürümler geçerlidir (BUL-10). Proje sahibi beyanına göre SMTP olarak Ethereal (test hesabı) kullanılır, yani
+  SMTP bilgisi gerçek şirket şifresi değildir. Yönetici hesabı ve kullanıcı kayıtlarının test mi gerçek mi olduğu
+  Bölüm 16'da teyit edilecektir.
+- CI (GitHub Actions): her gönderimde birim, backend ve tarayıcı testlerini çalıştırır. Depo sırrı (`secrets.*`)
+  kullanmaz. Eylemler sürüm etiketiyle (`@v4`) sabitlenmiştir, commit özetiyle değil.
+- Üretim öncesi plan: gizli dosyaları git'ten çıkarmak, anahtarları yenilemek, yönetici hesabını değiştirmek,
+  SMTP'yi şirket sunucusuna almak.
+
+## 15. Bulgular
+
+Önem derecesi, uygulamanın ağa açıldığı (sunucu modu) senaryoya göre verilmiştir.
+
+| No | Önem | Bulgu | Etki | Öneri |
+|---|---|---|---|---|
+| BUL-01 | Yüksek | `POST /api/newinstalls/sync-excel` ve `PUT /api/newinstalls/config/excel-path`, **oturum açmış herhangi bir kullanıcıdan** `excelPath` alır. Yol doğrulanmaz, klasör özyinelemeli oluşturulur, hedef dosya varsa okunur ve üzerine yazılır. | Sunucu bilgisayarında keyfi yola dosya yazma/üzerine yazma (SheetJS'in desteklediği uzantılarla). Var olan bir dosya okunup aynı yola yeniden yazılır, içeriği yanıtta dönmez (yalnızca satır sayısı döner). | Uca yalnızca yöneticiyi/master'ı kabul et; yolu önceden tanımlı bir klasörle sınırla; uzantıyı `.xlsx`'e zorla. |
+| BUL-02 | Yüksek | `POST /api/auth/setup-master` **kimliksizdir**. Master henüz yoksa uca erişen ilk kişi Master olur. | Yeni kurulumda (özellikle ağa/internete açık) yetki ele geçirme. | Kurulum yalnızca `127.0.0.1`'den kabul edilsin ya da tek kullanımlık kurulum kodu istensin. |
+| BUL-03 | Yüksek | `/api/auth/login` ve `/api/settings/login` için **deneme sınırı ve hesap kilidi yok**. | Şifre deneme saldırısı (bcrypt maliyeti yalnızca yavaşlatır). Dış sağlayıcıda dizin hesaplarında kilitlenme riski de oluşturur. | IP ve kullanıcı bazlı oran sınırlama, artan bekleme, kilit. |
+| BUL-04 | Orta | `POST /api/mail/send` oturum açmış **her kullanıcıya** açıktır, alıcı, konu ve HTML gövde istemciden gelir. | Şirketin SMTP kimliğiyle serbest içerikle iç/dış e-posta gönderme (oltalama, istenmeyen posta). | Alıcıyı sunucuda mail grupları/izinli alan adlarıyla sınırla, gövdeyi sunucuda şablondan üret, oran sınırı. |
+| BUL-05 | Orta | Şirket seçimi (AJET/TKAO) yalnızca arayüz filtresidir, rapor uçları tüm satırları döner. Grup/yetki yoktur. | Her oturum açmış kullanıcı tüm şirketlerin tüm verisini görebilir. | Sunucu tarafı şirket/grup bazlı yetkilendirme (planlı: İstanbul / Yurt İçi / Yurt Dışı). |
+| BUL-06 | Orta | SMTP bağlantısında sertifika zinciri doğrulanmaz (`rejectUnauthorized: false`). | Ağ içi ortadaki adam saldırısıyla SMTP kimlik bilgisi/e-posta okunabilir. | Şirket kök CA'sını Node'a tanıt (`NODE_EXTRA_CA_CERTS`), doğrulamayı aç. |
+| BUL-07 | Orta | Oturum token'ı `localStorage`'dadır, sunucu tarafında iptal (logout/blacklist) mekanizması yoktur, süre 12 saattir. | Bir XSS bulunursa token çalınabilir, çalınan token süre dolana kadar geçerlidir. | Token'ı `HttpOnly` çerezde taşı ya da süreyi kısalt ve sunucu tarafı iptal listesi ekle. |
+| BUL-08 | Orta | Paylaşımlı yönetici şifresi düz metin dosyada tutulur, sabit zamanlı olmayan `===` ile karşılaştırılır, her istekte HTTP başlığıyla taşınır, ilk üretimde konsola yazılır. | Dosyaya/loga erişen veya trafiği dinleyen kişi yönetici yetkisini alır. Kimin değişiklik yaptığı bilinmez. | Ayarları Master oturumuna taşı (bcrypt + token), paylaşımlı şifreyi kaldır. |
+| BUL-09 | Orta | Uygulama TLS sunmaz. | Sunucu modunda parolalar, token ve yönetici şifresi ağda düz metin gider. | TLS sonlandıran ters vekil (IIS/nginx) arkasında yayınla, HTTP'yi kapat. |
+| BUL-10 | Orta | Dört gizli dosya git geçmişinde durur (private GitHub). Anahtar, şifreli verinin yanındadır. | Depo erişimi olan biri anahtarı ve şifreli ayarları alır. | SMTP test verisi (Ethereal) olduğundan proje sahibi şimdilik kabul etti. Yönetici hesabı ve kullanıcılar gerçekse hemen yenile. Üretim öncesi geçmişi temizle, anahtarları yenile. |
+| BUL-11 | Orta | Bağımlılık açıkları (Bölüm 13), özellikle `nodemailer`, `express` zinciri, `electron`. | Doğrudan sömürü olasılığı düşük, ama güncel olmayan paket riski. | `npm audit fix`, Electron/Express/Nodemailer'ı güncelle, CI'da `npm audit` adımı ekle. |
+| BUL-12 | Orta | Denetim kaydı yok, başarısız girişte IP yok, başarılı giriş kaydedilmiyor. | Olay incelemesi ve hesap verebilirlik zayıf. | Kimlik doğrulama ve ayar değişikliği olaylarını kullanıcı + IP ile ayrı log'a yaz. |
+| BUL-13 | Düşük | Dosya klasörü bulunamazsa uygulama **sessizce depodaki demo verisine** düşer. | Üretimde yapılandırma hatası, kullanıcıya gerçek veri gibi demo veri gösterilmesine yol açabilir (veri bütünlüğü). | Üretim modunda yedek veriyi kapat, belirgin bir hata göster. |
+| BUL-14 | Düşük | Dış sağlayıcıda `ldaps` kapalı seçilirse LDAP şifresi düz metin gider. RADIUS ve TACACS+ protokolleri kendi doğaları gereği MD5 tabanlı gizleme kullanır. | Ağ dinlemesiyle kimlik bilgisi ele geçirilebilir. | LDAPS zorunlu kıl, RADIUS/TACACS+ yalnızca yönetim ağında kullan. |
+| BUL-15 | Düşük | Veri kaynağı test ucu, yöneticinin verdiği URL'ye sunucudan istek atar. | Yönetici yetkisiyle iç ağ adreslerine istek (SSRF). | Hedef adres listesi/alan adı kısıtı. |
+| BUL-16 | Düşük | `/api/appconfig` her oturumlu kullanıcıya sunucudaki klasör yolunu döner. | Sunucu dizin yapısı bilgisi sızar. | Yolu yalnızca yöneticiye göster. |
+| BUL-17 | Bilgi | `render.yaml` ile bulut demo dağıtım tanımı depoda durur (HOST=0.0.0.0, kullanıcı adı `admin`). | Yayındaysa BUL-02 ve BUL-03 internete açık olur. | Bölüm 16'daki teyit. Gerekmiyorsa dosyayı kaldır. |
+
+## 16. Proje sahibinden teyit beklenen noktalar
+
+- `render.yaml` ile tanımlı bulut demo ortamı **fiilen yayında mı?** Yayındaysa içinde gerçek veri var mı ve
+  Master kullanıcı oluşturuldu mu? (BUL-02, BUL-03, BUL-17)
+- `admin-credentials.json` içindeki yönetici hesabı ve kullanıcı kayıtları **test verisi mi, gerçek hesap mı?**
+  Gerçekse bunlar git geçmişinde durduğu için hemen yenilenmelidir (BUL-10).
+- Üretimde uygulama hangi modelde çalışacak (masaüstü, şirket sunucusu)? TLS ters vekil sağlanacak mı?
+- Kimlik doğrulama için hangi sağlayıcı kullanılacak (LDAP/AD, RADIUS, TACACS+)? Bunlar gerçek ortamda henüz
+  doğrulanmamıştır.
+- Kişisel veri (KVKK) açısından saklama süresi ve yükleme dosyalarının silinme politikası.
+
+## 17. Mevcut güçlü yönler
+
+- Parolalar bcrypt (maliyet 12) ile saklanır, hiçbir yerde düz metin döndürülmez veya loglanmaz (yönetici şifresi
+  dosyası hariç, BUL-08).
+- Tüm ayar ve işlenen veri bölümleri AES-256-GCM ile şifreli saklanır, gizler arayüze geri döndürülmez.
+- Oturum token'ı imzalı, süreli, sabit zamanlı doğrulanır, rol her istekte yeniden okunur.
+- Rapor, mail, cihaz ve anlık görüntü uçları kimlik doğrulaması gerektirir (önceden açıktı).
+- Yükleme dosya adları sunucu üretimidir, yol manipülasyonu görülmedi.
+- Hata yanıtları ayrıntı sızdırmaz, `x-powered-by` kapalıdır.
+- CSP etkin, Electron sertleştirilmiş (izolasyon, sandbox, gezinme engeli).
+- Üçüncü taraf servise veri gönderilmez, telemetri yoktur.
+- Tüm kod okunabilir düz JavaScript/JSX'tir, otomatik testler (birim, backend, tarayıcı) CI'da çalışır.
+
+## 18. Hızlı cevaplar
+
+- **"Şifreler nasıl saklanıyor?"** Kullanıcı şifreleri bcrypt özeti olarak, ayarlar ve veri AES-256-GCM ile
+  şifreli. İstisna: paylaşımlı yönetici şifresi düz metin dosyada (BUL-08).
+- **"Uygulama internete açık mı?"** Masaüstü modunda hayır (yalnızca `127.0.0.1`). Sunucu modunda ağdaki
+  kullanıcılara açıktır. `render.yaml` ile bulut demo tanımı vardır, yayında olup olmadığı teyit edilecek.
+- **"Kullanıcı girişi/yetkilendirme var mı?"** Var (yerel + LDAP/RADIUS/TACACS+, Master/User rolü). Grup bazlı veri
+  yetkilendirmesi henüz yok.
+- **"Dışarı hangi bağlantılar çıkıyor?"** Yalnızca yöneticinin tanımladığı veri API'si, SMTP ve kimlik doğrulama
+  sunucuları.
+- **"Veritabanı var mı?"** Yok. Şifreli bir JSON dosyası ve yüklenen Excel/CSV dosyaları var.
+- **"Kişisel veri işleniyor mu?"** Evet: ad-soyad, sicil, kullanıcı adı, e-posta, hostname, IP. Yüklenen dosyalar
+  diskte şifresizdir.
+- **"En önemli açıklar neler?"** BUL-01 (keyfi yola dosya yazma), BUL-02 (kimliksiz Master kurulumu), BUL-03 (deneme
+  sınırı yok). Üçü de ağa açık kullanımdan önce kapatılmalıdır.
