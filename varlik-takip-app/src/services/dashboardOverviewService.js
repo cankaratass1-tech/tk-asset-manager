@@ -7,11 +7,11 @@ import { groupSnapshotsByPeriod, comparePeriods } from "./periodComparisonServic
 export const OVERVIEW_REPORTS = ["inaktif", "zimmet", "disk", "kullanilmayan"];
 
 // reportSnapshots: { [reportId]: [snapshot,...] } → dönem dönem birleşik özet.
-// [ŞİRKET-FİLTRESİ — bkz. KRITIK-NOTLAR.md] company !== "all" ise snapshot cihazları `company` alanına göre süzülür; Disk Alanı
-// snapshot'larında şirket bilgisi olmadığı için şirket seçiliyken özete dahil edilmez.
+// [ŞİRKET-FİLTRESİ — bkz. KRITIK-NOTLAR.md] company !== "all" ise snapshot cihazları `company` alanına göre süzülür. Disk Alanı
+// snapshot'larında şirket, hostname → SCCM eşleşmesiyle yazılır (eski, şirketsiz kayıtlar şirket seçiliyken sayılmaz).
 export function combinedPeriodSummary(reportSnapshots = {}, mode = "month", { company = "all" } = {}) {
   const scoped = company !== "all";
-  const reports = scoped ? OVERVIEW_REPORTS.filter((r) => r !== "disk") : OVERVIEW_REPORTS;
+  const reports = OVERVIEW_REPORTS;
   const inCompany = (d) => !scoped || d.company === company;
   const perReport = {};
   const labelSet = new Set();

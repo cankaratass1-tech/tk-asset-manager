@@ -160,6 +160,15 @@ try {
   const hPanel = await page.locator("body").innerText();
   check("Sağ panel: 'Kayıt sayısı', 'Alıcı sayısı' ve 'Kapsam' (eski 'Gönderilen kişi sayısı' yok)", /Kayıt sayısı/i.test(hPanel) && /Alıcı sayısı/i.test(hPanel) && /Kapsam/i.test(hPanel) && !/Gönderilen kişi sayısı/i.test(hPanel));
   check("Sağ panelde alıcı e-postası görünüyor", /@x\.com/.test(hPanel));
+  // Şirket seçimi: gönderim kayıtları gönderim anındaki şirketle etiketlenir; sol menüden şirket seçiliyken yalnız o şirketin kayıtları görünür
+  await fetch(`${be.base}/api/mail/history`, { method: "POST", headers: hAuth, body: JSON.stringify({ id: 9004, date: "20.10.2026", time: "09:30:00", isoDate: "2026-10-20T09:30:00Z", report: "Zimmet Uyuşmazlığı", reportType: "zimmet", dept: "AJET", company: "TKAJ-AJET A.Ş.", recipients: 1, status: "Başarılı", senderUsername: "smoke", details: [{ location: "Ali Veli", to: "ali@x.com", count: 1, ok: true }] }) });
+  await page.reload(); await page.waitForTimeout(4000);
+  await page.locator('text="AJET"').first().click(); await page.waitForTimeout(600);
+  await page.locator('text="Gönderim Geçmişi"').first().click(); await page.waitForTimeout(1500);
+  const hAjet = await page.locator("tbody tr").count();
+  check("Gönderim Geçmişi: sol menüde AJET seçiliyken yalnız AJET'le etiketli gönderimler görünüyor (+ 'Şirket: AJET' çipi)", hAjet === 1 && (await page.locator("[data-history-company]").count()) === 1, String(hAjet));
+  await page.locator("[data-history-company] [role=button]").click(); await page.waitForTimeout(400);
+  check("Şirket çipindeki × tüm kayıtları geri getiriyor", (await page.locator("tbody tr").count()) >= 4 && (await page.locator("[data-history-company]").count()) === 0);
 
   console.log("\nLokasyon/IP — e-posta önizlemesi");
   await page.locator('text="Lokasyon Hostname ve IP Uyuşmazlığı"').first().click(); await page.waitForTimeout(3500);

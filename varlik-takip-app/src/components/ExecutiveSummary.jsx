@@ -150,7 +150,7 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
     const cs = data.companies;
     if (cs.length === 0) return <div style={{ fontSize: 12.5, color: P.mute }}>Şirket bilgisi yok.</div>;
     const W = 400, H = 210, L = 30, T = 14, B = 34;
-    const groups = [["zimmet", "Hatalı zimmet"], ["inaktif", "İnaktif"], ["unused", "Kullanılmayan"]];
+    const groups = [["zimmet", "Hatalı zimmet"], ["inaktif", "İnaktif"], ["unused", "Kullanılmayan"], ...(cs.some((c) => c.disk > 0) ? [["disk", "Kritik disk"]] : [])];
     const shades = [P.navy2, P.blue, P.teal, P.purple];
     const ymax = niceMax(Math.max(1, ...cs.flatMap((c) => groups.map(([k]) => c[k]))) * 1.1);
     const gw = (W - L - 8) / groups.length, bw = Math.min(30, (gw - 18) / cs.length);
@@ -316,7 +316,7 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
             </div>
           )}
         </Card>
-        <Card title="Şirket karşılaştırması" sub="Açık bulgu (Disk şirkete göre ayrılamadığından hariç)" span={4}>{companyChart}</Card>
+        <Card title="Şirket karşılaştırması" sub="Açık bulgu (kritik disk: hostname → SCCM şirket eşleşmesiyle)" span={4}>{companyChart}</Card>
         <Card title="Dikkat gerektirenler" sub="Önem sırasına göre ilk 5" span={4}>
           {attention.length === 0 ? (
             <div style={{ fontSize: 12.5, color: P.green, fontWeight: 600 }}>Şu an dikkat gerektiren bulgu yok.</div>

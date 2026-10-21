@@ -72,8 +72,10 @@ function buildClosureReminderHtml(recs, thBySerial, lang = "tr") {
   });
 }
 
-export default function PendingClosureScreen({ styles, pal, showToast, thRows = [] }) {
-  const [records, setRecords] = useState([]);
+export default function PendingClosureScreen({ styles, pal, showToast, thRows = [], company = "all", companyOf }) {
+  const [allRecords, setRecords] = useState([]);
+  // Şirket seçiliyse yalnız o şirketin kayıtları (bkz. recordCompany.js)
+  const records = useMemo(() => (company === "all" || !companyOf ? allRecords : allRecords.filter((r) => companyOf(r) === company)), [allRecords, company, companyOf]);
   const [loading, setLoading] = useState(true);
   const [qText, setQText] = useState("");
   const [qFilter, setQFilter] = useState("all"); // all | overdue | unsent | sent

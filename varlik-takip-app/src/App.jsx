@@ -30,6 +30,7 @@ import { latestPeriodSummary } from "./services/periodComparisonService";
 import LocationTrendChart from "./components/LocationTrendChart";
 import OverviewPanel from "./components/OverviewPanel";
 import ExecutiveSummary from "./components/ExecutiveSummary"; // DEMO: yönetici için tek sayfalık özet
+import { buildRecordCompanyResolver } from "./services/recordCompany";
 import DashboardV2 from "./components/DashboardV2"; // DEMO (commit edilmedi) — yeni Ana Sayfa tasarımı
 import { computeAtilMonitorRows } from "./services/atilMonitorService";
 import ManagementKpiPanel from "./components/ManagementKpiPanel";
@@ -361,12 +362,19 @@ export default function App({ user, onLogout } = {}) {
   const [realInaktifAll, setRealInaktifAll] = useState([]);
   const [realInaktifMeta, setRealInaktifMeta] = useState(null); // { fileName, modifiedAt }
   const [loadingRealInaktif, setLoadingRealInaktif] = useState(false);
-  const [realDiskAll, setRealDiskAll] = useState([]);
+  const [realDiskRaw, setRealDiskAll] = useState([]);
   const [realDiskMeta, setRealDiskMeta] = useState(null);
   const [loadingRealDisk, setLoadingRealDisk] = useState(false);
   // Zimmet Uyuşmazlığı artık gerçek SCCM envanter export'undan besleniyor (bkz. konuşma) —
   // İnaktif Cihazlar/Disk Alanı gibi tek seferde düz bir dizi, departman ayrımı yok
   const [realSccmAll, setRealSccmAll] = useState([]);
+  // Disk Alanı dosyasında şirket sütunu yok: hostname (Name) SCCM envanterindeki cihazla eşleşirse şirket ("İştirak") oradan alınır.
+  // SCCM'de bulunamayan cihazlar şirketsiz kalır (yalnız "Tüm Şirketler"de görünür) — şirket uydurulmaz.
+  const realDiskAll = useMemo(() => {
+    const byHost = new Map();
+    realSccmAll.forEach((x) => { const h = String(x.hostname || "").trim().toLowerCase(); if (h && x.company) byHost.set(h, x.company); });
+    return realDiskRaw.map((r) => (r.company ? r : { ...r, company: byHost.get(String(r.owner || "").trim().toLowerCase()) || "" }));
+  }, [realDiskRaw, realSccmAll]);
   const [realSccmMeta, setRealSccmMeta] = useState(null);
   const [loadingRealSccm, setLoadingRealSccm] = useState(false);
   // Lokasyon Mail Listesi — tüm lokasyon maillerinin TEK kaynağı (bkz. konuşma) + Lokasyon
@@ -378,6 +386,8 @@ export default function App({ user, onLogout } = {}) {
   // klasöründen otomatik yükleniyor (bkz. konuşma: "diğerleri gibi görünmüyor" — önceden sadece
   // tarayıcıda manuel dosya seçimiyle geliyordu, sayfa yenilenince kayboluyordu).
   const [realThAll, setRealThAll] = useState([]);
+  // Yeni Kurulum / Kapatma Onayı kayıtlarının şirketi (kişi → TuruncuHat, lokasyon → SCCM)
+  const recordCompanyOf = useMemo(() => buildRecordCompanyResolver({ thRows: realThAll, sccmRows: realSccmAll }), [realThAll, realSccmAll]);
   const [realThMeta, setRealThMeta] = useState(null);
   const [loadingRealTh, setLoadingRealTh] = useState(false);
   const [realMonitorAll, setRealMonitorAll] = useState([]);
@@ -704,11 +714,9 @@ export default function App({ user, onLogout } = {}) {
 
   // Disk Alanı gerçek dosyasında şirket bilgisi yok, o yüzden şirkete göre değil sabit bir
   // etiketle anılıyor — İnaktif Cihazlar'da ise seçili şirket kullanılıyor
-  const currentDeptKey = usingRealInaktif || isUnused ? activeCompany : usingRealDisk ? "tum-cihazlar" : activeDept;
-  const currentDeptLabel = usingRealInaktif || isUnused
+  const currentDeptKey = usingRealInaktif || isUnused || usingRealDisk ? activeCompany : activeDept;
+  const currentDeptLabel = usingRealInaktif || isUnused || usingRealDisk
     ? (activeCompany === "all" ? "Tüm Şirketler" : companyShortLabel(activeCompany))
-    : usingRealDisk
-    ? "Tüm Cihazlar"
     : isZimmet
     ? "SCCM Envanteri"
     : !USE_MOCK_DATA
@@ -836,11 +844,12 @@ export default function App({ user, onLogout } = {}) {
 
   // Disk → kritik (≤10 GB) cihazlar. Lokasyon SCCM'den zenginleştirilemiyorsa hostname taşınır.
   useEffect(() => {
-    if (realDiskAll.length === 0 || !realDiskMeta) return;
+    if (realDiskAll.length === 0 || !realDiskMeta || realSccmAll.length === 0) return;
     const problem = realDiskAll.filter((r) => classifyDisk(r.freeSpaceGb) === "critical");
-    postSnapshot("disk", realDiskMeta, problem);
+    // "|c": şirket bilgisi taşıyan sürüm (eski, şirketsiz anlık görüntülerden ayrı bir kayıt olarak yazılır)
+    postSnapshot("disk", { ...realDiskMeta, modifiedAt: `${realDiskMeta.modifiedAt}|c` }, problem);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [realDiskMeta, realDiskAll]);
+  }, [realDiskMeta, realDiskAll, realSccmAll]);
 
   // Kullanılmayan Cihazlar → listedeki her cihaz problemlidir (kullanılmıyor). TH+SCCM birleşik
   // idempotency anahtarı; TH henüz yüklenmemişken (unusedDeviceRows boş) snapshot yazılmaz.
@@ -869,7 +878,7 @@ export default function App({ user, onLogout } = {}) {
     : usingRealInaktif
     ? (activeCompany === "all" ? inaktifComparisonRows : inaktifComparisonRows.filter((r) => r.company === activeCompany))
     : usingRealDisk
-    ? realDiskAll // Disk Alanı dosyasında şirket/lokasyon bilgisi yok — düz liste (bkz. konuşma)
+    ? byCompany(realDiskAll, activeCompany) // şirket: hostname → SCCM eşleşmesinden (bkz. realDiskAll)
     : getReportRows(activeDept, activeReport);
 
   // Zimmet'te "sub" = "Monitör — Dell 24"" (tür " — " öncesi); diğer raporlarda "sub" = birim/departman
@@ -995,14 +1004,15 @@ export default function App({ user, onLogout } = {}) {
     () => Array.from(new Set(mailHistory.map((h) => historyReportBase(h.report)).filter(Boolean))).sort((a, b) => a.localeCompare(b, "tr")),
     [mailHistory]
   );
-  const historyFilterCount = [historyStatusFilter, historyDeptFilter, historyReportFilter, historySenderFilter].filter((v) => v !== "all").length + (historyDateFrom ? 1 : 0) + (historyDateTo ? 1 : 0) + (historySearch.trim() ? 1 : 0);
+  const historyFilterCount = [historyStatusFilter, historyDeptFilter, historyReportFilter, historySenderFilter].filter((v) => v !== "all").length + (historyDateFrom ? 1 : 0) + (historyDateTo ? 1 : 0) + (historySearch.trim() ? 1 : 0) + (activeCompany !== "all" ? 1 : 0);
   const clearHistoryFilters = () => {
     setHistoryStatusFilter("all"); setHistoryDeptFilter("all"); setHistoryReportFilter("all"); setHistorySenderFilter("all");
-    setHistoryDateFrom(""); setHistoryDateTo(""); setHistorySearch("");
+    setHistoryDateFrom(""); setHistoryDateTo(""); setHistorySearch(""); setActiveCompany("all");
   };
 
   const filteredMailHistory = useMemo(() => {
     return mailHistory.filter((h) => {
+      if (activeCompany !== "all" && h.company !== activeCompany) return false;
       if (historyStatusFilter !== "all" && h.status !== historyStatusFilter) return false;
       if (historyDeptFilter !== "all" && h.dept !== historyDeptFilter) return false;
       if (historyReportFilter !== "all" && historyReportBase(h.report) !== historyReportFilter) return false;
@@ -1016,7 +1026,7 @@ export default function App({ user, onLogout } = {}) {
       }
       return true;
     });
-  }, [mailHistory, historyStatusFilter, historyDeptFilter, historyReportFilter, historySenderFilter, historyDateFrom, historyDateTo, historySearch]);
+  }, [mailHistory, activeCompany, historyStatusFilter, historyDeptFilter, historyReportFilter, historySenderFilter, historyDateFrom, historyDateTo, historySearch]);
 
   // Gönderim Geçmişi'nde bir kayıt seçilince sağ panel açılır; detaylar önce elde zaten
   // yüklüyse (aynı oturumda oluşturulan kayıt) oradan, değilse backend'den GET /:id/details ile çekilir
@@ -1407,6 +1417,7 @@ export default function App({ user, onLogout } = {}) {
       details,
       senderUserId: user?.id || null,
       senderUsername: user?.username || "bilinmiyor",
+      company: entry.company || activeCompany, // gönderimin yapıldığı şirket seçimi ("all" = Tüm Şirketler)
       time: now.toLocaleTimeString("tr-TR"),
       isoDate: now.toISOString(),
       reportType,
@@ -3131,8 +3142,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   const thMonitors = realThAll.filter((r) => String(r.deviceType || "").toLowerCase() === "monitor");
                   const countSource = showDashboard
                     ? realInaktifAll
-                    : ({ inaktif: realInaktifAll, kullanilmayan: unusedDeviceRows, zimmet: zimmetRows, "lokasyon-ip": lokasyonIpRows, bsod: bsodRows, "battery-health": batteryRows, "atil-monitor": thMonitors }[activeReport] || realInaktifAll);
-                  const noCompanyData = !showDashboard && activeReport === "disk";
+                    : ({ inaktif: realInaktifAll, kullanilmayan: unusedDeviceRows, zimmet: zimmetRows, "lokasyon-ip": lokasyonIpRows, bsod: bsodRows, "battery-health": batteryRows, "atil-monitor": thMonitors, disk: realDiskAll, "sccm-ajan": realSccmAll }[activeReport] || realInaktifAll);
+                  const noCompanyData = !showDashboard && (activeReport === "yeni-kurulum" || activeReport === "kapatma-onayi");
                   const allActive = showDashboard ? dashboardCompanyFilter === "all" : activeCompany === "all" && !showHistory;
                   return (
                     <>
@@ -3344,7 +3355,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             <>
               {(() => {
                 const inaktifStats = computeInaktifDashboard(realInaktifAll, { company: dashboardCompanyFilter });
-                const diskStats = computeDiskDashboard(realDiskAll);
+                const diskStats = computeDiskDashboard(byCompany(realDiskAll, dashboardCompanyFilter));
                 // zimmetRows (realSccmAll değil) kullanılıyor ki TuruncuHat+Monitor Raporu
                 // yüklendiğinde dashboard da rapor ekranıyla AYNI (monitör dahil) sonucu göstersin
                 // — önceden dashboard doğrudan ham SCCM'den hesaplıyordu, monitör karşılaştırmasından
@@ -3352,7 +3363,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 // [ŞİRKET-FİLTRESİ] dashboard kartları seçili şirkete göre; Disk dosyasında şirket bilgisi olmadığı için
                 // şirket seçiliyken disk sayıları toplamlara dahil edilmez (diskScoped=false)
                 const dc = dashboardCompanyFilter;
-                const diskScoped = dc === "all";
+                // Disk şirket bazında hostname → SCCM eşleşmesiyle ayrışır; hiçbir satırın şirketi bulunamadıysa (SCCM yok) eski davranış
+                const diskScoped = dc === "all" || realDiskAll.some((r) => r.company);
                 const zimmetScoped = byCompany(zimmetRows, dc);
                 const overallZimmet = computeOverallZimmetStats(zimmetScoped);
                 const mismatchTotal = overallZimmet.bad + overallZimmet.noRecord;
@@ -3473,8 +3485,9 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     const inak = realInaktifAll.filter((r) => r.company === c).length;
                     const zim = computeOverallZimmetStats(byCompany(zimmetRows, c)).bad;
                     const unu = byCompany(unusedDeviceRows, c).length;
-                    const open = inak + zim + unu;
-                    return { key: c, label: companyShortLabel(c), devices: dev, inaktif: inak, zimmet: zim, unused: unu, open, healthPct: dev ? Math.max(0, Math.round(((dev - open) / dev) * 100)) : 0 };
+                    const dsk = byCompany(realDiskAll, c).filter((r) => classifyDisk(r.freeSpaceGb) === "critical").length;
+                    const open = inak + zim + unu + dsk;
+                    return { key: c, label: companyShortLabel(c), devices: dev, inaktif: inak, zimmet: zim, unused: unu, disk: dsk, open, healthPct: dev ? Math.max(0, Math.round(((dev - open) / dev) * 100)) : 0 };
                   });
                   // Ana Sayfa kartlarından / grafiklerinden rapora yönlendirme (filtre ve şirketle birlikte) — yeni görünüm ve Yönetici Özeti ortak kullanır
                   const dashNavigate = (id, opts = {}) => {
@@ -4561,6 +4574,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 <div style={{ marginTop: 8 }}>
                   <div data-history-summary style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontSize: 13, color: pal.inkSoft }}>
                       <span><b style={{ color: pal.ink }}>{filteredMailHistory.length}</b> / {mailHistory.length} gönderim{historyFilterCount > 0 ? ` · ${historyFilterCount} aktif filtre` : ""}</span>
+                  {activeCompany !== "all" && (
+                    <span data-history-company style={{ display: "inline-flex", alignItems: "center", gap: 6, background: pal.accentSoft, color: pal.accent, borderRadius: 14, padding: "3px 10px", fontWeight: 600 }}>
+                      Şirket: {companyShortLabel(activeCompany)}
+                      <span role="button" aria-label="Şirket filtresini kaldır" onClick={() => setActiveCompany("all")} style={{ cursor: "pointer", fontWeight: 700 }}>×</span>
+                    </span>
+                  )}
                       {historyFilterCount > 0 && <span role="button" data-history-clear onClick={clearHistoryFilters} style={{ cursor: "pointer", color: pal.accent, fontWeight: 600 }}>Filtreleri temizle</span>}
                     </div>
                 </div>
@@ -4694,9 +4713,11 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               mailGroupsText={mailGroupsText}
               recordMailHistory={recordMailHistory}
               showToast={showToast}
+              company={activeCompany}
+              companyOf={recordCompanyOf}
             />
           ) : activeReport === "kapatma-onayi" && !activeNetworkView ? (
-            <PendingClosureScreen styles={styles} pal={pal} showToast={showToast} thRows={realThAll} />
+            <PendingClosureScreen styles={styles} pal={pal} showToast={showToast} thRows={realThAll} company={activeCompany} companyOf={recordCompanyOf} />
           ) : activeReport === "atil-monitor" && !activeNetworkView ? (
             <AtilMonitorReportScreen
               key={atilStage || "varsayilan"}
@@ -4724,7 +4745,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             <SccmAjanScreen
               styles={styles}
               pal={pal}
-              rows={realSccmAll.map((r) => r._raw)}
+              rows={byCompany(realSccmAll, activeCompany).map((r) => r._raw)}
               meta={realSccmMeta}
               loading={loadingRealSccm}
               onLoadClick={loadRealSccmData}

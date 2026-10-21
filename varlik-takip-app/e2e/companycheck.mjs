@@ -101,10 +101,27 @@ try {
   check("Atıl Monitörler: AJET + TKAO = Tüm Şirketler ('toplam monitör')", aParts.every((n) => n > 0 && n < aAll) && aParts.reduce((a, b) => a + b, 0) === aAll, `${aParts.join(" + ")} ↔ ${aAll}`);
   void atilTotal;
 
-  console.log("\nDisk Alanı (dosyada şirket bilgisi yok)");
-  await select("Disk Alanı", "AJET");
-  const sd = await sideRaw();
-  check("Disk ekranında sol menü şirket sayıları '—' gösteriyor (yanıltıcı 0 değil)", sd["AJET"] === "—" && sd["TKAO"] === "—" && sd["Tüm Şirketler"] === "—", JSON.stringify(sd));
+  // ---- Disk Alanı / SCCM Ajan / Yeni Kurulum / Kapatma Onayı: şirket ayrışması (Disk: hostname → SCCM şirketi; SCCM: İştirak; kayıtlar: kişi → TuruncuHat) ----
+  console.log("\nDisk Alanı, SCCM Ajan, Yeni Kurulum, Kapatma Onayı (şirkete göre ayrışma)");
+  const footer = (t) => { const m = t.match(/(\d[\d.]*)\s*kayıttan/); return m ? num(m[1]) : NaN; };
+  const rowsOf = async () => await page.locator("tbody tr").count();
+  const measure = async (name, how) => {
+    const out = {};
+    for (const co of ["Tüm Şirketler", ...COMPANIES]) { await select(name, co); out[co] = await how(); }
+    return out;
+  };
+  const dsk = await measure("Disk Alanı", async () => pick(await txt(), totalRe));
+  check("Disk Alanı: AJET + TKAO = Tüm Şirketler ve iki şirket de farklı (hostname → SCCM eşleşmesi)", COMPANIES.every((c) => dsk[c] > 0 && dsk[c] < dsk["Tüm Şirketler"]) && COMPANIES.reduce((a, c) => a + dsk[c], 0) <= dsk["Tüm Şirketler"], JSON.stringify(dsk));
+  const sdk = await side();
+  check("Disk ekranında sol menü şirket sayıları gerçek sayı (ekranla aynı)", sdk["AJET"] === dsk.AJET && sdk["TKAO"] === dsk.TKAO && sdk["Tüm Şirketler"] === dsk["Tüm Şirketler"], JSON.stringify(sdk));
+  const scm = await measure("SCCM Ajan Raporu", async () => footer(await txt()));
+  check("SCCM Ajan Raporu: şirket filtresi uygulanıyor (AJET + TKAO = Tüm Şirketler)", COMPANIES.every((c) => scm[c] > 0 && scm[c] < scm["Tüm Şirketler"]) && COMPANIES.reduce((a, c) => a + scm[c], 0) <= scm["Tüm Şirketler"], JSON.stringify(scm));
+  const yk = await measure("Yeni Kurulum Kaydı", async () => pick(await txt(), totalRe));
+  check("Yeni Kurulum Kaydı: kayıtlar şirkete göre ayrışıyor (AJET + TKAO ≤ Tüm, ikisi de > 0)", COMPANIES.every((c) => yk[c] > 0 && yk[c] < yk["Tüm Şirketler"]) && COMPANIES.reduce((a, c) => a + yk[c], 0) <= yk["Tüm Şirketler"], JSON.stringify(yk));
+  const kp = await measure("Kapatma Onayı Bekleyen Kayıtlar", rowsOf);
+  check("Kapatma Onayı: bekleyen kayıtlar şirkete göre ayrışıyor (iki şirkette de kayıt var, toplamı aşmıyor)", COMPANIES.every((c) => kp[c] > 0 && kp[c] < kp["Tüm Şirketler"]) && COMPANIES.reduce((a, c) => a + kp[c], 0) <= kp["Tüm Şirketler"], JSON.stringify(kp));
+  const sy = await measure("Yeni Kurulum Kaydı", async () => (await sideRaw())["AJET"]);
+  check("Yeni Kurulum / Kapatma ekranlarında sol menü şirket sayıları '—' (yanıltıcı sayı yok)", sy["AJET"] === "—", JSON.stringify(sy));
 
   console.log("\nDashboard");
   await select("Ana Sayfa", "Tüm Şirketler");
@@ -115,11 +132,11 @@ try {
   for (const co of COMPANIES) {
     await select("Ana Sayfa", co);
     const d = await txt();
-    check(`Ana Sayfa [${co}]: Açık bulgu = inaktif + zimmet hatalı + kullanılmayan (disk hariç)`, open(d) === pick(d, /İnaktif Cihaz\t([\d.]+)/) + pick(d, /Zimmet Hatalı\t([\d.]+)/) + pick(d, /Kullanılmayan\t([\d.]+)/) && pick(d, /Kritik Disk\t([\d.]+)/) === 0, `açık ${open(d)}`);
+    check(`Ana Sayfa [${co}]: Açık bulgu = inaktif + zimmet hatalı + kullanılmayan + kritik disk`, open(d) === pick(d, /İnaktif Cihaz\t([\d.]+)/) + pick(d, /Zimmet Hatalı\t([\d.]+)/) + pick(d, /Kullanılmayan\t([\d.]+)/) + pick(d, /Kritik Disk\t([\d.]+)/) && pick(d, /Kritik Disk\t([\d.]+)/) > 0, `açık ${open(d)}, kritik disk ${pick(d, /Kritik Disk\t([\d.]+)/)}`);
     check(`Ana Sayfa [${co}]: Açık bulgu ve Toplam cihaz Tüm Şirketler'den küçük`, open(d) < open(dAll) && dev(d) < dev(dAll), `açık ${open(d)}/${open(dAll)}, toplam cihaz ${dev(d)}/${dev(dAll)}`);
     check(`Ana Sayfa [${co}]: 'inaktif cihaz' kartı = İnaktif ekranı`, card(d, "inaktif cihaz") === screenTotals["İnaktif Cihazlar"][co], `${card(d, "inaktif cihaz")} ↔ ${screenTotals["İnaktif Cihazlar"][co]}`);
     check(`Ana Sayfa [${co}]: kullanılmayan = Kullanılmayan ekranı`, pick(d, /Kullanılmayan\t([\d.]+)/) === screenTotals["Kullanılmayan Cihazlar"][co], `${pick(d, /Kullanılmayan\t([\d.]+)/)} ↔ ${screenTotals["Kullanılmayan Cihazlar"][co]}`);
-    check(`Ana Sayfa [${co}]: disk kartı '—' ve açıklama notu görünüyor`, d.includes("şirket bazında ayrılamaz") && d.includes("disk sayıları şirket görünümüne dahil edilmedi"));
+    check(`Ana Sayfa [${co}]: disk kartı sayı gösteriyor (şirkete göre) ve 'ayrılamaz' notu yok`, !d.includes("şirket bazında ayrılamaz") && !d.includes("disk sayıları şirket görünümüne dahil edilmedi") && !/Kritik Disk\t—/.test(d));
   }
   // Zimmet kartı = Zimmet ekranındaki 'zimmet hatalı' (şirket seçiliyken)
   for (const co of COMPANIES) {

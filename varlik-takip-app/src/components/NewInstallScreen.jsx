@@ -176,9 +176,11 @@ const isPersonDevice = (r) => {
   return /desktop|laptop|notebook|monitor|tablet/.test(dt) || !dt;
 };
 
-export default function NewInstallScreen({ styles, pal, user, locationOptions = [], thRows = [], mailGroupsText, recordMailHistory, showToast }) {
+export default function NewInstallScreen({ styles, pal, user, locationOptions = [], thRows = [], mailGroupsText, recordMailHistory, showToast, company = "all", companyOf }) {
   const [returnQuery, setReturnQuery] = useState("");
-  const [records, setRecords] = useState([]);
+  const [allRecords, setRecords] = useState([]);
+  // Sol menüden şirket seçiliyse yalnız o şirketin kayıtları (şirket: kişi → TuruncuHat, olmadıysa lokasyon → SCCM; bkz. recordCompany.js)
+  const records = useMemo(() => (company === "all" || !companyOf ? allRecords : allRecords.filter((r) => companyOf(r) === company)), [allRecords, company, companyOf]);
   const [excelPath, setExcelPath] = useState("");
   const [form, setForm] = useState(() => emptyForm(user?.username));
   const [editingId, setEditingId] = useState(null);
