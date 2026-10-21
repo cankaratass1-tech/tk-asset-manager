@@ -1,5 +1,7 @@
 # Devam notları (başka bilgisayarda çalışmaya başlarken)
 
+> Güncel iş listesi için YAPILACAKLAR.md dosyasına bakın.
+
 Proje: TK Asset Manager / Varlık Takip (React + Vite `varlik-takip-app/`, Express `backend/`). Dil: Türkçe.
 Çalışma dalı: `yedek-2026-10-21` (main'e alınmadı).
 
