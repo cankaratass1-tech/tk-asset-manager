@@ -19,7 +19,7 @@ const when = (iso) => {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 };
 
-export default function DashboardV2({ styles, pal, data, snapshots, company, summaryToggle, searchSlot, onNavigate, onBack, onExec }) {
+export default function DashboardV2({ styles, pal, data, snapshots, company, summaryToggle, searchSlot, onNavigate, onBack, onExec, onV3 }) {
   const [recs, setRecs] = useState([]);
   useEffect(() => {
     backendClient.getNewInstalls().then((r) => setRecs(Array.isArray(r?.records) ? r.records : [])).catch(() => {});
@@ -172,6 +172,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
             {summaryToggle}
           </div>
           <button style={styles.btnPrimary} onClick={onExec}>📊 Yönetici özeti (tek sayfa)</button>
+          {onV3 && <button style={styles.btnGhost} onClick={onV3} title="Örnek görünümlerden esinlenen taslak Ana Sayfa">🎨 V3 taslağını dene</button>}
           <button style={styles.btnGhost} onClick={onBack}>← Eski görünüme dön</button>
         </div>
       </div>

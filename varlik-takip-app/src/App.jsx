@@ -31,6 +31,7 @@ import LocationTrendChart from "./components/LocationTrendChart";
 import OverviewPanel from "./components/OverviewPanel";
 import ExecutiveSummary from "./components/ExecutiveSummary"; // DEMO: yönetici için tek sayfalık özet
 import { buildRecordCompanyResolver } from "./services/recordCompany";
+import DashboardV3 from "./components/DashboardV3"; // TASLAK (commit edilmedi) — Ana Sayfa V3 örneği
 import DashboardV2 from "./components/DashboardV2"; // DEMO (commit edilmedi) — yeni Ana Sayfa tasarımı
 import { computeAtilMonitorRows } from "./services/atilMonitorService";
 import ManagementKpiPanel from "./components/ManagementKpiPanel";
@@ -197,6 +198,8 @@ export default function App({ user, onLogout } = {}) {
   const [atilStage, setAtilStage] = useState(null); // DEMO: Atıl Monitörler ekranı hangi aşamayla açılsın (null = varsayılan)
   const [execView, setExecView] = useState(() => { try { return localStorage.getItem("varlikTakip.execView") === "1"; } catch { return false; } }); // DEMO: Yönetici Özeti
   const toggleExecView = (v) => { setExecView(v); try { localStorage.setItem("varlikTakip.execView", v ? "1" : "0"); } catch { /* sessiz geç */ } };
+  const [dashboardV3, setDashboardV3] = useState(() => { try { return localStorage.getItem("varlikTakip.dashboardV3") === "1"; } catch { return false; } });
+  const toggleDashboardV3 = (v) => { setDashboardV3(v); try { localStorage.setItem("varlikTakip.dashboardV3", v ? "1" : "0"); } catch { /* sessiz geç */ } };
   const toggleDashboardDemo = (v) => { setDashboardDemo(v); try { localStorage.setItem("varlikTakip.dashboardDemo", v ? "1" : "0"); } catch { /* sessiz geç */ } };
   const [summaryDetail, setSummaryDetail] = useState(null); // null | "cozulen" | "yeniTespit" | "devamEden" — rozete tıklanınca açılan cihaz listesi
   useEffect(() => { setSummaryDetail(null); }, [activeReport]);
@@ -3504,8 +3507,33 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   if (execView) {
                     return <ExecutiveSummary data={v2} snapshots={reportSnapshots} company={dc} summaryToggle={summaryPeriodToggle} onBack={() => toggleExecView(false)} onNavigate={dashNavigate} styles={styles} pal={pal} />;
                   }
+                  const searchSlotNode = (
+                    <DeviceOverviewCard
+                      sources={{ sccmRows: realSccmAll, thRows: realThAll, monitorRows: realMonitorAll, inaktifRows: inaktifComparisonRows.length ? inaktifComparisonRows : realInaktifAll, diskRows: realDiskAll, batteryRows: realBatteryAll, staleDays }}
+                      styles={styles}
+                      pal={pal}
+                    />
+                  );
+                  if (dashboardV3) {
+                    return (
+                      <DashboardV3
+                        onExec={() => toggleExecView(true)}
+                        styles={styles}
+                        pal={pal}
+                        data={v2}
+                        snapshots={reportSnapshots}
+                        company={dc}
+                        summaryToggle={summaryPeriodToggle}
+                        searchSlot={searchSlotNode}
+                        userName={user?.displayName || user?.name || user?.username}
+                        onNavigate={dashNavigate}
+                        onBack={() => toggleDashboardV3(false)}
+                      />
+                    );
+                  }
                   return (
                     <DashboardV2
+                      onV3={() => toggleDashboardV3(true)}
                       onExec={() => toggleExecView(true)}
                       styles={styles}
                       pal={pal}
