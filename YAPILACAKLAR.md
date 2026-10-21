@@ -15,7 +15,8 @@ Son güncelleme: 21.10.2026
 - [x] **BUL-01 (yüksek):** `newinstalls` Excel yolu: yalnızca Master, yol politikası, istekle yol gelmez. Giderildi 21.10.2026.
 - [x] **BUL-02 (yüksek):** `setup-master` kurulum koduyla korunuyor. Giderildi 21.10.2026.
 - [x] **BUL-03 (yüksek):** giriş, yönetici girişi, kurulum, şifre değiştirme için deneme sınırı. Giderildi 21.10.2026.
-- [ ] **BUL-04 (orta):** `/api/mail/send` alıcı ve gövdeyi sunucuda sınırla.
+- [x] **BUL-04 (orta), kısmen:** alıcı doğrulama, boyut sınırı, kullanıcı kotası, gönderim günlüğü eklendi (21.10.2026).
+- [ ] **BUL-04 kalan:** şirket sunucusuna geçerken `MAIL_ALLOWED_DOMAINS` ortam değişkenini şirket alan adlarıyla tanımla; gövdeyi sunucuda şablondan üretme işi (karar bekliyor).
 - [ ] **BUL-11 (orta):** `npm audit fix`, Express/Nodemailer güncelle.
 - [ ] Bilgi Güvenliği ekibine göndermeden önce Bölüm 16'daki teyit sorularını yanıtla (render.yaml yayında mı? yönetici hesabı gerçek mi?).
 

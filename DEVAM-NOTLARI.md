@@ -13,6 +13,9 @@ Veri klasöründe Master User yoksa (ilk kurulum) Master oluşturmak için kurul
 "Kurulum kodu: ..." satırı yazılır, arayüzdeki ilk kurulum ekranına girilir. `SETUP_CODE` ortam değişkeniyle sabitlenebilir (en az 16 karakter). Mevcut veri klasöründe Master zaten
 varsa bu adım gerekmez. Giriş denemeleri sınırlıdır: 5 hatadan sonra bekleme (429), bkz. `GUVENLIK-BILGILENDIRME.md`.
 
+## Mail alan adı kısıtı
+Şirket sunucusunda `MAIL_ALLOWED_DOMAINS` ortam değişkeni tanımlanmalı (bkz. `backend/README.md`).
+
 ## Testler
 - Hızlı: `cd varlik-takip-app && node --test src/services/*.test.js`
 - Hepsi (Edge/Chrome ya da Playwright Chromium gerekir): `npm run test:all` (18 paket)

@@ -39,6 +39,13 @@ sunucu açılışında konsola yazılır ya da `SETUP_CODE` ortam değişkeniyle
 (Windows Credential Manager/DPAPI) entegre olmaktan daha zayıf bir korumadır. Kurumsal/çok
 kullanıcılı dağıtımda bir secret manager'a taşınmalıdır.
 
+## Mail gönderim politikası
+
+`POST /api/mail/send` oturum gerektirir ve sunucuda şunları uygular: alıcı adres biçimi, tek istekte en fazla
+50 alıcı (`MAIL_MAX_RECIPIENTS`), konu/gövde boyut sınırı, kullanıcı başına saatlik kota (`MAIL_HOURLY_RECIPIENTS`,
+`MAIL_HOURLY_REQUESTS`). `MAIL_ALLOWED_DOMAINS` (virgülle ayrılmış, ör. `sirket.com,alt.com`) tanımlıysa yalnızca
+bu alan adlarına ve alt alan adlarına gönderilir; tanımlı değilse alan adı kısıtı uygulanmaz.
+
 ## Uç noktalar
 
 | Metod | Yol | Ne yapar |

@@ -163,6 +163,7 @@ function startServer({ port = process.env.PORT || 5000, host = process.env.HOST 
     const server = app.listen(port, host, () => {
       console.log(`Varlık Takip backend http://${host}:${port} adresinde çalışıyor`);
       if (!users.hasMasterUser()) announceSetupCode();
+      if (!process.env.MAIL_ALLOWED_DOMAINS) console.warn("[uyarı] MAIL_ALLOWED_DOMAINS tanımlı değil: mail alıcıları için alan adı kısıtı uygulanmıyor.");
       anomalyScheduler.start();
       resolve(server);
     });

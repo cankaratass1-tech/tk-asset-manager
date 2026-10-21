@@ -209,3 +209,43 @@ test("Excel aktarımı: kimlik doğrulama olmadan erişilemez", async () => {
   const put = await call("PUT", "/api/newinstalls/config/excel-path", { body: { excelPath: path.join(outDir, "x.xlsx") } });
   assert.equal(put.status, 401);
 });
+
+test("mail gönderimi: kimlik doğrulama olmadan erişilemez", async () => {
+  const res = await call("POST", "/api/mail/send", { body: { to: "a@sirket.com", subject: "x" } });
+  assert.equal(res.status, 401);
+});
+
+test("mail gönderimi: geçersiz alıcı, başlık enjeksiyonu ve aşırı alıcı reddedilir", async () => {
+  const user = users.findByUsername("normal");
+  const headers = bearer(session.sign({ userId: user.id, username: user.username, role: user.role }));
+  const send = (body) => call("POST", "/api/mail/send", { headers, body });
+
+  assert.equal((await send({ to: "adres-degil", subject: "x" })).status, 400);
+  assert.equal((await send({ to: "a@sirket.com\r\nBcc: x@disari.com", subject: "x" })).status, 400);
+  assert.equal((await send({ to: "Ad <a@sirket.com>", subject: "x" })).status, 400);
+  assert.equal((await send({ to: "a@sirket.com", subject: "x\r\nBcc: y@disari.com" })).status, 400);
+  assert.equal((await send({ to: ["a@sirket.com"], subject: "x" })).status, 400);
+  const many = Array.from({ length: 51 }, (_, i) => `k${i}@sirket.com`).join(",");
+  assert.equal((await send({ to: many, subject: "x" })).status, 400);
+  // geçerli istek doğrulamayı geçer; SMTP tanımlı olmadığından ayar hatasıyla biter
+  const ok = await send({ to: "a@sirket.com", subject: "x" });
+  assert.equal(ok.status, 400);
+  assert.match(ok.json.message, /SMTP ayarları/);
+});
+
+test("mail gönderimi: izinli alan adı listesi dışındaki alıcı reddedilir", async () => {
+  const user = users.findByUsername("normal");
+  const headers = bearer(session.sign({ userId: user.id, username: user.username, role: user.role }));
+  process.env.MAIL_ALLOWED_DOMAINS = "sirket.com";
+  try {
+    const bad = await call("POST", "/api/mail/send", { headers, body: { to: "a@sirket.com,b@disari.com", subject: "x" } });
+    assert.equal(bad.status, 400);
+    assert.match(bad.json.message, /izinli değil/);
+    const sub = await call("POST", "/api/mail/send", { headers, body: { to: "a@alt.sirket.com", subject: "x" } });
+    assert.match(sub.json.message, /SMTP ayarları/);
+    const lookalike = await call("POST", "/api/mail/send", { headers, body: { to: "a@evilsirket.com", subject: "x" } });
+    assert.equal(lookalike.status, 400);
+  } finally {
+    delete process.env.MAIL_ALLOWED_DOMAINS;
+  }
+});
