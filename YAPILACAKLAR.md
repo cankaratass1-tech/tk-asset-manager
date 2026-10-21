@@ -15,12 +15,12 @@ Son güncelleme: 21.10.2026
 - [x] **BUL-01 (yüksek):** `newinstalls` Excel yolu: yalnızca Master, yol politikası, istekle yol gelmez. Giderildi 21.10.2026.
 - [x] **BUL-02 (yüksek):** `setup-master` kurulum koduyla korunuyor. Giderildi 21.10.2026.
 - [x] **BUL-03 (yüksek):** giriş, yönetici girişi, kurulum, şifre değiştirme için deneme sınırı. Giderildi 21.10.2026.
-- [ ] **BUL-18 (orta):** exe'de varsayılan yönetici girişi `admin` / `can`, rastgele şifreye veya Master oturumuna geçir.
 - [ ] **BUL-04 (orta):** `/api/mail/send` alıcı ve gövdeyi sunucuda sınırla.
-- [ ] **BUL-11 (orta):** `npm audit fix`, Electron/Express/Nodemailer güncelle.
+- [ ] **BUL-11 (orta):** `npm audit fix`, Express/Nodemailer güncelle.
 - [ ] Bilgi Güvenliği ekibine göndermeden önce Bölüm 16'daki teyit sorularını yanıtla (render.yaml yayında mı? yönetici hesabı gerçek mi?).
 
 ## Verilen kararlar
+- Masaüstü uygulaması (exe/Electron) plandan çıkarıldı: geçici bir denemeydi, kod ve bağımlılıkları kaldırıldı (21.10.2026). Uygulama yalnızca tarayıcıdan, şirket sunucusunda çalışacak.
 - Gizli dosyaların (`backend/data`) git'ten çıkarılması ve anahtar yenileme: **şimdilik gerekmiyor** (21.10.2026). GitHub proje bitene kadar geçici, SMTP Ethereal test verisi. Dosyalar yerelde `skip-worktree` ile korunuyor.
 
 ## Her çalışmada

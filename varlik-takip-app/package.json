@@ -3,14 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "electron:dev": "electron .",
-    "dist:win": "vite build && electron-builder --win portable nsis",
     "test:unit": "node --test src/services/*.test.js",
     "test:smoke": "node e2e/smoke.mjs",
     "test:mail": "node e2e/mailtest.mjs",
@@ -29,72 +26,6 @@
     "test:feature": "node e2e/featurecheck.mjs",
     "test:all": "node e2e/run-all.mjs"
   },
-  "build": {
-    "appId": "com.varliktakip.app",
-    "productName": "TK Asset Manager",
-    "artifactName": "TK-Asset-Manager.${ext}",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "electron/**/*",
-      "package.json",
-      "!node_modules/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "..",
-        "to": ".",
-        "filter": [
-          "backend/**/*",
-          "!backend/.env",
-          "!backend/.env.example",
-          "!backend/.gitignore",
-          "!backend/data/**",
-          "!backend/demo-data/**",
-          "!backend/scripts/**",
-          "!backend/test-smtp-inbox/**",
-          "!backend/test-smtp-server.js",
-          "!backend/*.cmd",
-          "!backend/README.md",
-          "!backend/node_modules/smtp-server/**",
-          "varlik-takip-app/dist/**/*"
-        ]
-      }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "build/icon.png"
-    },
-    "portable": {
-      "artifactName": "TK-Asset-Manager.exe",
-      "splashImage": "build/splash.bmp"
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "TK Asset Manager",
-      "runAfterFinish": true,
-      "deleteAppDataOnUninstall": false,
-      "artifactName": "TK-Asset-Manager-Kurulum.exe"
-    }
-  },
   "dependencies": {
     "chart.js": "^4.5.1",
     "jspdf": "^4.2.1",
@@ -107,8 +38,6 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
-    "electron": "^43.4.0",
-    "electron-builder": "^26.15.3",
     "oxlint": "^1.75.0",
     "playwright-core": "^1.64.1",
     "vite": "^8.2.0"

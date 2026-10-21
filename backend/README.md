@@ -11,12 +11,7 @@ Bağlantısı" panellerinin sunucu tarafı karşılığı. Görevi:
 
 ## Çalışma şekilleri
 
-**1. Paketlenmiş `.exe` içinde (varsayılan)** — `electron/main.cjs`, backend'i
-`require()` ile kendi süreci içinde otomatik başlatır. Şifreleme anahtarı ilk açılışta
-otomatik üretilip kullanıcının uygulama veri klasörüne
-(`%APPDATA%\varlik-takip-app\backend-data\secret.key`) kalıcı olarak yazılır.
-
-**2. Standalone (geliştirme) modu** — frontend `npm run dev` ile ayrı çalıştırılıyorsa
+Backend ayrı bir Node süreci olarak çalışır. Frontend `npm run dev` ile ayrı çalıştırılıyorsa
 backend de ayrı başlatılmalı:
 
 ```bash
@@ -35,12 +30,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 # çıktıyı .env dosyasındaki BACKEND_SECRET_KEY= satırına yapıştır
 ```
 
-Frontend her iki modda da `varlik-takip-app/src/services/backendClient.js` üzerinden
-sabit olarak `localhost:5000`'i kullanır.
+Frontend `varlik-takip-app/src/services/backendClient.js` üzerinden `localhost:5000`'i kullanır.
 
-**Güvenlik notu**: otomatik üretilen anahtar dosyası `%APPDATA%` altında sadece ilgili
-Windows kullanıcı hesabının erişebildiği bir yerde durur — OS anahtar zincirine (Windows
-Credential Manager/DPAPI) entegre olmaktan daha zayıf bir korumadır. Kurumsal/çok
+**İlk kurulum:** Veri klasöründe Master User yoksa, Master oluşturmak için kurulum kodu gerekir. Kod
+sunucu açılışında konsola yazılır ya da `SETUP_CODE` ortam değişkeniyle (en az 16 karakter) verilir.
+
+**Güvenlik notu**: otomatik üretilen anahtar dosyası (`data/secret.key`) OS anahtar zincirine
+(Windows Credential Manager/DPAPI) entegre olmaktan daha zayıf bir korumadır. Kurumsal/çok
 kullanıcılı dağıtımda bir secret manager'a taşınmalıdır.
 
 ## Uç noktalar
@@ -54,16 +50,6 @@ kullanıcılı dağıtımda bir secret manager'a taşınmalıdır.
 | GET/PUT | `/api/settings/smtp` | SMTP ayarları (aynı maskeleme mantığı) |
 | POST | `/api/settings/smtp/test` | `transporter.verify()` ile SMTP kontrolü |
 | POST | `/api/mail/send` | Kayıtlı SMTP ayarlarıyla mail gönderir — body: `{ to, subject, text }` |
-
-## Paketleme notu
-
-`varlik-takip-app/package.json`'daki `extraResources` konfigürasyonu bu backend'i
-`from: ".."` (proje kökü) + `filter: ["backend/**/*", ...]` ile kopyalar,
-`from: "../backend"` değil. Sebebi: electron-builder, kaynağın doğrudan altındaki bir
-klasör tam olarak `node_modules` adındaysa onu filtre ne olursa olsun atlar
-(`app-builder-lib/util/filter.js` — "root node_modules" için özel durum).
-`backend/` doğrudan `from` olursa bu göreli yol tam eşleşip atlanır ve backend'in
-bağımlılıkları paketlenmemiş olur. Bir üst dizinden alınca bu özel durum devreye girmez.
 
 ## Test etmek için
 

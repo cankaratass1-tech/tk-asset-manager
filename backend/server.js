@@ -37,14 +37,10 @@ function createApp() {
   // (bkz. konuşma: "bir kez yükleyeyim" — backend'e kalıcı kaydediliyor).
   app.use(express.json({ limit: "5mb" }));
 
-  // Electron'un file:// kaynaklı istekleri Origin göndermeyebilir, origin yoksa da izin verilir.
-  // Ağ üzerinden erişim için sabit bir origin listesi yerine, port 5173'teki herhangi bir host'a
-  // (localhost, 127.0.0.1, LAN IP'si) izin veriyoruz — bkz. konuşma: iç ağda güven kabul edildi,
-  // kimlik doğrulama katmanı yok, bu yüzden yalnızca güvenilir bir iç ağda çalıştırılmalı.
-  // Tek servis deploy'unda (ör. Render — bkz. konuşma: "arkadaşıma canlı gösterme") frontend ve
-  // backend AYNI origin'den servis edilir; tarayıcılar "unsafe" metodlarda (POST/PUT/DELETE)
-  // same-origin isteklerde bile Origin header'ı gönderebiliyor, bu yüzden istekte bulunan HOST ile
-  // Origin aynıysa (gerçekten same-origin) da her zaman izin verilir — port farkı önemsizdir.
+  // CORS: Origin başlığı olmayan istekler kabul edilir. Geliştirme için :5173 portundaki herhangi bir
+  // ana makineye izin verilir. Frontend ve backend tek servisten sunulduğunda tarayıcılar same-origin
+  // POST/PUT/DELETE isteklerinde de Origin gönderdiği için, isteğin kendi ana makinesiyle aynı olan
+  // origin her zaman kabul edilir.
   const ALLOWED_ORIGIN_PATTERN = /^https?:\/\/[^/]+:5173$/;
   app.use((req, res, next) => {
     cors({

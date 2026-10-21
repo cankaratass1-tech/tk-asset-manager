@@ -7,7 +7,7 @@ Bu doküman, Bilgi Güvenliği ekibinin inceleme sürecinde soracağı soruları
 Uygulamanın mimarisini, kimlik doğrulama ve yetkilendirme yapısını, veri saklamasını, dış bağlantılarını,
 bağımlılık durumunu ve **tespit edilen açıkları** içerir.
 
-> **Kapsam ve sınırlar:** Bu doküman kaynak kod incelemesine (backend, istemci, Electron kabuğu, CI tanımı) ve
+> **Kapsam ve sınırlar:** Bu doküman kaynak kod incelemesine (backend, istemci, CI tanımı) ve
 > `npm audit` çıktısına dayanır. Sızma testi, dinamik güvenlik taraması veya gerçek AD/RADIUS/TACACS+ ortamında
 > doğrulama yapılmamıştır. Bulgular kodda görülen davranışı yansıtır; sömürülebilirlik, dağıtım biçimine göre
 > değişir (Bölüm 3).
@@ -38,18 +38,17 @@ vardır.
 - **İstemci:** React 19 + Vite tek sayfa uygulaması.
 - **Backend:** Node.js + Express 4. Ayarları, kullanıcıları ve işlenen veriyi saklar, kimlik doğrulamayı yürütür,
   e-posta gönderir, dosya okur/yazar.
-- **Masaüstü kabuğu:** Electron 43. Backend, Electron'un Node çalışma zamanı içinde başlatılır, pencere
-  `http://127.0.0.1:<port>/` adresini açar.
+Masaüstü (exe) paketi kapsam dışıdır, geçici bir denemeydi ve koddan kaldırılmıştır.
 
 **Dağıtım modelleri** (backend'in dinlediği adres `HOST` ortam değişkeniyle belirlenir, varsayılan `127.0.0.1`):
 
 | Model | Dinleme | Kimler erişir | Not |
 |---|---|---|---|
-| Masaüstü (Electron) | `127.0.0.1` | Yalnızca aynı bilgisayar | Ağdan erişilemez |
-| Şirket içi sunucu | `HOST=0.0.0.0` ile ağa açılır | Ağdaki kullanıcılar | Uygulama kendisi TLS sunmaz, HTTP üzerinden çalışır (BUL-09) |
+| Geliştirme (yerel) | `127.0.0.1` | Yalnızca aynı bilgisayar | Ağdan erişilemez |
+| Şirket içi sunucu | `HOST=0.0.0.0` ile ağa açılır | Ağdaki kullanıcılar | Hedef model. Uygulama kendisi TLS sunmaz, HTTP üzerinden çalışır (BUL-09) |
 | Bulut demo (`render.yaml`) | `HOST=0.0.0.0` | İnternet | Depoda tanımlıdır. **Fiilen yayında olup olmadığı Bölüm 16'da teyit edilecek.** |
 
-Bulguların önemi dağıtım modeline bağlıdır: Masaüstü modunda birçok bulgu yalnızca aynı bilgisayardaki kullanıcıyı
+Bulguların önemi dağıtım modeline bağlıdır: Yerel çalıştırmada birçok bulgu yalnızca aynı bilgisayardaki kullanıcıyı
 ilgilendirir, ağa açık modda ise ağdaki her kullanıcıyı.
 
 ## 4. Veri kaynakları ve işlenen veri
@@ -85,10 +84,8 @@ Uygulamada **iki ayrı yetki mekanizması** bir arada çalışır:
 - Ayarlar uçları (veri kaynağı, SMTP, mail grupları, dosya kaynağı, uygulama ayarları, otomatik tarama, üst yönetim
   listesi) tek bir paylaşımlı kullanıcı adı/şifre ile korunur. Bilgiler her istekte `x-admin-username` ve
   `x-admin-password` başlıklarıyla gönderilir.
-- Sunucu/geliştirme modunda bilgiler ilk çalıştırmada üretilir (kullanıcı `admin`, 12 karakterlik rastgele şifre,
-  konsola yazılır) ya da `ADMIN_USERNAME` / `ADMIN_PASSWORD` ortam değişkenlerinden alınır.
-- **Masaüstü paketinde (exe)** konsol olmadığı için, `admin-credentials.json` yoksa **varsayılan `admin` / `can`**
-  kullanılır (BUL-18).
+- Bilgiler ilk çalıştırmada üretilir (kullanıcı `admin`, 12 karakterlik rastgele şifre, konsola yazılır) ya da
+  `ADMIN_USERNAME` / `ADMIN_PASSWORD` ortam değişkenlerinden alınır. Sabit varsayılan şifre yoktur.
 
 **Deneme sınırı (BUL-03 düzeltmesi):** Giriş, yönetici girişi (ayarlar uçları dahil), ilk kurulum ve şifre değiştirme
 uçlarında bellek içi sınırlayıcı çalışır. Aynı kullanıcı + IP için 5 ardışık hatadan sonra 30 saniye bekleme
@@ -99,9 +96,8 @@ soket adresinden alınır (proxy başlıklarına güvenilmez); bir ters vekil ar
 bu durumda kullanıcı bazlı katmanlar esas korumayı sağlar.
 
 **İlk kurulum kodu (BUL-02 düzeltmesi):** Master User oluşturmak için kurulum kodu gerekir. Kod, Master yokken sunucu
-açılışında konsola yazılır (ya da `SETUP_CODE` ortam değişkeninden, en az 16 karakter, alınır), diske kaydedilmez. Masaüstü
-uygulamada kod her açılışta rastgele üretilir ve yalnızca uygulamanın kendi penceresine iletilir. Kod sabit zamanlı
-karşılaştırılır, hatalı denemeler sınırlanır, Master oluştuktan sonra uç 409 döner.
+açılışında konsola yazılır (ya da `SETUP_CODE` ortam değişkeninden, en az 16 karakter, alınır), diske kaydedilmez. Kod
+sabit zamanlı karşılaştırılır, hatalı denemeler sınırlanır, Master oluştuktan sonra uç 409 döner.
 
 **Uç koruma özeti**
 
@@ -120,8 +116,7 @@ karşılaştırılır, hatalı denemeler sınırlanır, Master oluştuktan sonra
 
 ## 6. Veri nerede saklanıyor
 
-Veri klasörü: masaüstü paketinde `%APPDATA%\varlik-takip-app\backend-data\`, geliştirme/sunucu modunda
-`backend/data/` (`DATA_DIR` ile değiştirilebilir).
+Veri klasörü: `backend/data/` (`DATA_DIR` ortam değişkeniyle değiştirilebilir).
 
 | Dosya | Biçim | Koruma |
 |---|---|---|
@@ -187,16 +182,13 @@ sonlandıran bir ters vekil (reverse proxy) olmadan **HTTP üzerinden düz metin
   (keyfi klasör oluşturulmaz). Hedefte dosya varsa geçerli bir `.xlsx` (ZIP imzası) olmalıdır, aksi halde okunmaz ve
   üzerine yazılmaz.
 
-## 11. İstemci ve masaüstü güvenliği
+## 11. İstemci güvenliği
 
 - **Oturum token'ı `localStorage`'da** tutulur (BUL-07).
 - **HTML önizleme:** Mail önizlemesi `dangerouslySetInnerHTML` kullanır. İçerik uygulamanın kendi şablonundan
   gelir ve veriler kaçırılarak yerleştirilir. Kaçırma, çağıran kodun sorumluluğundadır (şablon yardımcısı bunu
   belirtir), kaçırılmamış yeni bir alan eklenirse XSS oluşur.
-- **Electron:** `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. Renderer'a yalnızca tek bir
-  köprü fonksiyonu (klasör seçme) sunulur. Pencere kendi sunucusu dışına gezinemez, yeni pencere istekleri
-  engellenir, `http(s)` bağlantıları sistem tarayıcısında açılır.
-- Uygulama kod imzasızdır (SmartScreen uyarısı verebilir).
+- Uygulama yalnızca tarayıcıdan kullanılır, yürütülebilir dosya (exe) dağıtımı yoktur.
 
 ## 12. Loglama ve izlenebilirlik
 
@@ -213,8 +205,8 @@ sonlandıran bir ters vekil (reverse proxy) olmadan **HTTP üzerinden düz metin
 |---|---|---|---|---|---|
 | Backend (tümü) | 6 | 1 | 1 | 4 | 0 |
 | Backend (yalnızca üretim) | 5 | 1 | 1 | 3 | 0 |
-| İstemci/Electron (tümü) | 18 | 0 | 9 | 8 | 1 |
-| İstemci/Electron (yalnızca üretim) | 1 | 0 | 0 | 0 | 1 |
+| İstemci (tümü) | 3 | 0 | 2 | 0 | 1 |
+| İstemci (yalnızca üretim) | 1 | 0 | 0 | 0 | 1 |
 
 **Backend, üretimde etkili olanlar**
 - **`proxy-addr` (kritik, dolaylı, `express` üzerinden):** "güvenilen alt ağ" ile IP sahteciliği. Uygulama
@@ -223,10 +215,9 @@ sonlandıran bir ters vekil (reverse proxy) olmadan **HTTP üzerinden düz metin
 - **`nodemailer` (yüksek, doğrudan):** eski imza ile `resolveContent()` çağrıldığında dosya/URL erişim kısıtını
   atlama. Uygulama bu çağrı biçimini kullanmaz, ancak güncelleme önerilir.
 
-**İstemci/Electron:** Yüksek bulguların çoğu derleme/geliştirme araçlarındadır (`vite`, `electron-builder`
-zinciri) ve çalışan uygulamaya girmez. `electron` paketlenmiş uygulamanın içinde çalışan çalışma zamanıdır:
-"sandbox'lı pencereden açılan pencereler sandbox'ı devralmaz" bulgusu vardır; uygulama kendi dışına pencere
-açtırmadığı için (yukarıdaki engelleme) etkisi sınırlıdır. Electron sürümü güncellenmelidir.
+**İstemci:** Kalan iki yüksek bulgu geliştirme araçlarındadır (`vite` ve bağımlılığı `source-map-js`) ve çalışan
+uygulamaya girmez, yalnızca üretim bağımlılıklarında tek bir düşük önemli bulgu kalır. Electron ve exe paketleme
+araçları projeden kaldırıldığı için onlardan gelen bulgular (18'den 3'e düşüş) ortadan kalkmıştır.
 
 Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenler ayrıca değerlendirilmelidir.
 
@@ -252,7 +243,7 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
 | No | Önem | Bulgu | Etki | Öneri |
 |---|---|---|---|---|
 | BUL-01 | **Giderildi** (21.10.2026, eski önem: Yüksek) | `POST /api/newinstalls/sync-excel` ve `PUT /api/newinstalls/config/excel-path`, oturum açmış herhangi bir kullanıcıdan `excelPath` alıyordu. Yol doğrulanmıyor, klasör özyinelemeli oluşturuluyor, hedef dosya varsa okunup üzerine yazılıyordu. | Eski etki: sunucu bilgisayarında keyfi yola dosya yazma/üzerine yazma. | **Uygulanan:** yol yalnızca Master tarafından kaydedilir (`excel-path` ucu Master ister), `sync-excel` istek gövdesindeki yolu kullanmaz. Yol politikası: mutlak, `.xlsx`, uygulama/veri/yüklenen rapor klasörleri yasak, klasör keyfi oluşturulmaz, hedefteki dosya geçerli `.xlsx` değilse dokunulmaz. 6 otomatik test. |
-| BUL-02 | **Giderildi** (21.10.2026, eski önem: Yüksek) | `POST /api/auth/setup-master` kimliksizdi, Master yokken uca erişen ilk kişi Master olabiliyordu. | Eski etki: yeni kurulumda yetki ele geçirme. | **Uygulanan:** kurulum kodu zorunlu (sunucu konsolu/`SETUP_CODE`, masaüstünde otomatik), sabit zamanlı karşılaştırma, hatalı kod denemeleri sınırlı, eşzamanlı iki kurulum isteğine karşı yeniden kontrol. 3 otomatik test. |
+| BUL-02 | **Giderildi** (21.10.2026, eski önem: Yüksek) | `POST /api/auth/setup-master` kimliksizdi, Master yokken uca erişen ilk kişi Master olabiliyordu. | Eski etki: yeni kurulumda yetki ele geçirme. | **Uygulanan:** kurulum kodu zorunlu (sunucu konsolu/`SETUP_CODE`), sabit zamanlı karşılaştırma, hatalı kod denemeleri sınırlı, eşzamanlı iki kurulum isteğine karşı yeniden kontrol. 3 otomatik test. |
 | BUL-03 | **Giderildi** (21.10.2026, eski önem: Yüksek) | Giriş ve yönetici girişi uçlarında deneme sınırı ve hesap kilidi yoktu. | Eski etki: şifre deneme saldırısı. | **Uygulanan:** kullanıcı+IP, kullanıcı ve IP katmanlı sınırlayıcı, artan bekleme (30 sn'den 15 dk'ya), 429 + `Retry-After`. Giriş, yönetici girişi (tüm ayarlar uçları dahil), ilk kurulum ve şifre değiştirme kapsanır. Yönetici şifresi karşılaştırması sabit zamanlıya çevrildi. Metin olmayan kullanıcı adı/şifre 400 döner. 7 otomatik test. |
 | BUL-04 | Orta | `POST /api/mail/send` oturum açmış **her kullanıcıya** açıktır, alıcı, konu ve HTML gövde istemciden gelir. | Şirketin SMTP kimliğiyle serbest içerikle iç/dış e-posta gönderme (oltalama, istenmeyen posta). | Alıcıyı sunucuda mail grupları/izinli alan adlarıyla sınırla, gövdeyi sunucuda şablondan üret, oran sınırı. |
 | BUL-05 | Orta | Şirket seçimi (AJET/TKAO) yalnızca arayüz filtresidir, rapor uçları tüm satırları döner. Grup/yetki yoktur. | Her oturum açmış kullanıcı tüm şirketlerin tüm verisini görebilir. | Sunucu tarafı şirket/grup bazlı yetkilendirme (planlı: İstanbul / Yurt İçi / Yurt Dışı). |
@@ -261,22 +252,20 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
 | BUL-08 | Orta | Paylaşımlı yönetici şifresi düz metin dosyada tutulur, sabit zamanlı olmayan `===` ile karşılaştırılır, her istekte HTTP başlığıyla taşınır, ilk üretimde konsola yazılır. | Dosyaya/loga erişen veya trafiği dinleyen kişi yönetici yetkisini alır. Kimin değişiklik yaptığı bilinmez. | Ayarları Master oturumuna taşı (bcrypt + token), paylaşımlı şifreyi kaldır. |
 | BUL-09 | Orta | Uygulama TLS sunmaz. | Sunucu modunda parolalar, token ve yönetici şifresi ağda düz metin gider. | TLS sonlandıran ters vekil (IIS/nginx) arkasında yayınla, HTTP'yi kapat. |
 | BUL-10 | Orta | Dört gizli dosya git geçmişinde durur (private GitHub). Anahtar, şifreli verinin yanındadır. | Depo erişimi olan biri anahtarı ve şifreli ayarları alır. | SMTP test verisi (Ethereal) olduğundan proje sahibi şimdilik kabul etti. Yönetici hesabı ve kullanıcılar gerçekse hemen yenile. Üretim öncesi geçmişi temizle, anahtarları yenile. |
-| BUL-11 | Orta | Bağımlılık açıkları (Bölüm 13), özellikle `nodemailer`, `express` zinciri, `electron`. | Doğrudan sömürü olasılığı düşük, ama güncel olmayan paket riski. | `npm audit fix`, Electron/Express/Nodemailer'ı güncelle, CI'da `npm audit` adımı ekle. |
+| BUL-11 | Orta | Bağımlılık açıkları (Bölüm 13), özellikle `nodemailer` ve `express` zinciri. | Doğrudan sömürü olasılığı düşük, ama güncel olmayan paket riski. | `npm audit fix`, Express/Nodemailer'ı güncelle, CI'da `npm audit` adımı ekle. |
 | BUL-12 | Orta | Denetim kaydı yok, başarısız girişte IP yok, başarılı giriş kaydedilmiyor. | Olay incelemesi ve hesap verebilirlik zayıf. | Kimlik doğrulama ve ayar değişikliği olaylarını kullanıcı + IP ile ayrı log'a yaz. |
 | BUL-13 | Düşük | Dosya klasörü bulunamazsa uygulama **sessizce depodaki demo verisine** düşer. | Üretimde yapılandırma hatası, kullanıcıya gerçek veri gibi demo veri gösterilmesine yol açabilir (veri bütünlüğü). | Üretim modunda yedek veriyi kapat, belirgin bir hata göster. |
 | BUL-14 | Düşük | Dış sağlayıcıda `ldaps` kapalı seçilirse LDAP şifresi düz metin gider. RADIUS ve TACACS+ protokolleri kendi doğaları gereği MD5 tabanlı gizleme kullanır. | Ağ dinlemesiyle kimlik bilgisi ele geçirilebilir. | LDAPS zorunlu kıl, RADIUS/TACACS+ yalnızca yönetim ağında kullan. |
 | BUL-15 | Düşük | Veri kaynağı test ucu, yöneticinin verdiği URL'ye sunucudan istek atar. | Yönetici yetkisiyle iç ağ adreslerine istek (SSRF). | Hedef adres listesi/alan adı kısıtı. |
 | BUL-16 | Düşük | `/api/appconfig` her oturumlu kullanıcıya sunucudaki klasör yolunu döner. | Sunucu dizin yapısı bilgisi sızar. | Yolu yalnızca yöneticiye göster. |
 | BUL-17 | Bilgi | `render.yaml` ile bulut demo dağıtım tanımı depoda durur (HOST=0.0.0.0, kullanıcı adı `admin`). | Yayındaysa internete açıktır. BUL-02 ve BUL-03 giderildi, ancak BUL-04, BUL-05, BUL-09 geçerliliğini korur. Render'da `SETUP_CODE` ortam değişkeni tanımlı değilse kurulum kodu yalnızca Render günlüğünde görünür. | Bölüm 16'daki teyit. Gerekmiyorsa dosyayı kaldır. |
-| BUL-18 | Orta | Masaüstü paketinde (exe) `admin-credentials.json` yoksa yönetici girişi **varsayılan `admin` / `can`** olarak ayarlanır (`electron/main.cjs`). Şifre kaynak kodda ve açıklamada yazılıdır. | Aynı bilgisayardaki herhangi bir kullanıcı/işlem, ayarlar uçlarına (SMTP, veri kaynağı, dosya kaynağı, mail grupları) yönetici olarak erişebilir. Erişim yalnızca `127.0.0.1` üzerinden olduğu için ağdan kullanılamaz. | İlk açılışta rastgele şifre üret ve yalnızca Master'a göster, ya da ayarlar yetkisini Master oturumuna taşı (BUL-08 ile birlikte). |
-
 ## 16. Proje sahibinden teyit beklenen noktalar
 
 - `render.yaml` ile tanımlı bulut demo ortamı **fiilen yayında mı?** Yayındaysa içinde gerçek veri var mı ve
   Master kullanıcı oluşturuldu mu? (BUL-02, BUL-03, BUL-17)
 - `admin-credentials.json` içindeki yönetici hesabı ve kullanıcı kayıtları **test verisi mi, gerçek hesap mı?**
   Gerçekse bunlar git geçmişinde durduğu için hemen yenilenmelidir (BUL-10).
-- Üretimde uygulama hangi modelde çalışacak (masaüstü, şirket sunucusu)? TLS ters vekil sağlanacak mı?
+- Şirket sunucusunda TLS sonlandıran bir ters vekil (IIS/nginx) sağlanacak mı?
 - Kimlik doğrulama için hangi sağlayıcı kullanılacak (LDAP/AD, RADIUS, TACACS+)? Bunlar gerçek ortamda henüz
   doğrulanmamıştır.
 - Kişisel veri (KVKK) açısından saklama süresi ve yükleme dosyalarının silinme politikası.
@@ -292,7 +281,7 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
   otomatik güvenlik testleriyle (`backend/src/security.test.js`) sürekli doğrulanır.
 - Yükleme dosya adları sunucu üretimidir, yol manipülasyonu görülmedi.
 - Hata yanıtları ayrıntı sızdırmaz, `x-powered-by` kapalıdır.
-- CSP etkin, Electron sertleştirilmiş (izolasyon, sandbox, gezinme engeli).
+- CSP etkin (`script-src 'self'`, `object-src 'none'`).
 - Üçüncü taraf servise veri gönderilmez, telemetri yoktur.
 - Tüm kod okunabilir düz JavaScript/JSX'tir, otomatik testler (birim, backend, tarayıcı) CI'da çalışır.
 
@@ -300,7 +289,7 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
 
 - **"Şifreler nasıl saklanıyor?"** Kullanıcı şifreleri bcrypt özeti olarak, ayarlar ve veri AES-256-GCM ile
   şifreli. İstisna: paylaşımlı yönetici şifresi düz metin dosyada (BUL-08).
-- **"Uygulama internete açık mı?"** Masaüstü modunda hayır (yalnızca `127.0.0.1`). Sunucu modunda ağdaki
+- **"Uygulama internete açık mı?"** Yerel çalıştırmada hayır (yalnızca `127.0.0.1`). Sunucu modunda ağdaki
   kullanıcılara açıktır. `render.yaml` ile bulut demo tanımı vardır, yayında olup olmadığı teyit edilecek.
 - **"Kullanıcı girişi/yetkilendirme var mı?"** Var (yerel + LDAP/RADIUS/TACACS+, Master/User rolü). Grup bazlı veri
   yetkilendirmesi henüz yok.
@@ -311,5 +300,5 @@ Düzeltme: `npm audit fix` ile çoğu giderilebilir, breaking change gerektirenl
   diskte şifresizdir.
 - **"En önemli açıklar neler?"** Yüksek önemdeki üç bulgu (BUL-01 keyfi yola dosya yazma, BUL-02 kimliksiz Master
   kurulumu, BUL-03 deneme sınırı yok) 21.10.2026'da giderildi ve otomatik testlerle doğrulandı. Kalan en önemli
-  maddeler: BUL-04 (serbest içerikli e-posta gönderimi), BUL-05 (grup/yetki yok), BUL-08 ve BUL-18 (paylaşımlı
-  yönetici şifresi, exe'de varsayılan şifre), BUL-09 (TLS yok).
+  maddeler: BUL-04 (serbest içerikli e-posta gönderimi), BUL-05 (grup/yetki yok), BUL-08 (paylaşımlı yönetici
+  şifresi), BUL-09 (TLS yok).

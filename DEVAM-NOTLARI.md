@@ -9,9 +9,8 @@ Proje: TK Asset Manager / Varlık Takip (React + Vite `varlik-takip-app/`, Expre
 `kur-ve-calistir.bat` dosyasına çift tıkla (Node.js 22 ve Git kurulu olmalı). Arayüz: http://localhost:5173, backend: http://127.0.0.1:5000
 
 ## İlk kurulum kodu (yeni veri klasörü)
-Veri klasöründe Master User yoksa (ilk kurulum) Master oluşturmak için kurulum kodu gerekir. Masaüstü uygulamada kod
-otomatik iletilir. Sunucu/geliştirme modunda backend konsolunda "Kurulum kodu: ..." satırı yazılır, arayüzdeki ilk kurulum
-ekranına girilir. `SETUP_CODE` ortam değişkeniyle sabitlenebilir (en az 16 karakter). Mevcut veri klasöründe Master zaten
+Veri klasöründe Master User yoksa (ilk kurulum) Master oluşturmak için kurulum kodu gerekir. Backend konsolunda
+"Kurulum kodu: ..." satırı yazılır, arayüzdeki ilk kurulum ekranına girilir. `SETUP_CODE` ortam değişkeniyle sabitlenebilir (en az 16 karakter). Mevcut veri klasöründe Master zaten
 varsa bu adım gerekmez. Giriş denemeleri sınırlıdır: 5 hatadan sonra bekleme (429), bkz. `GUVENLIK-BILGILENDIRME.md`.
 
 ## Testler

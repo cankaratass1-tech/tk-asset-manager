@@ -2432,15 +2432,6 @@ IT Support`;
     }
   };
 
-  const pickFolder = async () => {
-    if (!window.varlikTakipDesktop?.pickFolder) {
-      showToast("Klasör seçme sadece masaüstü uygulamasında (.exe) çalışır — geliştirme modunda yolu elle yazmalısınız");
-      return;
-    }
-    const folder = await window.varlikTakipDesktop.pickFolder();
-    if (folder) setFileSourceConfig({ folderPath: folder });
-  };
-
   // LakeSide Battery Health — artık backend'e KALICI yükleniyor (bkz. konuşma: "gömülü olsun her
   // seferinde yüklemeyelim"), Ofis Bant Genişliği ile aynı desen (loadRealBantData/handleManualBantFile).
   const loadRealBatteryData = async ({ silent = false } = {}) => {
@@ -4377,7 +4368,6 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         onChange={(e) => setFileSourceConfig({ folderPath: e.target.value })}
                         style={{ ...styles.formInput, flex: 1 }}
                       />
-                      <button type="button" style={styles.btnGhost} onClick={pickFolder}>Gözat…</button>
                     </div>
                   </div>
                 </div>

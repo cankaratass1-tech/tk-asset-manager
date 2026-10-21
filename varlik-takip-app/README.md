@@ -17,11 +17,9 @@ Ayarlar ekranındaki "Mail (SMTP)" ve "Veri Kaynağı (API)" panelleri `../backe
 servise bağlıdır: kimlik bilgilerini şifreleyip saklar, Windows/NTLM dahil bağlantı testi
 yapar, gerçek mail gönderir.
 
-- **`.exe` paketinde**: backend gömülü, otomatik başlar.
-- **`npm run dev` ile çalıştırırken**: backend ayrıca başlatılmalı:
-  `cd ../backend && npm install && npm run dev` (detaylar `backend/README.md`'de).
-  Backend çalışmıyorsa panellerde "Backend Çalışmıyor" rozeti görünür, uygulamanın
-  geri kalanı (raporlar, dashboard, export) etkilenmez.
+- Backend ayrıca başlatılmalıdır: `cd ../backend && npm install && npm run dev`
+  (detaylar `backend/README.md`'de). Backend çalışmıyorsa panellerde "Backend Çalışmıyor"
+  rozeti görünür, uygulamanın geri kalanı (raporlar, dashboard, export) etkilenmez.
 
 ## Klasör yapısı
 
@@ -52,33 +50,6 @@ ve dönüş şekilleri sabit kalırsa `App.jsx` ve UI katmanı değişmeden çal
 - `getReportRows(deptId, reportType)` → satır dizisi
 - `getDeptAssetCount(deptId)` → sayı
 
-## Masaüstü uygulaması (.exe) olarak paketleme
-
-Electron ile paketlenir — `dist/`'i bir Chromium penceresinde açan ince bir kabuk
-(`electron/main.cjs`). SMTP/Veri Kaynağı backend'i (`../backend`) exe içine gömülüdür ve
-pencere açılırken otomatik başlar. Bkz. `backend/README.md`.
-
-```bash
-npm run build
-npx electron-builder --win
-```
-
-Çıktı `release/` altında iki dosya olarak oluşur:
-- `Varlık Takip Setup <sürüm>.exe` — kurulum sihirbazı (NSIS), Başlat Menüsü'ne ekler
-- `Varlık Takip <sürüm>.exe` — taşınabilir, kurulum gerektirmez
-
-Geliştirirken pencereyi doğrudan açmak için: `npm run electron:dev`
-
-**Windows Denetimli Klasör Erişimi (Controlled Folder Access):** Proje Masaüstü altında
-(`C:\Users\...\Desktop\...`) ise Windows Defender'ın fidye yazılımı koruması
-`electron-builder`'ın `release/win-unpacked` klasörünü oluşturmasını
-`EPERM: operation not permitted, rename ...` hatasıyla engelleyebilir. Çözüm:
-
-1. Çıktıyı Masaüstü dışına yönlendir: `npx electron-builder --win --config.directories.output="C:\\Users\\<kullanıcı>\\VarlikTakipRelease"`
-2. Ya da Windows Ayarları → Gizlilik ve Güvenlik → Windows Güvenliği → Virüs ve tehdit
-   koruması → Fidye yazılımı korumasını yönet → Denetimli klasör erişimi'nden proje
-   klasörünü (veya `node.exe`'yi) izin verilenler listesine ekle.
-
 ## Güvenlik
 
 - **`xlsx` bağımlılığı** — npm'deki `0.18.5` sürümünde düzeltilmemiş prototype
@@ -86,9 +57,6 @@ Geliştirirken pencereyi doğrudan açmak için: `npm run electron:dev`
   dağıtımına (`https://cdn.sheetjs.com/xlsx-0.20.3/...`) geçirildi;
   `npm audit` **0 zafiyet** raporluyor. Export sadece `XLSX.writeFile` ile yapılır,
   güvenilmeyen dosyalar `XLSX.read` ile ayrıştırılmaz.
-- **Electron sertleştirmesi** (`electron/main.cjs`) — `contextIsolation: true`,
-  `nodeIntegration: false`, `sandbox: true`; pencere `dist/index.html` dışına
-  gezinemez, yeni pencere açma denemeleri reddedilip sistem tarayıcısına yönlendirilir.
 - **CSP** (`index.html`) — `script-src 'self'`, harici script/iframe çalışamaz.
   `connect-src` açık bırakıldı çünkü Ayarlar > Veri Kaynağı ekranı kullanıcının
   girdiği herhangi bir kurumsal API'ye test bağlantısı kurabilmeli.
