@@ -420,6 +420,19 @@ ${body}`);
     check("Bant: test akışı tamamlandı", false, String(e.message).split("\n")[0].slice(0, 160));
   }
   void BAD_WORDS;
+
+  // ---------- Gönderim Geçmişi ↔ backend gönderim günlüğü ----------
+  console.log("\nGönderim Geçmişi kayıtları");
+  const hdr = { Authorization: `Bearer ${be.token}` };
+  const hist = await fetch(`${be.base}/api/mail/history`, { headers: hdr }).then((r) => r.json());
+  const log = await fetch(`${be.base}/api/mail/send-log`, { headers: hdr }).then((r) => r.json());
+  const logIds = new Set(log.map((e) => e.id));
+  const withIds = hist.filter((h) => Array.isArray(h.sendLogIds) && h.sendLogIds.length > 0);
+  check("Gönderim yapılan her geçmiş kaydı backend günlüğündeki gerçek maillere bağlı", withIds.length > 0 && withIds.every((h) => h.sendLogIds.every((id) => logIds.has(id))), `${withIds.length}/${hist.length} kayıt`);
+  check("Günlükteki mail sayısı SMTP'ye giden mail sayısıyla aynı (kayıt atlanmıyor)", log.filter((e) => e.ok).length === sink.messages.length, `günlük ${log.filter((e) => e.ok).length}, SMTP ${sink.messages.length}`);
+  const allDetails = (await Promise.all(hist.map((h) => fetch(`${be.base}/api/mail/history/${h.id}/details`, { headers: hdr }).then((r) => r.json())))).flat();
+  const devDetails = allDetails.filter((d) => d.ok && Array.isArray(d.devices));
+  check("Başarılı gönderim detaylarında bildirilen cihazlar (seri no / hostname) kayıtlı", devDetails.length > 0 && devDetails.every((d) => d.devices.length > 0 && d.devices.every((x) => x.serial || x.hostname)), `${devDetails.length} detay`);
 } finally {
   await browser.close();
   await be.stop();

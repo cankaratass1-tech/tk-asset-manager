@@ -422,6 +422,7 @@ export default function App({ user, onLogout } = {}) {
   const [historyDeptFilter, setHistoryDeptFilter] = useState("all");
   const [historyReportFilter, setHistoryReportFilter] = useState("all");
   const [historySearch, setHistorySearch] = useState("");
+  const [historySearchIds, setHistorySearchIds] = useState(null); // aramayla (detaylarda: kişi, e-posta, seri no, hostname) backend'de eşleşen gönderim kimlikleri
   // Gereksinim #11: gönderen kullanıcı + tarih aralığı filtresi de eklendi
   const [historySenderFilter, setHistorySenderFilter] = useState("all");
   const [historyDateFrom, setHistoryDateFrom] = useState("");
@@ -1015,12 +1016,23 @@ export default function App({ user, onLogout } = {}) {
       if (historyDateTo && h.isoDate && h.isoDate > `${historyDateTo}T23:59:59`) return false;
       if (historySearch.trim()) {
         const q = historySearch.trim().toLowerCase();
-        const inDetails = (h.details || []).some((d) => `${d.location} ${d.to || ""}`.toLowerCase().includes(q));
+        const inDetails = (historySearchIds && historySearchIds.has(h.id)) || (h.details || []).some((d) => `${d.location} ${d.to || ""} ${(d.devices || []).map((x) => `${x.serial} ${x.hostname}`).join(" ")}`.toLowerCase().includes(q));
         if (!inDetails && !`${h.dept} ${h.report} ${h.senderUsername || ""}`.toLowerCase().includes(q)) return false;
       }
       return true;
     });
-  }, [mailHistory, activeCompany, historyStatusFilter, historyDeptFilter, historyReportFilter, historySenderFilter, historyDateFrom, historyDateTo, historySearch]);
+  }, [mailHistory, activeCompany, historyStatusFilter, historyDeptFilter, historyReportFilter, historySenderFilter, historyDateFrom, historyDateTo, historySearch, historySearchIds]);
+
+  // Arama kutusu: detaylar backend'de durduğu için eşleşen gönderimler orada aranır (kısa gecikmeyle)
+  useEffect(() => {
+    const q = historySearch.trim();
+    if (!q) { setHistorySearchIds(null); return undefined; }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      backendClient.searchMailHistory(q).then((rows) => { if (!cancelled) setHistorySearchIds(new Set((rows || []).map((r) => r.id))); }).catch(() => { if (!cancelled) setHistorySearchIds(null); });
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [historySearch]);
 
   // Gönderim Geçmişi'nde bir kayıt seçilince sağ panel açılır; detaylar önce elde zaten
   // yüklüyse (aynı oturumda oluşturulan kayıt) oradan, değilse backend'den GET /:id/details ile çekilir
@@ -1403,6 +1415,9 @@ export default function App({ user, onLogout } = {}) {
   // Gereksinim #10/#14: her gönderim kaydına gönderen kullanıcı + rapor türü id'si otomatik
   // eklenir — 4 çağrı noktasının (handleMail/handleDiskMail/sendInaktifMailPreview/demo) her
   // birine tekrar tekrar yazmak yerine tek yerden zenginleştiriliyor.
+  // Gönderim detayına hangi cihazların (seri no / hostname) bildirildiği yazılır: geçmişte seri no ya da hostname ile aranabilsin,
+  // bir cihaza hangi e-postanın ne zaman gittiği bulunabilsin. Detay başına en çok 200 cihaz saklanır (kayıt şişmesin).
+  const devRef = (rows) => (rows || []).slice(0, 200).map((r) => ({ serial: String(r.serial || "").trim(), hostname: String(r.hostname || "").trim() })).filter((x) => x.serial || x.hostname);
   const recordMailHistory = (entry) => {
     const now = new Date();
     const reportType = entry.reportType || activeReport;
@@ -1536,7 +1551,7 @@ export default function App({ user, onLogout } = {}) {
 
     let sent = 0, failed = 0, duplicateSent = 0, extraIncluded = 0;
     const skipped = noMailRows.length;
-    const details = noMailRows.map((r) => ({ location: r.userFull || r.userLabel || r.hostname, to: null, count: 1, ok: false, message: "SCCM'de bu kullanıcı için e-posta adresi bulunamadı" }));
+    const details = noMailRows.map((r) => ({ location: r.userFull || r.userLabel || r.hostname, to: null, count: 1, devices: devRef([r]), ok: false, message: "SCCM'de bu kullanıcı için e-posta adresi bulunamadı" }));
 
     for (const [to, rows] of byActualUser) {
       const label = rows[0].userFull || rows[0].userLabel || "Bilinmeyen kullanıcı";
@@ -1565,15 +1580,15 @@ export default function App({ user, onLogout } = {}) {
           // sayaçlar yalnızca SEÇİLİ/hedef kayıtları sayar; aynı kişiye ait ek kayıtlar ayrıca "extraIncluded" olarak raporlanır
           duplicateSent += rows.filter((r) => r.statusTag === "Mükerrer Çift Zimmet").length;
           extraIncluded += mailRows.length - rows.length;
-          details.push({ location: label, to, count: rows.length, ok: true, message: "Gönderildi" });
+          details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: true, message: "Gönderildi" });
           rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `${r.statusTag === "Mükerrer Çift Zimmet" ? "Mükerrer çift zimmet" : r.monitorIssue && r.statusTag !== "Zimmet Hatalı" ? "Monitör uyuşmazlığı" : "Zimmet uyuşmazlığı"} e-postası gönderildi (${label})`, mailSubject: subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
-          details.push({ location: label, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
+          details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: false, message: result.message || "Gönderilemedi" });
         }
       } catch (err) {
         failed += rows.length;
-        details.push({ location: label, to, count: rows.length, ok: false, message: err.message || "Gönderilemedi" });
+        details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: false, message: err.message || "Gönderilemedi" });
       }
     }
 
@@ -1747,7 +1762,7 @@ IT Support`;
       if (!to) {
         skipped++;
         const reason = sccm ? "SCCM'de eşleşme var ama e-posta adresi yok" : "SCCM'de bu hostname bulunamadı";
-        details.push({ location: d.owner, to: null, count: 1, ok: false, message: reason });
+        details.push({ location: d.owner, to: null, count: 1, devices: devRef([d]), ok: false, message: reason });
         skippedRows.push({
           Hostname: d.owner,
           "Boş C Disk Alanı": d.model,
@@ -1765,15 +1780,15 @@ IT Support`;
         });
         if (result.ok) {
           sent++;
-          details.push({ location: d.owner, to, count: 1, ok: true, message: "Gönderildi" });
+          details.push({ location: d.owner, to, count: 1, devices: devRef([d]), ok: true, message: "Gönderildi" });
           logDeviceAction(d, { type: "Mail", description: `Kritik disk alanı e-postası gönderildi`, mailSubject: `Kritik Disk Alanı Uyarısı — ${d.owner}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" });
         } else {
           failed++;
-          details.push({ location: d.owner, to, count: 1, ok: false, message: result.message || "Gönderilemedi" });
+          details.push({ location: d.owner, to, count: 1, devices: devRef([d]), ok: false, message: result.message || "Gönderilemedi" });
         }
       } catch (err) {
         failed++;
-        details.push({ location: d.owner, to, count: 1, ok: false, message: err.message || "Gönderilemedi" });
+        details.push({ location: d.owner, to, count: 1, devices: devRef([d]), ok: false, message: err.message || "Gönderilemedi" });
       }
     }
 
@@ -1829,7 +1844,7 @@ IT Support`;
       const subject = unusedDeviceMailSubject(rows);
       if (!to) {
         skipped += rows.length;
-        details.push({ location: loc, to: null, count: rows.length, ok: false, message: "Lokasyon E-posta Listesi'nde bu lokasyon için e-posta adresi bulunamadı" });
+        details.push({ location: loc, to: null, count: rows.length, devices: devRef(rows), ok: false, message: "Lokasyon E-posta Listesi'nde bu lokasyon için e-posta adresi bulunamadı" });
         continue;
       }
       const lines = rows.map((r) => `- ${r.hostname || r.serial} — ${r.deviceModel || ""} (${r.deviceAge != null ? r.deviceAge + " yıl" : "yaş bilinmiyor"})`).join("\n");
@@ -1842,15 +1857,15 @@ IT Support`;
         });
         if (result.ok) {
           sent += rows.length;
-          details.push({ location: loc, to, count: rows.length, ok: true, message: "Gönderildi" });
+          details.push({ location: loc, to, count: rows.length, devices: devRef(rows), ok: true, message: "Gönderildi" });
           rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `Kullanılmayan cihaz e-postası gönderildi (${loc})`, mailSubject: `${subject} — ${loc}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
-          details.push({ location: loc, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
+          details.push({ location: loc, to, count: rows.length, devices: devRef(rows), ok: false, message: result.message || "Gönderilemedi" });
         }
       } catch (err) {
         failed += rows.length;
-        details.push({ location: loc, to, count: rows.length, ok: false, message: err.message || "Gönderilemedi" });
+        details.push({ location: loc, to, count: rows.length, devices: devRef(rows), ok: false, message: err.message || "Gönderilemedi" });
       }
     }
 
@@ -1902,7 +1917,7 @@ IT Support`;
       const to = r.mail;
       if (!to) {
         skipped += 1;
-        details.push({ location: r.hostname, to: null, count: 1, ok: false, message: "SCCM'de bu cihaz için kullanıcı e-postası bulunamadı" });
+        details.push({ location: r.hostname, to: null, count: 1, devices: devRef([r]), ok: false, message: "SCCM'de bu cihaz için kullanıcı e-postası bulunamadı" });
         continue;
       }
       try {
@@ -1914,15 +1929,15 @@ IT Support`;
         });
         if (result.ok) {
           sent += 1;
-          details.push({ location: r.hostname, to, count: 1, ok: true, message: "Gönderildi" });
+          details.push({ location: r.hostname, to, count: 1, devices: devRef([r]), ok: true, message: "Gönderildi" });
           logDeviceAction(r, { type: "Mail", description: `Lokasyon/IP uyuşmazlığı e-postası gönderildi (${r.hostname})`, mailSubject: buildLocationIpMail(r).subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" });
         } else {
           failed += 1;
-          details.push({ location: r.hostname, to, count: 1, ok: false, message: result.message || "Gönderilemedi" });
+          details.push({ location: r.hostname, to, count: 1, devices: devRef([r]), ok: false, message: result.message || "Gönderilemedi" });
         }
       } catch (err) {
         failed += 1;
-        details.push({ location: r.hostname, to, count: 1, ok: false, message: err.message || "Gönderilemedi" });
+        details.push({ location: r.hostname, to, count: 1, devices: devRef([r]), ok: false, message: err.message || "Gönderilemedi" });
       }
     }
 
@@ -1989,7 +2004,7 @@ IT Support`;
         if (result.ok) {
           sent += rows.length;
           rows.forEach((r) => sentHosts.add(r.hostShort));
-          details.push({ location: label, to, count: rows.length, ok: true, message: "Gönderildi" });
+          details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: true, message: "Gönderildi" });
           rows.forEach((r) =>
             logDeviceAction(
               { hostname: r.hostShort, serial: "" },
@@ -1998,11 +2013,11 @@ IT Support`;
           );
         } else {
           failed += rows.length;
-          details.push({ location: label, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
+          details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: false, message: result.message || "Gönderilemedi" });
         }
       } catch (err) {
         failed += rows.length;
-        details.push({ location: label, to, count: rows.length, ok: false, message: err.message || "Gönderilemedi" });
+        details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: false, message: err.message || "Gönderilemedi" });
       }
     };
 
@@ -2157,7 +2172,7 @@ IT Support`;
       const to = resolveMailForLocationName(realLokasyonMailAll, loc);
       if (!to) {
         skipped += rows.length;
-        details.push({ location: loc, to: null, count: rows.length, ok: false, message: "Lokasyon E-posta Listesi'nde bu lokasyon için e-posta adresi bulunamadı" });
+        details.push({ location: loc, to: null, count: rows.length, devices: devRef(rows), ok: false, message: "Lokasyon E-posta Listesi'nde bu lokasyon için e-posta adresi bulunamadı" });
         continue;
       }
       const lines = rows.map((r) => `- ${ownerWithTitle(r)} — ${r.serial} (${r.model})`).join("\n");
@@ -2170,15 +2185,15 @@ IT Support`;
         });
         if (result.ok) {
           sent += rows.length;
-          details.push({ location: loc, to, count: rows.length, ok: true, message: "Gönderildi" });
+          details.push({ location: loc, to, count: rows.length, devices: devRef(rows), ok: true, message: "Gönderildi" });
           rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `İnaktif Cihazlar e-postası gönderildi (${loc})`, mailSubject: `İnaktif Cihazlar Raporu — ${loc}`, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
-          details.push({ location: loc, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
+          details.push({ location: loc, to, count: rows.length, devices: devRef(rows), ok: false, message: result.message || "Gönderilemedi" });
         }
       } catch (err) {
         failed += rows.length;
-        details.push({ location: loc, to, count: rows.length, ok: false, message: err.message || "Gönderilemedi" });
+        details.push({ location: loc, to, count: rows.length, devices: devRef(rows), ok: false, message: err.message || "Gönderilemedi" });
       }
     }
 
@@ -2187,7 +2202,7 @@ IT Support`;
       const label = rows[0].actualUserFull || rows[0].actualUser || "Bilinmeyen kullanıcı";
       if (!to) {
         skipped += rows.length;
-        details.push({ location: label, to: null, count: rows.length, ok: false, message: "SCCM'de bu kullanıcı için e-posta adresi bulunamadı" });
+        details.push({ location: label, to: null, count: rows.length, devices: devRef(rows), ok: false, message: "SCCM'de bu kullanıcı için e-posta adresi bulunamadı" });
         continue;
       }
       const lines = rows.map((r) => `- ${r.serial} (${r.model}) — eski kayıtlı sahibi: ${ownerWithTitle(r)}`).join("\n");
@@ -2200,15 +2215,15 @@ IT Support`;
         });
         if (result.ok) {
           sent += rows.length;
-          details.push({ location: label, to, count: rows.length, ok: true, message: "Gönderildi" });
+          details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: true, message: "Gönderildi" });
           rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `Zimmet aktarımı e-postası gönderildi (${label})`, mailSubject: "Zimmet Aktarımı Gerekli — Kullandığınız Cihaz(lar)", user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
-          details.push({ location: label, to, count: rows.length, ok: false, message: result.message || "Gönderilemedi" });
+          details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: false, message: result.message || "Gönderilemedi" });
         }
       } catch (err) {
         failed += rows.length;
-        details.push({ location: label, to, count: rows.length, ok: false, message: err.message || "Gönderilemedi" });
+        details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: false, message: err.message || "Gönderilemedi" });
       }
     }
 
@@ -4547,7 +4562,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     </svg>
                     <input
                       type="text"
-                      placeholder="Kişi, cihaz veya e-posta ara..."
+                      placeholder="Kişi, cihaz, seri no veya e-posta ara..."
                       value={historySearch}
                       onChange={(e) => setHistorySearch(e.target.value)}
                       style={{ ...styles.searchInput, fontSize: 13 }}
@@ -4706,6 +4721,11 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                                     {(d.device || d.deviceModel) && (
                                       <div style={{ color: pal.inkSoft, marginTop: 2 }}>
                                         {d.device}{d.deviceModel ? ` — ${d.deviceModel}` : ""}
+                                      </div>
+                                    )}
+                                    {Array.isArray(d.devices) && d.devices.length > 0 && (
+                                      <div data-detail-devices style={{ color: pal.inkSoft, marginTop: 2, wordBreak: "break-word" }}>
+                                        {d.devices.length} cihaz: {d.devices.slice(0, 8).map((x) => x.serial || x.hostname).join(", ")}{d.devices.length > 8 ? ` +${d.devices.length - 8}` : ""}
                                       </div>
                                     )}
                                     {d.message && !(d.sendingStatus ? d.sendingStatus === "Başarılı" : d.ok) && <div style={{ color: pal.bad, marginTop: 2 }}>{d.message}</div>}

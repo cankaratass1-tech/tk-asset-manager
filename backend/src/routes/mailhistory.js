@@ -26,7 +26,7 @@ router.get("/", (req, res) => {
     rows = rows.filter((h) => {
       const details = allDetails[h.id] || h.details || [];
       return details.some((d) =>
-        `${d.recipientUser || ""} ${d.recipientEmail || d.to || ""} ${d.device || d.deviceName || d.location || ""}`
+        `${d.recipientUser || ""} ${d.recipientEmail || d.to || ""} ${d.device || d.deviceName || d.location || ""} ${(d.devices || []).map((x) => `${x.serial || ""} ${x.hostname || ""}`).join(" ")}`
           .toLowerCase()
           .includes(q)
       );

@@ -35,6 +35,7 @@ try {
 
   // Gönderim Geçmişi: kayıt sendLogIds taşır → detay panelinde "Maili gör" → önizleme
   await fetch(`${be.base}/api/mail/history`, { method: "POST", headers: auth, body: JSON.stringify({ id: 9101, date: "22.10.2026", time: "10:00:00", isoDate: "2026-10-22T10:00:00Z", report: "Zimmet Uyuşmazlığı", reportType: "zimmet", dept: "AJET", company: "all", recipients: 2, status: "Başarılı", senderUsername: "smoke", sendLogIds: [ok.logId], details: [{ location: "Ali Veli", to: "ali@x.com", count: 1, ok: true }] }) });
+  await fetch(`${be.base}/api/mail/history`, { method: "POST", headers: auth, body: JSON.stringify({ id: 9102, date: "22.10.2026", time: "11:00:00", isoDate: "2026-10-22T11:00:00Z", report: "Kullanılmayan Cihazlar", reportType: "kullanilmayan", dept: "AJET", company: "all", recipients: 1, status: "Başarılı", senderUsername: "smoke", details: [{ location: "Ankara Ofis", to: "ofis@x.com", count: 2, ok: true, devices: [{ serial: "SN-TEST-777", hostname: "PC-ANK-01" }, { serial: "SN-TEST-888", hostname: "PC-ANK-02" }] }] }) });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
   await ctx.addInitScript((t) => localStorage.setItem("varlikTakip.sessionToken", t), be.token);
   const page = await ctx.newPage();
@@ -44,13 +45,31 @@ try {
   await page.waitForTimeout(4000);
   await page.locator('text="Gönderim Geçmişi"').first().click();
   await page.waitForTimeout(1500);
-  await page.locator("tbody tr").first().click();
+  await page.locator("tbody tr", { hasText: "Zimmet Uyuşmazlığı" }).first().click();
   await page.waitForTimeout(800);
   check("Detay panelinde 'Gönderilen E-postalar (1)' ve 'E-postayı gör' düğmesi", (await page.locator("[data-sent-mails] button").count()) === 1 && /Gönderilen E-postalar \(1\)/.test(await page.locator("[data-sent-mails]").innerText()));
   await page.locator("[data-sent-mails] button").click();
   await page.waitForSelector("[data-mail-preview]", { timeout: 8000 });
   const modal = await page.locator("[data-mail-preview]").innerText();
   check("Önizlemede konu, alıcılar ve mailin gövdesi görünüyor", modal.includes("Günlük testi") && modal.includes("ali@x.com") && modal.includes("veli@x.com") && modal.includes("Merhaba Ali"));
+  await page.locator("[data-mail-preview] span", { hasText: "✕" }).click(); // önizleme penceresini kapat
+  await page.locator("[data-mail-preview]").waitFor({ state: "detached", timeout: 3000 });
+  const realRows = () => page.locator("tbody tr", { hasNotText: "Filtreyle eşleşen kayıt yok" }).count();
+  const rowsAll = await realRows();
+  await page.locator('input[placeholder*="seri no"]').fill("sn-test-888");
+  await page.waitForTimeout(600);
+  check("Geçmişte seri no ile arama: yalnız o cihaza e-posta giden gönderim bulunuyor", rowsAll >= 2 && (await realRows()) === 1, `${rowsAll} → ${await realRows()}`);
+  await page.locator('input[placeholder*="seri no"]').fill("pc-ank-01");
+  await page.waitForTimeout(500);
+  check("Hostname ile arama da aynı gönderimi buluyor", (await realRows()) === 1);
+  await page.locator('input[placeholder*="seri no"]').fill("yok-boyle-bir-cihaz");
+  await page.waitForTimeout(600);
+  check("Olmayan seri no aramasında kayıt bulunmuyor", (await realRows()) === 0);
+  await page.locator('input[placeholder*="seri no"]').fill("pc-ank-01");
+  await page.waitForTimeout(600);
+  await page.locator("tbody tr").first().click();
+  await page.waitForTimeout(700);
+  check("Detay panelinde bildirilen cihazlar (adet ve seri no) görünüyor", /2 cihaz: SN-TEST-777, SN-TEST-888/.test(await page.locator("[data-detail-devices]").first().innerText()));
   check("Sayfa hatası yok", problems.length === 0, problems.join(" | "));
 } finally {
   await browser.close();

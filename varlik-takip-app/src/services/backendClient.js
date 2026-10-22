@@ -141,6 +141,8 @@ export const backendClient = {
     return request(`/mail/history${qs ? `?${qs}` : ""}`);
   },
   addMailHistory: (entry) => request("/mail/history", { method: "POST", body: JSON.stringify(entry) }),
+  // Detay kayıtları (kişi, e-posta, cihaz seri no / hostname) içinde arar; eşleşen gönderimlerin listesi döner
+  searchMailHistory: (q) => request(`/mail/history?person=${encodeURIComponent(q)}`),
   getMailHistoryDetails: (id) => request(`/mail/history/${id}/details`),
 
   getFileSourceConfig: () => request("/settings/filesource"),

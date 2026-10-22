@@ -5,7 +5,8 @@ Son güncelleme: 22.10.2026
 
 ## Karar bekleyenler
 - [x] **Gönderim Geçmişi, 1. aşama (22.10.2026):** backend her gönderimi kendisi kaydeder (gönderen oturumdan), e-posta içeriği en yeni 300 gönderimde saklanır ("E-postayı gör"), zamanlayıcı e-postaları "Otomatik (sistem)" olarak yazılır, geçmiş sınırı 5000.
-- [ ] **Gönderim Geçmişi, kalan:** kayıt alanlarının düzenlenmesi (location alanı hem lokasyon hem cihaz için kullanılıyor), cihaz kartında "bu cihaza ne zaman e-posta gitti", Cihaz Aksiyon Geçmişi ile birleştirme.
+- [x] **Gönderim Geçmişi, 2. aşama (22.10.2026):** gönderim detaylarına bildirilen cihazlar (seri no / hostname) yazılır; geçmiş araması seri no, hostname, kişi ve e-posta ile backend'de yapılır. Cihaz kartındaki "E-posta gönderildi" olayları (Zimmet, Disk, Kullanılmayan, Lokasyon/IP, İnaktif, LakeSide) zaten vardı.
+- [ ] **Gönderim Geçmişi, kalan (isteğe bağlı):** Bant, Atıl Monitör, Yeni Kurulum gönderimlerinin cihaz kartına yazılması; `location` alanının hem lokasyon hem kişi hem hostname için kullanılması (ekranlar çalışıyor, yalnızca adlandırma karışık).
 - [ ] **Test ortamı ve otomatik dağıtım:** canlı veriye erişmeden değişiklik deneme ve canlıya aktarım planı.
 - [ ] **Grup/yetki sistemi** (İstanbul / Yurt İçi / Yurt Dışı): ayrım için TH `LBS Location Parent`, SCCM `EnvanterLocationParent` alanları kullanılabilir.
 - [ ] **`main` dalına alma:** çalışma dalı `yedek-2026-10-21`, `main` ilk sürümde duruyor.
