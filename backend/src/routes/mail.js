@@ -5,6 +5,7 @@ const nodemailer = require("nodemailer");
 const { readSection } = require("../store");
 const { buildTransport } = require("../mailTransport");
 const { validateRecipients, validateContent, createQuota } = require("../mailPolicy");
+const sendLog = require("../mailSendLog");
 
 const router = express.Router();
 const quota = createQuota();
@@ -30,6 +31,15 @@ router.post("/send", async (req, res) => {
     return res.status(429).json({ ok: false, message: "Mail gönderim kotası doldu. Daha sonra tekrar deneyin.", retryAfterSec: q.retryAfterSec });
   }
 
+  const logSend = (extra) => {
+    try {
+      return sendLog.record({ source: "manuel", username: req.user && req.user.username, userId: req.user && req.user.id, to: rcpt.recipients, subject, text: text || "", html: html || "", ...extra });
+    } catch (e) {
+      console.error("[mail] gönderim günlüğü yazılamadı:", e.message); // günlük hatası maili engellemez
+      return null;
+    }
+  };
+
   const cfg = readSection("smtp");
   if (!cfg || !cfg.host) {
     return res.status(400).json({ ok: false, message: "SMTP ayarları henüz kaydedilmedi (Ayarlar > Mail sunucu ayarları)" });
@@ -45,11 +55,21 @@ router.post("/send", async (req, res) => {
       html: html || undefined,
       attachments: logoAttachments(html),
     });
+    const logId = logSend({ ok: true, messageId: info.messageId });
     console.log(`[mail] kullanıcı=${(req.user && req.user.username) || "?"} alıcı=${rcpt.recipients.length} konu="${subject.slice(0, 80)}"`);
-    res.json({ ok: true, messageId: info.messageId, accepted: info.accepted, previewUrl: nodemailer.getTestMessageUrl(info) || undefined });
+    res.json({ ok: true, logId, messageId: info.messageId, accepted: info.accepted, previewUrl: nodemailer.getTestMessageUrl(info) || undefined });
   } catch (err) {
-    res.status(502).json({ ok: false, message: `Mail gönderilemedi: ${err.message}` });
+    const logId = logSend({ ok: false, error: err.message });
+    res.status(502).json({ ok: false, logId, message: `Mail gönderilemedi: ${err.message}` });
   }
+});
+
+// Gönderim günlüğü (backend kaydı): liste üst bilgi taşır, tek kayıt gövdeyi de verir.
+router.get("/send-log", (req, res) => res.json(sendLog.list()));
+router.get("/send-log/:id", (req, res) => {
+  const e = sendLog.get(req.params.id);
+  if (!e) return res.status(404).json({ error: "Kayıt bulunamadı" });
+  res.json(e);
 });
 
 module.exports = router;

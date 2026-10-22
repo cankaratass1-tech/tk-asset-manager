@@ -1041,6 +1041,20 @@ export default function App({ user, onLogout } = {}) {
     }
   };
 
+  // Gönderim Geçmişi: backend günlüğündeki mailin kendisini önizleme penceresinde aç
+  const openSentMail = async (logId) => {
+    try {
+      const e = await backendClient.getMailSendLog(logId);
+      if (!e.html && !e.text) {
+        showToast("Bu e-postanın içeriği saklanmıyor (yalnızca en yeni 300 gönderimin içeriği tutulur)");
+        return;
+      }
+      setMailPreviewData({ subject: e.subject, to: (e.to || []).join(", "), html: e.html || `<pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(e.text)}</pre>` });
+    } catch {
+      showToast("E-posta içeriği alınamadı");
+    }
+  };
+
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2600);
@@ -1411,6 +1425,7 @@ export default function App({ user, onLogout } = {}) {
       senderUserId: user?.id || null,
       senderUsername: user?.username || "bilinmiyor",
       company: entry.company || activeCompany, // gönderimin yapıldığı şirket seçimi ("all" = Tüm Şirketler)
+      sendLogIds: entry.sendLogIds || backendClient.drainSendLogIds(), // backend gönderim günlüğü kayıtları (mailin kendisi)
       time: now.toLocaleTimeString("tr-TR"),
       isoDate: now.toISOString(),
       reportType,
@@ -4657,6 +4672,18 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                               })()}</span>
                             </div>
                           </div>
+
+                          {Array.isArray(h.sendLogIds) && h.sendLogIds.length > 0 && (
+                            <div data-sent-mails>
+                              <p style={{ ...styles.formLabel, marginBottom: 8, color: pal.ink, fontWeight: 700 }}>Gönderilen E-postalar ({h.sendLogIds.length})</p>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {h.sendLogIds.slice(0, 20).map((lid, i) => (
+                                  <button key={lid} type="button" style={styles.btnGhost} onClick={() => openSentMail(lid)}>E-postayı gör {h.sendLogIds.length > 1 ? i + 1 : ""}</button>
+                                ))}
+                                {h.sendLogIds.length > 20 && <span style={styles.formHelper}>+{h.sendLogIds.length - 20} e-posta daha</span>}
+                              </div>
+                            </div>
+                          )}
 
                           <div>
                             <p style={{ ...styles.formLabel, marginBottom: 8, color: pal.ink, fontWeight: 700 }}>Kişi / Cihaz Bazında Detay</p>

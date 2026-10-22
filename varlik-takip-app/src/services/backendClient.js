@@ -42,6 +42,9 @@ export function setSessionToken(token) {
 let mailSuccessCount = 0;
 export const getMailSuccessCount = () => mailSuccessCount;
 
+// Backend her gönderimi kendi günlüğüne yazar ve logId döndürür; Gönderim Geçmişi kaydı bu kimlikleri taşır ("Maili gör").
+let pendingSendLogIds = [];
+
 async function request(path, options) {
   let res;
   const isSettingsPath = path.startsWith("/settings/") && path !== "/settings/login";
@@ -114,8 +117,16 @@ export const backendClient = {
   sendMail: async ({ to, subject, text, html }) => {
     const res = await request("/mail/send", { method: "POST", body: JSON.stringify({ to, subject, text, html }) });
     if (res && res.ok) mailSuccessCount += 1;
+    if (res && res.logId) pendingSendLogIds.push(res.logId);
     return res;
   },
+  // Son kayıttan beri gönderilen maillerin günlük kimlikleri (kayıt anında geçmişe eklenir, liste boşalır)
+  drainSendLogIds: () => {
+    const ids = pendingSendLogIds;
+    pendingSendLogIds = [];
+    return ids;
+  },
+  getMailSendLog: (id) => request(`/mail/send-log/${encodeURIComponent(id)}`),
 
   // /settings/mailgroups (admin şifreli) sadece Ayarlar ekranındaki düzenleme formu için;
   // "/mailgroups" (session token'ıyla, admin şifresi istemez) her oturum açmış kullanıcının Mail

@@ -14,6 +14,7 @@ const SUITES = [
   ["Özellikler (cihaz kartı, tam ad, Atıl filtreleri, e-posta önizleme)", "node", ["e2e/featurecheck.mjs", "--skip-build"]],
   ["Duman testi", "node", ["e2e/smoke.mjs", "--skip-build"]],
   ["Mail", "node", ["e2e/mailtest.mjs", "--skip-build"]],
+  ["Gönderim günlüğü", "node", ["e2e/sendlogcheck.mjs", "--skip-build"]],
   ["Dashboard doğruluğu", "node", ["e2e/dashcheck.mjs", "--skip-build"]],
   ["Dashboard demo", "node", ["e2e/dashdemo.mjs", "--skip-build"]],
   ["Şirket filtresi", "node", ["e2e/companycheck.mjs", "--skip-build"]],

@@ -9,7 +9,7 @@ const { readSection, writeSection } = require("../store");
 const router = express.Router();
 const MAIN_SECTION = "mailHistory";
 const DETAILS_SECTION = "mailHistoryDetails";
-const MAX_ENTRIES = 500;
+const MAX_ENTRIES = 5000;
 
 router.get("/", (req, res) => {
   const { dateFrom, dateTo, senderUsername, reportType, status, person, device } = req.query || {};
@@ -41,10 +41,8 @@ router.get("/:id/details", (req, res) => {
   res.json(allDetails[req.params.id] || []);
 });
 
-router.post("/", (req, res) => {
-  const entry = req.body || {};
-  if (!entry.id) return res.status(400).json({ error: "id zorunlu" });
-
+// Ana kaydı + detaylarını yazar (hem POST hem sunucu tarafı gönderimler — zamanlayıcı — kullanır)
+function addEntry(entry) {
   const { details, ...mainFields } = entry;
   const current = readSection(MAIN_SECTION) || [];
   const nextMain = [mainFields, ...current].slice(0, MAX_ENTRIES);
@@ -60,8 +58,14 @@ router.post("/", (req, res) => {
     }
     writeSection(DETAILS_SECTION, allDetails);
   }
+  return entry;
+}
 
-  res.json(entry);
+router.post("/", (req, res) => {
+  const entry = req.body || {};
+  if (!entry.id) return res.status(400).json({ error: "id zorunlu" });
+  res.json(addEntry(entry));
 });
 
 module.exports = router;
+module.exports.addEntry = addEntry;

@@ -4,7 +4,8 @@ Bu dosya iki bilgisayarda da `senkronla.bat` ile eşitlenir. Yeni bir iş aklın
 Son güncelleme: 22.10.2026
 
 ## Karar bekleyenler
-- [ ] **Gönderim Geçmişi veri modeli:** mail içeriğinin saklanması, zamanlayıcı e-postaları, Cihaz Aksiyon Geçmişi ile birleştirme.
+- [x] **Gönderim Geçmişi, 1. aşama (22.10.2026):** backend her gönderimi kendisi kaydeder (gönderen oturumdan), e-posta içeriği en yeni 300 gönderimde saklanır ("E-postayı gör"), zamanlayıcı e-postaları "Otomatik (sistem)" olarak yazılır, geçmiş sınırı 5000.
+- [ ] **Gönderim Geçmişi, kalan:** kayıt alanlarının düzenlenmesi (location alanı hem lokasyon hem cihaz için kullanılıyor), cihaz kartında "bu cihaza ne zaman e-posta gitti", Cihaz Aksiyon Geçmişi ile birleştirme.
 - [ ] **Test ortamı ve otomatik dağıtım:** canlı veriye erişmeden değişiklik deneme ve canlıya aktarım planı.
 - [ ] **Grup/yetki sistemi** (İstanbul / Yurt İçi / Yurt Dışı): ayrım için TH `LBS Location Parent`, SCCM `EnvanterLocationParent` alanları kullanılabilir.
 - [ ] **`main` dalına alma:** çalışma dalı `yedek-2026-10-21`, `main` ilk sürümde duruyor.

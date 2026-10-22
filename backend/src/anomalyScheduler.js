@@ -16,6 +16,8 @@ const { readSection, writeSection } = require("./store");
 const { getFileSourceConfig } = require("./importStore");
 const { loadLatestReport } = require("./excelSource");
 const { buildTransport } = require("./mailTransport");
+const sendLog = require("./mailSendLog");
+const { addEntry: addMailHistoryEntry } = require("./routes/mailhistory");
 
 const SECTION = "anomalySchedule";
 const DAY_MAP = { Pazartesi: 1, Salı: 2, Çarşamba: 3, Perşembe: 4, Cuma: 5 };
@@ -147,6 +149,32 @@ function findLocationIpMismatches(sccmRawRows, lokasyonRawRows) {
   return anomalies;
 }
 
+// Zamanlayıcı e-postası da Gönderim Geçmişi'ne ve gönderim günlüğüne "Otomatik (sistem)" olarak yazılır; kayıt hatası taramayı bozmaz.
+function recordAutoSend({ cfg, subject, text, html, ok, messageId = "", error = "", count }) {
+  try {
+    const logId = sendLog.record({ source: "otomatik", username: "sistem", to: cfg.recipients, subject, text, html, ok, messageId, error });
+    const now = new Date();
+    addMailHistoryEntry({
+      id: Date.now(),
+      date: now.toLocaleDateString("tr-TR"),
+      time: now.toLocaleTimeString("tr-TR"),
+      isoDate: now.toISOString(),
+      report: "Otomatik Tarama (Zimmet / Lokasyon Uyuşmazlığı)",
+      reportType: "otomatik-tarama",
+      dept: "",
+      company: "all",
+      recipients: cfg.recipients.length,
+      status: ok ? "Başarılı" : "Başarısız",
+      senderUserId: null,
+      senderUsername: "Otomatik (sistem)",
+      sendLogIds: [logId],
+      details: cfg.recipients.map((to) => ({ location: `${count} yeni uyuşmazlık`, to, count, ok, message: ok ? "" : error, recipientEmail: to, recipientUser: "", device: "", reportType: "otomatik-tarama", sendingStatus: ok ? "Başarılı" : "Başarısız" })),
+    });
+  } catch (e) {
+    console.error("[otomatik tarama] gönderim kaydı yazılamadı:", e.message);
+  }
+}
+
 async function sendDigestMail(cfg, newAnomalies) {
   const smtpCfg = readSection("smtp");
   if (!smtpCfg || !smtpCfg.host) throw new Error("SMTP ayarları tanımlı değil");
@@ -158,13 +186,16 @@ async function sendDigestMail(cfg, newAnomalies) {
     <ul>${rows}</ul>
     <p>Detaylar için Varlık Takip uygulamasındaki Zimmet Uyuşmazlığı ve Lokasyon Hostname ve IP Uyuşmazlığı raporlarını inceleyebilirsiniz.</p>
   </div>`;
-  const info = await transporter.sendMail({
-    from: smtpCfg.fromAddress || smtpCfg.username,
-    to: cfg.recipients.join(", "),
-    subject: `Otomatik Tarama — ${newAnomalies.length} Yeni Uyuşmazlık`,
-    text: `${newAnomalies.length} yeni uyuşmazlık tespit edildi:\n\n${newAnomalies.map((a) => `- ${a.label}`).join("\n")}`,
-    html,
-  });
+  const subject = `Otomatik Tarama — ${newAnomalies.length} Yeni Uyuşmazlık`;
+  const text = `${newAnomalies.length} yeni uyuşmazlık tespit edildi:\n\n${newAnomalies.map((a) => `- ${a.label}`).join("\n")}`;
+  let info;
+  try {
+    info = await transporter.sendMail({ from: smtpCfg.fromAddress || smtpCfg.username, to: cfg.recipients.join(", "), subject, text, html });
+  } catch (err) {
+    recordAutoSend({ cfg, subject, text, html, ok: false, error: err.message, count: newAnomalies.length });
+    throw err;
+  }
+  recordAutoSend({ cfg, subject, text, html, ok: true, messageId: info.messageId, count: newAnomalies.length });
   return { messageId: info.messageId, previewUrl: nodemailer.getTestMessageUrl(info) || undefined };
 }
 
@@ -216,4 +247,4 @@ function start() {
   tick();
 }
 
-module.exports = { start, runScan, currentConfig, SECTION };
+module.exports = { start, runScan, currentConfig, SECTION, recordAutoSend };
