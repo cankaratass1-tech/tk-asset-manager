@@ -55,6 +55,7 @@ try {
   const boot = async () => { await page.goto(be.base); await page.waitForTimeout(3500); };
   const card = async (q) => { // Cihaz Genel Görünüm: arama → kart
     await boot(); await page.locator('text="Ana Sayfa"').first().click(); await page.waitForTimeout(800);
+    await page.locator("[data-device-search-btn]").click(); await page.waitForTimeout(500); // Cihaz Ara penceresi (sağ üst)
     const s = page.locator('input[placeholder^="Hostname / Seri No / Last Logon"]');
     await s.fill(q); await s.press("Enter"); await page.waitForTimeout(1500);
     return flat();

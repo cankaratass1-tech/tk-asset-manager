@@ -13,6 +13,12 @@ Son güncelleme: 22.10.2026
 - [ ] **Hostname değişikliği kurgusu:** şimdilik mevcut sistem aynen kalacak, sunum sonrası tekrar ele alınacak (`hafiza-notlari/hostname-degisikligi-kurgu-beklemede.md`).
 - [ ] **Cihaz Aksiyon Geçmişi / zimmet devri:** gerçek TH export'undaki "Son Güncelleme Tarihi" sütununun tam adı doğrulanacak (`hafiza-notlari/cihaz-aksiyon-gecmisi-plan.md`).
 
+## Üst yönetim ekranı (22.10.2026)
+- [x] **Cihaz Ara:** Cihaz Genel Görünümü Ana Sayfa'dan kaldırıldı; sağ üstteki "Cihaz Ara" düğmesi (Ctrl+K) her ekrandan açar.
+- [x] **Operasyonel Durum Özeti:** yeni Ana Sayfa (açık bulgu, çözülen, yeni açılan, net iş akışı, genel iyileşme; ana grafik; şirket ve konu karşılaştırması; detay tablosu + CSV). Mevcut pano "Operasyon panosu" düğmesiyle açılır. Hesaplar: `src/services/executiveMetrics.js`.
+- [ ] **Hedef tanımı:** veri modelinde hedef yok; hedef açık cihaz sayısı, dönemlik çözülen hedefi, hedef iyileşme yüzdesi ve geçerlilik dönemi tanımlanırsa hedef takibi ve grafikte hedef çizgisi açılır (grafik `targetValue` desteği hazır).
+- [ ] **Bölge kırılımı:** İstanbul / Yurt İçi / Yurt Dışı (LBS Location Parent) grup/yetki işiyle birlikte.
+
 ## Güvenlik bulguları (bkz. GUVENLIK-BILGILENDIRME.md, Bölüm 15)
 - [x] **BUL-01 (yüksek):** `newinstalls` Excel yolu: yalnızca Master, yol politikası, istekle yol gelmez. Giderildi 21.10.2026.
 - [x] **BUL-02 (yüksek):** `setup-master` kurulum koduyla korunuyor. Giderildi 21.10.2026.

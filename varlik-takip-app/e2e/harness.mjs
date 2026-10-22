@@ -77,7 +77,7 @@ export async function startBackend({ port = 5055 } = {}) {
   };
 }
 
-// Ana Sayfa varsayılanı artık YENİ görünüm. Eski testler klasik dashboard'u bekler: tercih hiç yazılmamışsa "0" (klasik) yazılır;
+// Ana Sayfa varsayılanı artık üst yönetim ekranı (execDash) ve YENİ görünüm. Eski testler klasik dashboard'u bekler: tercih hiç yazılmamışsa "0" (klasik) yazılır;
 // testler kendi "1"/"0" değerlerini sonra yazarak bunu ezebilir. { freshStorage: true } ile gerçek varsayılan test edilir.
 export async function launchBrowser({ freshStorage = false } = {}) {
   const { chromium } = require("playwright-core");
@@ -88,7 +88,7 @@ export async function launchBrowser({ freshStorage = false } = {}) {
     const orig = browser.newContext.bind(browser);
     browser.newContext = async (...args) => {
       const ctx = await orig(...args);
-      await ctx.addInitScript(() => { try { if (localStorage.getItem("varlikTakip.dashboardDemo") === null) localStorage.setItem("varlikTakip.dashboardDemo", "0"); } catch { /* sessiz geç */ } });
+      await ctx.addInitScript(() => { try { if (localStorage.getItem("varlikTakip.dashboardDemo") === null) localStorage.setItem("varlikTakip.dashboardDemo", "0"); if (localStorage.getItem("varlikTakip.execDash") === null) localStorage.setItem("varlikTakip.execDash", "0"); } catch { /* sessiz geç */ } });
       return ctx;
     };
   }

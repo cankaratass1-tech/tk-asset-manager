@@ -66,7 +66,11 @@ try {
 
   // 0) Ana sayfa
   console.log("\nAna Sayfa");
-  check("home", "ana sayfa açılıyor (Cihaz Genel Görünüm)", (await bodyText()).includes("Cihaz Genel Görünüm"));
+  check("home", "ana sayfa açılıyor; sağ üstte 'Cihaz Ara' düğmesi var, Cihaz Genel Görünüm sayfada yok", (await page.locator("[data-device-search-btn]").count()) === 1 && !(await bodyText()).includes("Cihaz Genel Görünüm"));
+  await page.keyboard.press("Control+k"); await page.waitForTimeout(400);
+  check("home", "Ctrl+K Cihaz Ara penceresini açıyor", (await page.locator("[data-device-search] input").count()) === 1);
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+  check("home", "Esc pencereyi kapatıyor", (await page.locator("[data-device-search]").count()) === 0);
   check("home", "konsol/ağ hatası yok", problems.length === 0, problems.join(" | "));
 
   for (const rep of REPORTS) {

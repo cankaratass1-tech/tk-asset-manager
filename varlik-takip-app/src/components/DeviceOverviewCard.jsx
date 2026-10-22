@@ -14,7 +14,7 @@ const STATE_STYLE = (pal) => ({
 const SUPPORT_LABEL = { ended: "Destek sona erdi", ending: "Destek bitiyor", supported: "Destekte", unknown: "Bilinmiyor" };
 const LIST_LIMIT = 50;
 
-export default function DeviceOverviewCard({ sources, styles, pal }) {
+export default function DeviceOverviewCard({ sources, styles, pal, autoFocus = false }) {
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [winFilter, setWinFilter] = useState("");
@@ -53,6 +53,7 @@ export default function DeviceOverviewCard({ sources, styles, pal }) {
         <input
           type="text"
           placeholder="Hostname / Seri No / Last Logon / Windows 10…"
+          autoFocus={autoFocus}
           value={query}
           onChange={(e) => {
             const v = e.target.value;

@@ -36,9 +36,9 @@ try {
   await page.goto(be.base);
   console.log("Dashboard görünümleri");
   await flags("0", "0");
-  await report("Klasik dashboard (IT Operations + Cihaz Genel Görünüm + Genel Durum)", async () => {
+  await report("Klasik dashboard (IT Operations + Cihaz Ara düğmesi + Genel Durum)", async () => {
     await home();
-    const ok = await waitFor(async () => { const t = await txt(); return /IT Operations Dashboard/.test(t) && /Cihaz Genel Görünüm/.test(t) && /inaktif cihaz/.test(t) && /Genel Durum/.test(t); });
+    const ok = await waitFor(async () => { const t = await txt(); return /IT Operations Dashboard/.test(t) && /Cihaz Ara/.test(t) && !/Cihaz Genel Görünüm/.test(t) && /inaktif cihaz/.test(t) && /Genel Durum/.test(t); });
     if (!ok) throw new Error("beklenen bölümler görünmedi");
   });
   await flags("1", "0");

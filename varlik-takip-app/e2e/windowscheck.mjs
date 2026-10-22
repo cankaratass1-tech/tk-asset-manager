@@ -40,6 +40,7 @@ try {
   await page.goto(be.base);
   await page.waitForTimeout(5000);
   const txt = async () => (await page.innerText("body")).replace(/\n\s*\n/g, "\n");
+  await page.locator("[data-device-search-btn]").click(); await page.waitForTimeout(500); // Cihaz Ara penceresi (sağ üst)
   const search = page.locator('input[placeholder^="Hostname / Seri No / Last Logon"]');
   const listCount = async () => num(((await txt()).match(/(\d[\d.]*) cihaz\n/) || [])[1]);
   const run = async (q) => { await search.fill(q); await search.press("Enter"); await page.waitForTimeout(700); };
@@ -93,6 +94,7 @@ try {
   check("Battery Health demo dosyası yüklendi", up.ok === true, up.message || "");
   await page.goto(be.base);
   await page.waitForTimeout(5000);
+  await page.locator("[data-device-search-btn]").click(); await page.waitForTimeout(500);
   const s2 = page.locator('input[placeholder^="Hostname / Seri No / Last Logon"]');
   await s2.fill(bHost); await s2.press("Enter");
   await page.waitForTimeout(1200);

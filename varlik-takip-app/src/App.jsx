@@ -31,7 +31,8 @@ import LocationTrendChart from "./components/LocationTrendChart";
 import OverviewPanel from "./components/OverviewPanel";
 import ExecutiveSummary from "./components/ExecutiveSummary"; // DEMO: yönetici için tek sayfalık özet
 import { buildRecordCompanyResolver } from "./services/recordCompany";
-import DashboardV3 from "./components/DashboardV3"; // TASLAK (commit edilmedi) — Ana Sayfa V3 örneği
+import DashboardV3 from "./components/DashboardV3";
+import ExecutiveDashboard from "./components/executive/ExecutiveDashboard"; // TASLAK (commit edilmedi) — Ana Sayfa V3 örneği
 import DashboardV2 from "./components/DashboardV2"; // DEMO (commit edilmedi) — yeni Ana Sayfa tasarımı
 import { computeAtilMonitorRows } from "./services/atilMonitorService";
 import ManagementKpiPanel from "./components/ManagementKpiPanel";
@@ -196,6 +197,9 @@ export default function App({ user, onLogout } = {}) {
   const [atilStage, setAtilStage] = useState(null); // DEMO: Atıl Monitörler ekranı hangi aşamayla açılsın (null = varsayılan)
   const [execView, setExecView] = useState(() => { try { return localStorage.getItem("varlikTakip.execView") === "1"; } catch { return false; } }); // DEMO: Yönetici Özeti
   const toggleExecView = (v) => { setExecView(v); try { localStorage.setItem("varlikTakip.execView", v ? "1" : "0"); } catch { /* sessiz geç */ } };
+  // Ana Sayfa: üst yönetim ekranı (Operasyonel Durum Özeti) varsayılan; "Operasyon panosu" ile mevcut panoya geçilir (tercih tarayıcıda saklanır)
+  const [execDash, setExecDash] = useState(() => { try { return localStorage.getItem("varlikTakip.execDash") !== "0"; } catch { return true; } });
+  const toggleExecDash = (v) => { setExecDash(v); try { localStorage.setItem("varlikTakip.execDash", v ? "1" : "0"); } catch { /* sessiz geç */ } };
   const [dashboardV3, setDashboardV3] = useState(() => { try { return localStorage.getItem("varlikTakip.dashboardV3") === "1"; } catch { return false; } });
   const toggleDashboardV3 = (v) => { setDashboardV3(v); try { localStorage.setItem("varlikTakip.dashboardV3", v ? "1" : "0"); } catch { /* sessiz geç */ } };
   const toggleDashboardDemo = (v) => { setDashboardDemo(v); try { localStorage.setItem("varlikTakip.dashboardDemo", v ? "1" : "0"); } catch { /* sessiz geç */ } };
@@ -421,6 +425,7 @@ export default function App({ user, onLogout } = {}) {
   const [historyStatusFilter, setHistoryStatusFilter] = useState("all");
   const [historyDeptFilter, setHistoryDeptFilter] = useState("all");
   const [historyReportFilter, setHistoryReportFilter] = useState("all");
+  const [deviceSearchOpen, setDeviceSearchOpen] = useState(false); // sağ üstteki "Cihaz Ara" penceresi (Cihaz Genel Görünüm)
   const [historySearch, setHistorySearch] = useState("");
   const [historySearchIds, setHistorySearchIds] = useState(null); // aramayla (detaylarda: kişi, e-posta, seri no, hostname) backend'de eşleşen gönderim kimlikleri
   // Gereksinim #11: gönderen kullanıcı + tarih aralığı filtresi de eklendi
@@ -1022,6 +1027,16 @@ export default function App({ user, onLogout } = {}) {
       return true;
     });
   }, [mailHistory, activeCompany, historyStatusFilter, historyDeptFilter, historyReportFilter, historySenderFilter, historyDateFrom, historyDateTo, historySearch, historySearchIds]);
+
+  // Ctrl+K: Cihaz Ara penceresini aç/kapat; Esc kapatır
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setDeviceSearchOpen((v) => !v); }
+      else if (e.key === "Escape") setDeviceSearchOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Arama kutusu: detaylar backend'de durduğu için eşleşen gönderimler orada aranır (kısa gecikmeyle)
   useEffect(() => {
@@ -3304,6 +3319,20 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             className="no-print"
             style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap" }}
           >
+            <button
+              type="button"
+              data-device-search-btn
+              style={{ ...styles.btnGhost, display: "flex", alignItems: "center", gap: 8 }}
+              onClick={() => setDeviceSearchOpen(true)}
+              title="Hostname, seri no veya kullanıcı ile cihaz ara (Ctrl+K)"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+              Cihaz Ara
+              <span style={{ fontSize: 11, color: pal.inkSoft, border: `1px solid ${pal.border || pal.inkSoft}55`, borderRadius: 5, padding: "1px 5px" }}>Ctrl K</span>
+            </button>
             <div className="vt-tip" data-tip="Temayı değiştir" style={styles.themeToggle}>
               <span onClick={() => setTheme("light")} style={{ ...styles.themeToggleBtn, ...(theme === "light" ? styles.themeToggleBtnActive : {}) }}>☀︎</span>
               <span onClick={() => setTheme("dark")} style={{ ...styles.themeToggleBtn, ...(theme === "dark" ? styles.themeToggleBtnActive : {}) }}>☾</span>
@@ -3356,6 +3385,18 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
           {showDashboard ? (
             <>
               {(() => {
+                if (execDash) {
+                  return (
+                    <ExecutiveDashboard
+                      pal={pal}
+                      reportSnapshots={reportSnapshots}
+                      company={dashboardCompanyFilter}
+                      onCompanyChange={setDashboardCompanyFilter}
+                      companyLabel={companyShortLabel}
+                      onOpenOps={() => toggleExecDash(false)}
+                    />
+                  );
+                }
                 const inaktifStats = computeInaktifDashboard(realInaktifAll, { company: dashboardCompanyFilter });
                 const diskStats = computeDiskDashboard(byCompany(realDiskAll, dashboardCompanyFilter));
                 // zimmetRows (realSccmAll değil) kullanılıyor ki TuruncuHat+Monitor Raporu
@@ -3504,13 +3545,6 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   if (execView) {
                     return <ExecutiveSummary data={v2} snapshots={reportSnapshots} company={dc} summaryToggle={summaryPeriodToggle} onBack={() => toggleExecView(false)} onNavigate={dashNavigate} styles={styles} pal={pal} />;
                   }
-                  const searchSlotNode = (
-                    <DeviceOverviewCard
-                      sources={{ sccmRows: realSccmAll, thRows: realThAll, monitorRows: realMonitorAll, inaktifRows: inaktifComparisonRows.length ? inaktifComparisonRows : realInaktifAll, diskRows: realDiskAll, batteryRows: realBatteryAll, staleDays }}
-                      styles={styles}
-                      pal={pal}
-                    />
-                  );
                   if (dashboardV3) {
                     return (
                       <DashboardV3
@@ -3521,7 +3555,6 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         snapshots={reportSnapshots}
                         company={dc}
                         summaryToggle={summaryPeriodToggle}
-                        searchSlot={searchSlotNode}
                         userName={user?.displayName || user?.name || user?.username}
                         onNavigate={dashNavigate}
                         onBack={() => toggleDashboardV3(false)}
@@ -3531,6 +3564,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   return (
                     <DashboardV2
                       onV3={() => toggleDashboardV3(true)}
+                      onExecDash={() => toggleExecDash(true)}
                       onExec={() => toggleExecView(true)}
                       styles={styles}
                       pal={pal}
@@ -3538,13 +3572,6 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       snapshots={reportSnapshots}
                       company={dc}
                       summaryToggle={summaryPeriodToggle}
-                      searchSlot={
-                        <DeviceOverviewCard
-                          sources={{ sccmRows: realSccmAll, thRows: realThAll, monitorRows: realMonitorAll, inaktifRows: inaktifComparisonRows.length ? inaktifComparisonRows : realInaktifAll, diskRows: realDiskAll, batteryRows: realBatteryAll, staleDays }}
-                          styles={styles}
-                          pal={pal}
-                        />
-                      }
                       onNavigate={dashNavigate}
                       onBack={() => toggleDashboardDemo(false)}
                     />
@@ -3553,27 +3580,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
                 return (
                   <>
-                    {/* Madde 10, 11 — "Cihaz Genel Görünüm": hostname/seri no/last logon ile
-                        arama, cihazın tüm kaynaklardaki durumu tek ekranda. Önce Kullanılmayan
-                        Cihazlar raporundaydı, sonra o raporun üstüne taşınmıştı; kullanıcı
-                        vazgeçip Ana Sayfa'nın EN ÜSTÜNE almak istedi — içinde zaten arama
-                        olduğu için Dashboard'un en başında, tüm ekranlarda erişilebilir olması
-                        daha kullanışlı. */}
-                    <div style={{ marginBottom: 16 }}>
-                      <DeviceOverviewCard
-                        sources={{
-                          sccmRows: realSccmAll,
-                          thRows: realThAll,
-                          monitorRows: realMonitorAll,
-                          inaktifRows: inaktifComparisonRows.length ? inaktifComparisonRows : realInaktifAll,
-                          diskRows: realDiskAll,
-                          batteryRows: realBatteryAll,
-                          staleDays,
-                        }}
-                        styles={styles}
-                        pal={pal}
-                      />
-                    </div>
+                    {/* Cihaz Genel Görünüm: Ana Sayfa'dan kaldırıldı; sağ üstteki "Cihaz Ara" düğmesiyle (Ctrl+K) her ekrandan açılır. */}
 
                     <div style={{ ...styles.panel, padding: "20px 24px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
@@ -3582,6 +3589,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                           <p style={styles.pageSub}>İnaktif Cihazlar, Disk Alanı ve Zimmet Uyuşmazlığı gerçek verilerle</p>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button style={styles.btnGhost} onClick={() => toggleExecDash(true)} data-open-exec title="Üst yönetim ekranına dön">📈 Yönetici ekranı</button>
                           <button style={styles.btnGhost} onClick={() => toggleDashboardDemo(true)} title="Yeni Ana Sayfa tasarımına geç">✨ Yeni görünüme geç</button>
                           <span style={{ fontSize: 12, color: pal.inkSoft }}>Kart özetleri:</span>
                           {summaryPeriodToggle}
@@ -5464,6 +5472,21 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
         </div>
       )}
 
+      {deviceSearchOpen && (
+        <div style={styles.modalOverlay} onClick={() => setDeviceSearchOpen(false)} data-device-search>
+          <div style={{ ...styles.modalCard, width: "min(980px, 100%)", maxHeight: "88vh", padding: 0, background: "transparent", boxShadow: "none" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+              <span style={{ ...styles.modalClose, background: pal.panelSolid, borderRadius: 8, padding: "4px 10px" }} onClick={() => setDeviceSearchOpen(false)} title="Kapat (Esc)">✕</span>
+            </div>
+            <DeviceOverviewCard
+              autoFocus
+              sources={{ sccmRows: realSccmAll, thRows: realThAll, monitorRows: realMonitorAll, inaktifRows: inaktifComparisonRows.length ? inaktifComparisonRows : realInaktifAll, diskRows: realDiskAll, batteryRows: realBatteryAll, staleDays }}
+              styles={styles}
+              pal={pal}
+            />
+          </div>
+        </div>
+      )}
       <MailPreviewModal preview={mailPreviewData} onClose={() => setMailPreviewData(null)} styles={styles} noRecipientText="— (SCCM'de bu cihaz için kullanıcı e-postası bulunamadı)" />
 
       {confirmMailOpen && (

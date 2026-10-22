@@ -30,6 +30,7 @@ try {
 
   console.log("Cihaz Genel Görünüm");
   await boot();
+  await page.locator("[data-device-search-btn]").click(); await page.waitForTimeout(500); // Cihaz Ara penceresi (sağ üst)
   const s = page.locator('input[placeholder^="Hostname / Seri No / Last Logon"]');
   const serial = String(sccm.find((r) => /Windows 11/.test(r["Operating System"]) && /10\.0\.2[0-9]{4}/.test(String(r["OS Version"])))["Serial Number"]).trim();
   await s.fill(serial); await s.press("Enter"); await page.waitForTimeout(1500);
