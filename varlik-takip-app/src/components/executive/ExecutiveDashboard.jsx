@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { buildDemoSnapshots } from "../../services/executiveDemoData.js";
 import { RANGE_LABELS, buildDetailRows, buildNarrative, buildRisks, buildSeries, bucketSeries, companiesIn, companyComparison, computeExecutive, latestSnapshotMs } from "../../services/executiveMetrics.js";
 import { C, Card, CardHead, Pill, Segmented, fmtDate, fmtDateTime, nf } from "./execUi.jsx";
 import ExecKpiCards from "./ExecKpiCards.jsx";
@@ -75,7 +76,8 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [showDetail, setShowDetail] = useState(false);
-  const snaps = useMemo(() => reportSnapshots || {}, [reportSnapshots]);
+  const [sample, setSample] = useState(false); // ÖRNEK VERİ: yalnızca bu oturumda, bellekte; gerçek veriye karışmaz ve saklanmaz
+  const snaps = useMemo(() => (sample ? buildDemoSnapshots() : reportSnapshots || {}), [sample, reportSnapshots]);
   const latest = latestSnapshotMs(snaps);
   const setRange = (r) => {
     setRangeState(r);
@@ -84,19 +86,20 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
   };
 
   const opts = useMemo(() => ({ range, from, to }), [range, from, to]);
-  const exec = useMemo(() => computeExecutive(snaps, { ...opts, company }), [snaps, opts, company]);
-  const comps = useMemo(() => companyComparison(snaps, opts), [snaps, opts]);
   const companies = useMemo(() => companiesIn(snaps), [snaps]);
+  const activeCompany = company === "all" || companies.includes(company) ? company : "all";
+  const exec = useMemo(() => computeExecutive(snaps, { ...opts, company: activeCompany }), [snaps, opts, activeCompany]);
+  const comps = useMemo(() => companyComparison(snaps, opts), [snaps, opts]);
   const points = useMemo(() => {
     if (exec.status !== "ok") return [];
-    const filterFn = company === "all" ? () => true : (d) => d.company === company;
+    const filterFn = activeCompany === "all" ? () => true : (d) => d.company === activeCompany;
     return bucketSeries(buildSeries(snaps, exec, { filterFn }), exec.spanDays);
-  }, [snaps, exec, company]);
+  }, [snaps, exec, activeCompany]);
   const narrative = useMemo(() => buildNarrative(exec, comps), [exec, comps]);
   const detailRows = useMemo(() => (showDetail ? buildDetailRows(snaps, opts) : []), [showDetail, snaps, opts]);
 
   const ok = exec.status === "ok";
-  const chip = ok ? (exec.partial ? ["warn", "Kısa geçmiş"] : ["good", "Veri hazır"]) : ["flat", "Veri yetersiz"];
+  const chip = sample ? ["warn", "Örnek veri"] : ok ? (exec.partial ? ["warn", "Kısa geçmiş"] : ["good", "Veri hazır"]) : ["flat", "Veri yetersiz"];
   const chipColor = chip[0] === "good" ? C.good : chip[0] === "warn" ? C.warn : pal.inkSoft;
 
   return (
@@ -109,16 +112,27 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
             {ok ? <>Dönem: <b style={{ color: pal.ink }}>{fmtDate(exec.startAt)} – {fmtDate(exec.currAt)}</b> ({nf(exec.spanDays)} gün)
               {exec.previousRange ? <> · Karşılaştırma: {fmtDate(exec.previousRange.startAt)} – {fmtDate(exec.previousRange.endAt)}</> : null}</>
               : <>Dönem: {RANGE_LABELS[range]}</>}
-            {" · "}Son veri güncellemesi: <b style={{ color: pal.ink }}>{latest != null ? fmtDateTime(new Date(latest).toISOString()) : "—"}</b>
+            {" · "}{sample ? <b style={{ color: C.warn }}>Örnek veri (gerçek değil)</b> : <>Son veri güncellemesi: <b style={{ color: pal.ink }}>{latest != null ? fmtDateTime(new Date(latest).toISOString()) : "—"}</b></>}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <span data-exec-status style={{ display: "inline-flex", alignItems: "center", gap: 7, border: `1px solid ${chipColor}66`, color: chipColor, borderRadius: 999, padding: "5px 13px", fontSize: 12.5, fontWeight: 700 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: chipColor }} />{chip[1]}
           </span>
+          <button type="button" data-sample-toggle aria-pressed={sample} onClick={() => setSample((v) => !v)} className="exec-noprint"
+            title="Menüleri ve tasarımı incelemek için yapay veriyle gösterir; gerçek veriye dokunmaz"
+            style={{ cursor: "pointer", background: sample ? `${C.warn}22` : "transparent", border: `1px solid ${sample ? C.warn : pal.line}`, color: sample ? C.warn : pal.ink, borderRadius: 10, padding: "7px 14px", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
+            {sample ? "Örnek veriyi kapat" : "Örnek veriyle göster"}
+          </button>
           {onOpenOps && <button type="button" data-open-ops onClick={onOpenOps} className="exec-noprint" style={{ cursor: "pointer", background: "transparent", border: `1px solid ${pal.line}`, color: pal.ink, borderRadius: 10, padding: "7px 14px", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>Operasyon panosu →</button>}
         </div>
       </header>
+
+      {sample && (
+        <div data-sample-banner role="status" style={{ background: `${C.warn}1f`, border: `1px solid ${C.warn}`, color: pal.ink, borderRadius: 12, padding: "10px 16px", fontSize: 13.5, lineHeight: 1.5 }}>
+          <b style={{ color: C.warn }}>ÖRNEK VERİ</b> — Bu ekrandaki sayılar yapay olarak üretilmiştir ve gerçek operasyonel sonuçları göstermez. Yalnızca menüleri ve tasarımı incelemek içindir; hiçbir yere kaydedilmez. Kapatmak için "Örnek veriyi kapat" düğmesine basın.
+        </div>
+      )}
 
       <Card pal={pal} data-exec-filters style={{ padding: "12px 16px" }} className="exec-noprint">
         <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
@@ -133,7 +147,7 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
           )}
           <span style={{ width: 1, height: 22, background: pal.line }} />
           <span style={{ fontSize: 12.5, fontWeight: 700, color: pal.inkSoft }}>Şirket</span>
-          <Segmented pal={pal} value={company} onChange={(v) => onCompanyChange && onCompanyChange(v)} label="Şirket" testId="company" options={[["all", "Tümü"], ...companies.map((c) => [c, companyLabel(c)])]} />
+          <Segmented pal={pal} value={activeCompany} onChange={(v) => onCompanyChange && onCompanyChange(v)} label="Şirket" testId="company" options={[["all", "Tümü"], ...companies.map((c) => [c, companyLabel(c)])]} />
         </div>
       </Card>
 
@@ -146,13 +160,13 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
       ) : exec.status === "empty" ? (
         <Card pal={pal} data-exec-empty>
           <h3 style={{ margin: "0 0 6px", fontSize: 16, color: pal.ink }}>Henüz karşılaştırılacak veri yok</h3>
-          <p style={{ margin: 0, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.55 }}>Bu ekran, her veri yüklemesinde otomatik alınan anlık kayıtlardan hesaplanır. Kayıt bulunmadığı için hiçbir değer gösterilmiyor; örnek veri kullanılmaz. Karşılaştırma için en az iki farklı günde veri yüklemesi gerekir.</p>
+          <p style={{ margin: 0, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.55 }}>Bu ekran, her veri yüklemesinde otomatik alınan anlık kayıtlardan hesaplanır. Kayıt bulunmadığı için hiçbir değer gösterilmiyor; örnek veri kullanılmaz. Karşılaştırma için en az iki farklı günde veri yüklemesi gerekir. Menüleri ve tasarımı incelemek için sağ üstteki "Örnek veriyle göster" düğmesini kullanabilirsiniz.</p>
         </Card>
       ) : exec.status === "insufficient" ? (
         <Card pal={pal} data-exec-insufficient>
           <h3 style={{ margin: "0 0 6px", fontSize: 16, color: pal.ink }}>Seçili dönem için yeterli veri yok</h3>
           <p style={{ margin: 0, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.55 }}>
-            Karşılaştırma için seçilen filtreye ait en az iki farklı günde kayıt gerekir. Son kayıt: {fmtDateTime(exec.latestAt)}. Başka bir dönem ya da şirket seçmeyi deneyebilirsiniz.
+            Karşılaştırma için seçilen filtreye ait en az iki farklı günde kayıt gerekir. Son kayıt: {fmtDateTime(exec.latestAt)}. Başka bir dönem ya da şirket seçmeyi deneyebilirsiniz; menüleri incelemek için "Örnek veriyle göster" düğmesi de kullanılabilir.
           </p>
         </Card>
       ) : (
@@ -163,7 +177,7 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
             <SummaryColumn pal={pal} narrative={narrative} />
           </div>
           <div className="exec-two">
-            <ExecCompanyPanel pal={pal} rows={comps} active={company} labelOf={companyLabel} />
+            <ExecCompanyPanel pal={pal} rows={comps} active={activeCompany} labelOf={companyLabel} />
             <ExecCategoryPanel pal={pal} exec={exec} />
           </div>
           <TargetsRisks pal={pal} exec={exec} />
@@ -171,7 +185,7 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
             <button type="button" data-detail-toggle onClick={() => setShowDetail((v) => !v)} style={{ cursor: "pointer", background: "transparent", border: `1px solid ${pal.line}`, color: pal.ink, borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 600, fontFamily: "inherit", marginBottom: showDetail ? 12 : 0 }}>
               {showDetail ? "Detay tablosunu gizle" : "Detay tablosunu göster"}
             </button>
-            {showDetail && <ExecDetailTable pal={pal} rows={detailRows} />}
+            {showDetail && <ExecDetailTable pal={pal} rows={detailRows} sample={sample} />}
           </div>
           <p style={{ margin: 0, fontSize: 11.5, color: pal.inkSoft, lineHeight: 1.5 }}>
             Açık bulgu = İnaktif, Hatalı zimmet, Kritik disk ve Kullanılmayan raporlarındaki sorunlu cihazların toplamı; bir cihaz birden çok konuda sorunluysa her konu ayrı sayılır. Çözülen = dönem başında sorunlu olup dönem sonunda listede olmayan, yeni = dönem başında olmayıp dönem sonunda sorunlu olan cihaz. Çözüm oranı = çözülen ÷ dönem başı açık.

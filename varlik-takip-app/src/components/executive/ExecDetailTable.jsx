@@ -14,7 +14,7 @@ const COLS = [
   { key: "degisimPct", label: "Değişim %", num: true, fmt: (v) => (v == null ? "—" : pf(v, true)) },
 ];
 
-export default function ExecDetailTable({ pal, rows }) {
+export default function ExecDetailTable({ pal, rows, sample = false }) {
   const [co, setCo] = useState("all");
   const [topic, setTopic] = useState("all");
   const [sort, setSort] = useState({ key: "donem", dir: "desc" });
@@ -35,7 +35,7 @@ export default function ExecDetailTable({ pal, rows }) {
     const csv = rowsToCsv(shown, COLS.map((c) => ({ key: c.key, label: c.label, csv: c.key === "degisimPct" ? (r) => (r.degisimPct == null ? "" : String(r.degisimPct).replace(".", ",")) : undefined })));
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
-    a.href = url; a.download = `operasyonel-durum-detay-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.href = url; a.download = `${sample ? "ornek-veri-" : ""}operasyonel-durum-detay-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
