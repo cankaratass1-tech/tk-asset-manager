@@ -40,6 +40,7 @@ try {
   check("Diğer bilgiler yerinde: BitLocker, Windows sürümü, Destek durumu, Cihaz Yaşı", /BitLocker/.test(c) && /Windows sürümü/.test(c) && /Destek durumu/.test(c) && /Cihaz Yaşı/.test(c));
 
   console.log("\nZimmet Uyuşmazlığı — kullanan kişinin tam adı");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300); // Cihaz Ara penceresini kapat
   await page.locator('text="Zimmet Uyuşmazlığı"').first().click(); await page.waitForTimeout(2500);
   const rowsN = Math.min(8, await page.locator("tbody tr").count());
   let withFull = 0, checked = 0;

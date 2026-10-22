@@ -32,6 +32,9 @@ try {
   console.log("Varsayılan görünüm ve geri dönüş");
   await page.goto(be.base); await page.waitForTimeout(4500);
   let t = await txt();
+  check("Varsayılan Ana Sayfa: üst yönetim ekranı (Operasyonel Durum Özeti)", /Operasyonel Durum Özeti/.test(t) && !/IT Operations Dashboard/.test(t));
+  await page.locator("[data-open-ops]").click(); await page.waitForTimeout(1500);
+  t = await txt();
   check("Varsayılan: yeni görünüm (Operasyon Panosu) açılıyor", /Operasyon Panosu/.test(t) && !/IT Operations Dashboard/.test(t));
   check("Yeni görünümde 'DEMO' ibaresi yok, eski görünüme dönüş seçeneği var", !/DEMO TASARIM/.test(t) && (await page.getByRole("button", { name: /Eski görünüme dön/ }).count()) === 1);
   await page.getByRole("button", { name: /Eski görünüme dön/ }).click(); await page.waitForTimeout(1200);

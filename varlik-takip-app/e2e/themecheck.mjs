@@ -29,8 +29,10 @@ try {
   await page.waitForTimeout(600);
   check("html[data-theme] = itsm", (await page.evaluate(() => document.documentElement.dataset.theme)) === "itsm");
   check("Zemin soğuk gri (#F3F5F9)", (await css(".vt-body", "backgroundColor")) === "rgb(243, 245, 249)", await css(".vt-body", "backgroundColor"));
+  await page.locator('text="Zimmet Uyuşmazlığı"').first().click(); await page.waitForTimeout(2500); // birincil düğme (E-posta Gönder) rapor sayfasında
   const primary = await page.evaluate(() => { const b = [...document.querySelectorAll("button")].find((x) => getComputedStyle(x).backgroundColor === "rgb(65, 98, 244)"); return !!b; });
   check("Birincil düğme Lakeside mavisi (#4162F4)", primary);
+  await page.locator('text="Ana Sayfa"').first().click(); await page.waitForTimeout(1500);
   check("Sol menü kartı ince köşeli (10px)", (await css(".vt-shell > aside", "borderRadius")) === "10px", await css(".vt-shell > aside", "borderRadius"));
   await shot("itsm-home");
 

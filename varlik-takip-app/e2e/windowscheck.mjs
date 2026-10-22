@@ -106,6 +106,7 @@ try {
   check("Donanım kartı: Batarya sağlığı %, etiket, Şarj döngüsü satırları", /Batarya sağlığı \| %\d+/i.test(hw) && /(İyi|İzlenmeli|Değişmeli)/i.test(hw) && /Şarj döngüsü \| \d+/i.test(hw), hw.slice(0, 220));
 
   console.log("\nZimmet raporunda Windows filtresi ve sütunu");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300); // Cihaz Ara penceresini kapat
   await page.locator('text="Zimmet Uyuşmazlığı"').first().click();
   await page.waitForTimeout(2500);
   const zt = await txt();
