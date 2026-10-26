@@ -3390,6 +3390,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     <ExecutiveDashboard
                       pal={pal}
                       reportSnapshots={reportSnapshots}
+                      totalDevices={byCompany(realSccmAll, dashboardCompanyFilter).length}
                       company={dashboardCompanyFilter}
                       onCompanyChange={setDashboardCompanyFilter}
                       companyLabel={companyShortLabel}

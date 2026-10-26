@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { buildDemoSnapshots } from "../../services/executiveDemoData.js";
-import { RANGE_LABELS, buildDetailRows, buildNarrative, buildRisks, buildSeries, bucketSeries, companiesIn, companyComparison, computeExecutive, latestSnapshotMs } from "../../services/executiveMetrics.js";
-import { C, Card, CardHead, Pill, Segmented, fmtDate, fmtDateTime, nf } from "./execUi.jsx";
+import { buildDemoSnapshots, DEMO_TOTAL_DEVICES } from "../../services/executiveDemoData.js";
+import { RANGE_LABELS, healthTarget, buildDetailRows, buildNarrative, buildRisks, buildSeries, bucketSeries, companiesIn, companyComparison, computeExecutive, latestSnapshotMs } from "../../services/executiveMetrics.js";
+import { C, Card, CardHead, Pill, Segmented, fmtDate, fmtDateTime, nf, pf } from "./execUi.jsx";
 import ExecKpiCards from "./ExecKpiCards.jsx";
 import ExecTrendChart from "./ExecTrendChart.jsx";
 import ExecCompanyPanel from "./ExecCompanyPanel.jsx";
@@ -44,18 +44,64 @@ function SummaryColumn({ pal, narrative }) {
   );
 }
 
-function TargetsRisks({ pal, exec }) {
+function TargetsRisks({ pal, exec, health, target, onTarget, totalKnown }) {
   const risks = buildRisks(exec);
   const levelTone = { high: "bad", mid: "flat" };
+  const [draft, setDraft] = useState(target == null ? "" : String(target));
+  const commit = (raw) => {
+    const v = Number(String(raw).replace(",", "."));
+    if (raw === "" || !Number.isFinite(v) || v <= 0 || v > 100) { onTarget(null); setDraft(""); return; }
+    const r = Math.round(v * 10) / 10;
+    onTarget(r); setDraft(String(r));
+  };
+  const tone = health ? (health.reached ? C.good : C.bad) : pal.inkSoft;
+  const tl = (n) => n.toLocaleString("tr-TR");
   return (
     <Card pal={pal} data-exec-targets>
-      <CardHead pal={pal} title="Hedefler ve riskler" />
-      <div style={{ background: pal.fieldBg, borderRadius: 12, padding: "11px 13px", marginBottom: 12 }} data-targets-empty>
-        <div style={{ fontSize: 13, fontWeight: 700, color: pal.ink }}>Hedef tanımlı değil</div>
-        <p style={{ margin: "4px 0 0", fontSize: 12.5, color: pal.inkSoft, lineHeight: 1.5 }}>
-          Bu veri modelinde hedef bulunmuyor, bu yüzden hedefe kalan fark ve gerçekleşme yüzdesi gösterilmiyor. Hedef takibi için gerekli alanlar: hedef açık cihaz sayısı (üst sınır), dönemlik çözülen iş hedefi, hedef iyileşme yüzdesi ve geçerlilik dönemi.
-        </p>
-      </div>
+      <CardHead pal={pal} title="Hedefler ve riskler"
+        right={
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: pal.inkSoft }}>
+            Cihaz sağlığı hedefi %
+            <input data-target-input type="number" min="1" max="100" step="0.5" value={draft} placeholder="—" aria-label="Cihaz sağlığı hedefi (yüzde)"
+              onChange={(e) => setDraft(e.target.value)} onBlur={(e) => commit(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commit(e.currentTarget.value); }}
+              style={{ width: 70, background: pal.fieldBg, color: pal.ink, border: `1px solid ${pal.line}`, borderRadius: 8, padding: "5px 8px", fontFamily: "inherit", fontSize: 13 }} />
+          </label>
+        } />
+      {target == null ? (
+        <div style={{ background: pal.fieldBg, borderRadius: 12, padding: "11px 13px", marginBottom: 12 }} data-targets-empty>
+          <div style={{ fontSize: 13, fontWeight: 700, color: pal.ink }}>Hedef tanımlı değil</div>
+          <p style={{ margin: "4px 0 0", fontSize: 12.5, color: pal.inkSoft, lineHeight: 1.5 }}>
+            Sağ üstteki kutuya hedef cihaz sağlığı oranını (örn. 95) yazın; hedefe kalan fark, gerçekleşme ve grafikteki hedef çizgisi hesaplanır. Dönemlik çözülen iş hedefi ve bölge bazlı hedefler için ek veri tanımı gerekir.
+          </p>
+        </div>
+      ) : !health ? (
+        <div style={{ background: pal.fieldBg, borderRadius: 12, padding: "11px 13px", marginBottom: 12 }} data-target-unknown>
+          <div style={{ fontSize: 13, fontWeight: 700, color: pal.ink }}>Hedef %{target} tanımlı, ancak sağlık oranı hesaplanamıyor</div>
+          <p style={{ margin: "4px 0 0", fontSize: 12.5, color: pal.inkSoft, lineHeight: 1.5 }}>{totalKnown ? "Dönem verisi yetersiz." : "Toplam cihaz sayısı bilinmiyor (SCCM envanter dosyası yüklenmeli)."}</p>
+        </div>
+      ) : (
+        <div data-target-card style={{ background: pal.fieldBg, borderRadius: 12, padding: "13px 15px", marginBottom: 12, borderLeft: `3px solid ${tone}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: pal.ink }}>Cihaz sağlığı oranı</span>
+            <Pill pal={pal} tone={health.reached ? "good" : "bad"}><span data-target-status>{health.reached ? "Hedefe ulaşıldı" : "Hedefin altında"}</span></Pill>
+          </div>
+          <div style={{ display: "flex", gap: 22, flexWrap: "wrap", margin: "8px 0 10px" }}>
+            {[["Hedef", `%${tl(health.target)}`], ["Güncel", pf(health.healthPct)], ["Hedefe kalan fark", health.reached ? "—" : `${tl(health.gapPoints)} puan`], ["Gerçekleşme", pf(health.achievedPct)]].map(([k, v]) => (
+              <div key={k}><div style={{ fontSize: 11.5, color: pal.inkSoft }}>{k}</div><div data-target-val={k} style={{ fontSize: 20, fontWeight: 800, color: k === "Güncel" || k === "Hedefe kalan fark" ? tone : pal.ink, fontVariantNumeric: "tabular-nums" }}>{v}</div></div>
+            ))}
+          </div>
+          <div aria-hidden="true" style={{ position: "relative", height: 10, borderRadius: 5, background: pal.line, margin: "4px 0 10px" }}>
+            <div style={{ width: `${health.healthPct}%`, height: 10, borderRadius: 5, background: tone }} />
+            <div style={{ position: "absolute", left: `${health.target}%`, top: -4, bottom: -4, width: 2, background: pal.ink }} />
+          </div>
+          <p data-target-explain style={{ margin: 0, fontSize: 12.5, color: pal.inkSoft, lineHeight: 1.55 }}>
+            Toplam <b data-target-total style={{ color: pal.ink }}>{nf(health.total)}</b> cihazın {nf(health.total - Math.min(health.total, exec.current.openEnd))} tanesi açık bulgusuz. Hedefte kalmak için en fazla <b data-target-allowed style={{ color: pal.ink }}>{nf(health.allowedOpen)}</b> açık bulgu olmalı
+            {health.reached ? "; şu an hedefin içindesiniz." : `; ${nf(health.openToClose)} bulgunun daha kapatılması gerekiyor.`}
+            {health.trendPoints != null ? ` Önceki dönem sonuna göre ${health.trendPoints > 0 ? "+" : health.trendPoints < 0 ? "−" : ""}${tl(Math.abs(health.trendPoints))} puan.` : " Önceki dönem karşılaştırması için yeterli geçmiş yok."}
+          </p>
+          <p style={{ margin: "6px 0 0", fontSize: 11.5, color: pal.inkSoft }}>Sağlık oranı = (toplam cihaz − açık bulgu) ÷ toplam cihaz. Bir cihaz birden çok konuda sorunluysa her konu ayrı sayıldığı için oran temkinli hesaplanır.</p>
+        </div>
+      )}
       <div style={{ fontSize: 12.5, fontWeight: 700, color: pal.ink, marginBottom: 6 }}>Veri eğilimine dayalı uyarılar</div>
       {risks.length ? (
         <ul data-risks style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
@@ -66,16 +112,21 @@ function TargetsRisks({ pal, exec }) {
           ))}
         </ul>
       ) : <p data-risks-none style={{ margin: 0, fontSize: 12.5, color: pal.inkSoft }}>Ölçülen verilerde olumsuz yönde bir değişim görülmedi.</p>}
-      <p style={{ margin: "8px 0 0", fontSize: 11.5, color: pal.inkSoft }}>Tanımlı eşik olmadığından uyarılar yalnızca ölçülen yönlere (artış, çözülenden fazla yeni iş) dayanır.</p>
+      <p style={{ margin: "8px 0 0", fontSize: 11.5, color: pal.inkSoft }}>Uyarılar yalnızca ölçülen yönlere (artış, çözülenden fazla yeni iş, değişmeyen açık bulgu) dayanır.</p>
     </Card>
   );
 }
 
-export default function ExecutiveDashboard({ pal, reportSnapshots, loading = false, error = "", company = "all", onCompanyChange, companyLabel = (c) => c, onOpenOps }) {
+const TARGET_KEY = "varlikTakip.execTargetHealth";
+const readTarget = () => { try { const v = localStorage.getItem(TARGET_KEY); if (v === null) return 95; if (v === "") return null; const n = Number(v); return n > 0 && n <= 100 ? n : 95; } catch { return 95; } };
+
+export default function ExecutiveDashboard({ pal, reportSnapshots, totalDevices = 0, loading = false, error = "", company = "all", onCompanyChange, companyLabel = (c) => c, onOpenOps }) {
   const [range, setRangeState] = useState(readRange);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [showDetail, setShowDetail] = useState(false);
+  const [target, setTargetState] = useState(readTarget); // cihaz sağlığı hedefi (%); varsayılan 95, kutudan değiştirilir ya da boş bırakılarak kaldırılır
+  const setTarget = (v) => { setTargetState(v); try { localStorage.setItem(TARGET_KEY, v == null ? "" : String(v)); } catch { /* sessiz geç */ } };
   const [sample, setSample] = useState(false); // ÖRNEK VERİ: yalnızca bu oturumda, bellekte; gerçek veriye karışmaz ve saklanmaz
   const snaps = useMemo(() => (sample ? buildDemoSnapshots() : reportSnapshots || {}), [sample, reportSnapshots]);
   const latest = latestSnapshotMs(snaps);
@@ -95,6 +146,9 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
     const filterFn = activeCompany === "all" ? () => true : (d) => d.company === activeCompany;
     return bucketSeries(buildSeries(snaps, exec, { filterFn }), exec.spanDays);
   }, [snaps, exec, activeCompany]);
+  const total = sample ? (activeCompany === "all" ? DEMO_TOTAL_DEVICES : DEMO_TOTAL_DEVICES / 2) : totalDevices;
+  const health = useMemo(() => (exec.status === "ok" && target != null ? healthTarget({ openEnd: exec.current.openEnd, prevOpenEnd: exec.previous ? exec.previous.openEnd : null, total, target }) : null), [exec, target, total]);
+  const targetOpen = health ? health.allowedOpen : null; // grafikte hedef çizgisi: izin verilen en çok açık bulgu
   const narrative = useMemo(() => buildNarrative(exec, comps), [exec, comps]);
   const detailRows = useMemo(() => (showDetail ? buildDetailRows(snaps, opts) : []), [showDetail, snaps, opts]);
 
@@ -171,16 +225,16 @@ export default function ExecutiveDashboard({ pal, reportSnapshots, loading = fal
         </Card>
       ) : (
         <>
-          <ExecKpiCards pal={pal} exec={exec} spark={points.map((p) => p.open)} />
+          <ExecKpiCards pal={pal} exec={exec} spark={points.map((p) => p.open)} health={health} target={target} />
           <div className="exec-main">
-            <ExecTrendChart pal={pal} exec={exec} points={points} />
+            <ExecTrendChart pal={pal} exec={exec} points={points} targetValue={targetOpen} />
             <SummaryColumn pal={pal} narrative={narrative} />
           </div>
           <div className="exec-two">
             <ExecCompanyPanel pal={pal} rows={comps} active={activeCompany} labelOf={companyLabel} />
             <ExecCategoryPanel pal={pal} exec={exec} />
           </div>
-          <TargetsRisks pal={pal} exec={exec} />
+          <TargetsRisks key={String(target)} pal={pal} exec={exec} health={health} target={target} onTarget={setTarget} totalKnown={total > 0} />
           <div className="exec-noprint">
             <button type="button" data-detail-toggle onClick={() => setShowDetail((v) => !v)} style={{ cursor: "pointer", background: "transparent", border: `1px solid ${pal.line}`, color: pal.ink, borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 600, fontFamily: "inherit", marginBottom: showDetail ? 12 : 0 }}>
               {showDetail ? "Detay tablosunu gizle" : "Detay tablosunu göster"}

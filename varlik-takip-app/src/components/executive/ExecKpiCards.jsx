@@ -31,7 +31,7 @@ function KpiCard({ pal, id, icon, color, label, value, valueColor, lines, spark,
   );
 }
 
-export default function ExecKpiCards({ pal, exec, spark }) {
+export default function ExecKpiCards({ pal, exec, spark, health = null, target = null }) {
   const c = exec.current;
   const ch = exec.changes;
   const vs = "Önceki döneme göre ";
@@ -69,7 +69,7 @@ export default function ExecKpiCards({ pal, exec, spark }) {
           </span>,
           <span key="b" style={{ fontSize: 12, color: pal.inkSoft }}>{range} · {nf(exec.spanDays)} gün</span>,
         ]}
-        note="Hedef tanımlı olmadığından hedefe göre durum gösterilmiyor." />
+        note={health ? `Hedef: cihaz sağlığı %${health.target.toLocaleString("tr-TR")} · güncel ${pf(health.healthPct)} · ${health.reached ? "hedefe ulaşıldı" : `${health.gapPoints.toLocaleString("tr-TR")} puan eksik`}` : target == null ? "Hedef tanımlı değil." : "Hedef tanımlı; sağlık oranı için toplam cihaz sayısı gerekli."} />
     </div>
   );
 }

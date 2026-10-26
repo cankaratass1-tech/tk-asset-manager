@@ -159,3 +159,30 @@ test("detay tablosu: satırlar şirket × konu × dönem, CSV güvenli", () => {
   assert.ok(csv.startsWith("﻿A;B\r\n"));
   assert.ok(csv.includes('"x;""y"""'));
 });
+
+import { healthTarget } from "./executiveMetrics.js";
+test("hedef: sağlık oranı, kalan fark, izin verilen açık ve kapatılması gereken", () => {
+  const h = healthTarget({ openEnd: 709, prevOpenEnd: 760, total: 2095, target: 95 });
+  assert.equal(h.healthPct, 66.2);
+  assert.equal(h.gapPoints, 28.8);
+  assert.equal(h.reached, false);
+  assert.equal(h.allowedOpen, 104); // ⌊2095 × 0,05⌋
+  assert.equal(h.openToClose, 709 - 104);
+  assert.equal(h.achievedPct, round(66.2 / 95 * 100));
+  assert.equal(h.prevHealthPct, 63.7);
+  assert.equal(h.trendPoints, 2.5);
+});
+
+test("hedef: sınırda ulaşılır; fazla açık sağlığı 0'a kırpar; geçersiz girdi null", () => {
+  const edge = healthTarget({ openEnd: 100, total: 2000, target: 95 });
+  assert.equal(edge.healthPct, 95);
+  assert.equal(edge.reached, true);
+  assert.equal(edge.allowedOpen, 100);
+  assert.equal(edge.openToClose, 0);
+  assert.equal(edge.trendPoints, null);
+  assert.equal(healthTarget({ openEnd: 5000, total: 2000, target: 95 }).healthPct, 0); // örtüşen bulgular toplamı aşabilir
+  assert.equal(healthTarget({ openEnd: 5, total: 0, target: 95 }), null);
+  assert.equal(healthTarget({ openEnd: 5, total: 100, target: 0 }), null);
+  assert.equal(healthTarget({ openEnd: 5, total: 100, target: 101 }), null);
+  assert.equal(healthTarget({ openEnd: null, total: 100, target: 95 }), null);
+});

@@ -2,6 +2,7 @@
 // Gerçek veri değildir, backend'e yazılmaz, hiçbir gerçek rapora karışmaz; ekranda her zaman "ÖRNEK VERİ" etiketiyle gösterilir.
 // Üretim deterministiktir (rastgele değil): aynı gün aynı sonucu verir; böylece inceleme ve test tekrarlanabilir.
 export const DEMO_COMPANIES = ["TKAJ-AJET A.Ş.", "TKAO-MHY A.O."];
+export const DEMO_TOTAL_DEVICES = 1200; // örnek modda güncel cihaz sayısı (şirket seçiliyse yarısı)
 export const DEMO_WEEKS = 40; // 280 gün: üç aylık dönem ve önceki üç aylık dönem de karşılanır
 
 // rapor → { N: başlangıç açık adedi, r: haftalık çözülen, n: haftalık yeni, drift: her 5 haftada bir ek çözülen (tempo artışı) }

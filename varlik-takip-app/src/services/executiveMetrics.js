@@ -233,6 +233,30 @@ export function bucketSeries(points, spanDays) {
   });
 }
 
+// ----- Hedef: cihaz sağlığı oranı -----
+// Sağlık oranı = (toplam cihaz − açık bulgu) ÷ toplam cihaz × 100 — Ana Sayfa'daki mevcut "sağlık" yüzdesiyle aynı formül. Açık bulgu bir
+// cihazın birden çok konudaki sorunlarını ayrı saydığı için oran temkinli (olduğundan düşük) çıkabilir. total = güncel cihaz sayısı (SCCM).
+//   Hedefe kalan fark   = hedef − güncel (puan)           Gerçekleşme = güncel ÷ hedef × 100
+//   İzin verilen açık   = en fazla kaç açık bulguyla hedefte kalınır = ⌊toplam × (1 − hedef/100)⌋
+//   Kapatılması gereken = max(0, dönem sonu açık − izin verilen açık)
+export function healthTarget({ openEnd, prevOpenEnd = null, total, target }) {
+  if (!(total > 0) || openEnd == null || !(target > 0 && target <= 100)) return null;
+  const pctOf = (open) => round1(Math.max(0, Math.min(100, ((total - open) / total) * 100)));
+  const healthPct = pctOf(openEnd);
+  const allowedOpen = Math.floor((total * (100 - target)) / 100 + 1e-9);
+  const prevHealthPct = prevOpenEnd != null ? pctOf(prevOpenEnd) : null;
+  return {
+    total, target, healthPct,
+    gapPoints: round1(target - healthPct), // pozitif: hedefin altında
+    achievedPct: round1((healthPct / target) * 100),
+    reached: healthPct >= target,
+    allowedOpen,
+    openToClose: Math.max(0, openEnd - allowedOpen),
+    prevHealthPct,
+    trendPoints: prevHealthPct != null ? round1(healthPct - prevHealthPct) : null,
+  };
+}
+
 // ----- Yönetici özeti (dinamik, veriye dayalı) -----
 const nf = (n) => Number(n).toLocaleString("tr-TR");
 const pf = (p) => `%${Number(p).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}`;

@@ -136,7 +136,24 @@ try {
   const catText = await page.locator("[data-exec-categories]").innerText();
   check("Konu paneli: 4 kategori; zimmet 'Artıyor', inaktif 'İyileşiyor' (veriye göre)", (await page.locator("[data-cat-row]").count()) === 4 && /Hatalı zimmet[\s\S]{0,40}Artıyor/.test(catText) && /İnaktif cihaz[\s\S]{0,40}İyileşiyor/.test(catText));
   check("Konu paneli: dönem başı, sonu, değişim, önceki dönem gösteriliyor", /Dönem başı/.test(catText) && /Dönem sonu/.test(catText) && /önceki dönem/.test(catText));
-  check("Hedefler: tanımlı değil mesajı ve gerekli alanlar", /Hedef tanımlı değil/.test(await page.locator("[data-targets-empty]").innerText()) && /gerekli alanlar/.test(await page.locator("[data-targets-empty]").innerText()));
+  // ---- Hedef: cihaz sağlığı oranı (varsayılan %95) ----
+  const trNum = (t) => Number(String(t).replace(/\./g, "").replace(",", "."));
+  const tval = async (k) => (await page.locator(`[data-target-val="${k}"]`).innerText()).trim();
+  const openNow = trNum(await kpi("open"));
+  const totalDev = trNum(await page.locator("[data-target-total]").innerText());
+  const wantHealth = Math.round(Math.max(0, Math.min(100, ((totalDev - openNow) / totalDev) * 100)) * 10) / 10;
+  check("Hedef kartı: varsayılan %95; güncel sağlık oranı (toplam − açık) ÷ toplam ile aynı", (await tval("Hedef")) === "%95" && trNum((await tval("Güncel")).replace("%", "")) === wantHealth, `toplam ${totalDev}, açık ${openNow}, sağlık %${wantHealth}`);
+  const wantGap = Math.round((95 - wantHealth) * 10) / 10;
+  check("Hedef kartı: hedefe kalan fark, gerçekleşme ve izin verilen açık sayısı doğru", wantHealth < 95 && trNum((await tval("Hedefe kalan fark")).replace(" puan", "")) === wantGap && trNum((await tval("Gerçekleşme")).replace("%", "")) === Math.round((wantHealth / 95) * 1000) / 10 && trNum(await page.locator("[data-target-allowed]").innerText()) === Math.floor((totalDev * 5) / 100 + 1e-9), `fark ${wantGap}`);
+  check("Hedefin altındayken durum 'Hedefin altında'", /Hedefin altında/.test(await page.locator("[data-target-status]").innerText()));
+  check("Grafikte hedef çizgisi (izin verilen en çok açık sayısı) çiziliyor", new RegExp(`Hedef: en çok ${Math.floor((totalDev * 5) / 100 + 1e-9).toLocaleString("tr-TR")} açık`).test(await page.locator("[data-exec-trend]").innerText().then((t) => t.replace(/\s+/g, " "))) || (await page.locator('[data-exec-trend] svg[role="img"]').innerHTML()).includes("Hedef: en çok"));
+  check("KPI 'Genel iyileşme' notunda hedef durumu görünüyor", /Hedef: cihaz sağlığı %95/.test(await page.locator('[data-kpi="improve"]').innerText()));
+  await page.locator("[data-target-input]").fill("30"); await page.locator("[data-target-input]").press("Enter"); await page.waitForTimeout(500);
+  check("Hedef %30'a çekilince 'Hedefe ulaşıldı', fark gösterilmiyor", /Hedefe ulaşıldı/.test(await page.locator("[data-target-status]").innerText()) && (await tval("Hedefe kalan fark")) === "—");
+  await page.locator("[data-target-input]").fill(""); await page.locator("[data-target-input]").press("Enter"); await page.waitForTimeout(500);
+  check("Hedef kutusu boşaltılınca 'Hedef tanımlı değil' (uydurma hedef yok)", (await page.locator("[data-targets-empty]").count()) === 1 && (await page.locator("[data-target-card]").count()) === 0);
+  await page.locator("[data-target-input]").fill("95"); await page.locator("[data-target-input]").press("Enter"); await page.waitForTimeout(500);
+  check("Hedef %95'e dönünce kart geri geliyor", (await tval("Hedef")) === "%95");
   check("Riskler yalnızca ölçülen yönden: zimmet artışı listede", /Hatalı zimmet/.test(await page.locator("[data-risks]").innerText()));
 
   console.log("\nDetay tablosu");

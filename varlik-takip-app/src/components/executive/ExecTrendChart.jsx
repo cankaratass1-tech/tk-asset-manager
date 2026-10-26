@@ -91,7 +91,7 @@ export default function ExecTrendChart({ pal, exec, points, targetValue = null }
                 ))}
                 <polygon points={`${linePts.join(" ")} ${x(n - 1)},${yOpen(openMin)} ${x(0)},${yOpen(openMin)}`} fill={`${C.blue}22`} />
                 <polyline points={linePts.join(" ")} fill="none" stroke={C.blue} strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
-                {targetValue != null && <g><line x1={L} x2={W - R} y1={yOpen(targetValue)} y2={yOpen(targetValue)} stroke={C.good} strokeDasharray="5 4" /><text x={W - R} y={yOpen(targetValue) - 5} textAnchor="end" style={{ fontSize: 11, fill: C.good }}>Hedef {nf(targetValue)}</text></g>}
+                {targetValue != null && <g><line x1={L} x2={W - R} y1={yOpen(targetValue)} y2={yOpen(targetValue)} stroke={C.good} strokeDasharray="5 4" /><text x={W - R} y={yOpen(targetValue) - 5} textAnchor="end" style={{ fontSize: 11, fill: C.good }}>Hedef: en çok {nf(targetValue)} açık</text></g>}
                 {points.map((p, i) => (<circle key={p.t} cx={x(i)} cy={yOpen(p.open)} r={hi === i ? 5.5 : 3.6} fill={C.blue} stroke={pal.panelSolid} strokeWidth="2" />))}
                 {[0, n - 1].map((i) => (<text key={i} x={x(i)} y={yOpen(points[i].open) - 10} textAnchor={i === 0 ? "start" : "end"} style={{ fontSize: 12, fontWeight: 700, fill: pal.ink }}>{nf(points[i].open)}</text>))}
               </g>
