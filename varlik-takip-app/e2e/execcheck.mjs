@@ -189,8 +189,8 @@ try {
   check("Boş durum, 'Örnek veriyle göster' seçeneğini öneriyor", /Örnek veriyle göster/.test(await e2.page.locator("[data-exec-dashboard]").innerText()));
 
   console.log("\nÖrnek veriyle göster");
-  const snapCount = async () => Object.values(await fetch(`${be2.base}/api/snapshots`, { headers: auth(be2) }).then((r) => r.json())).reduce((a, l) => a + l.length, 0);
-  const before2 = await snapCount();
+  // Uygulamanın kendi anlık kayıtları arka planda yazılabilir (sayı değişebilir); bu yüzden sayıya değil, örnek cihaz anahtarlarının hiç yazılmadığına bakılır
+  const sampleKeysInBackend = async () => Object.values(await fetch(`${be2.base}/api/snapshots`, { headers: auth(be2) }).then((r) => r.json())).flat().flatMap((snap) => snap.devices || []).filter((d) => String(d.key).startsWith("ornek-")).length;
   await e2.page.locator("[data-sample-toggle]").click(); await e2.page.waitForTimeout(800);
   check("Örnek veri açılınca 5 KPI kartı, 'ÖRNEK VERİ' uyarısı ve durum rozeti görünüyor", (await e2.page.locator("[data-kpi]").count()) === 5 && /ÖRNEK VERİ/.test(await e2.page.locator("[data-sample-banner]").innerText()) && /Örnek veri/.test(await e2.page.locator("[data-exec-status]").innerText()) && /gerçek değil/.test(await e2.page.locator("[data-exec-period]").innerText()));
   check("Örnek veride tüm paneller dolu (grafik, özet, şirket, konu) ve iki şirket seçilebiliyor", (await e2.page.locator("[data-exec-trend] svg[role=img]").count()) === 1 && (await e2.page.locator("[data-summary-block]").count()) === 3 && (await e2.page.locator("[data-company-metric]").count()) === 5 && (await e2.page.locator("[data-cat-row]").count()) === 4 && (await e2.page.locator('[data-seg="company"] button').count()) === 3);
@@ -201,7 +201,8 @@ try {
   await e2.page.locator("[data-detail-toggle]").click(); await e2.page.waitForSelector("[data-detail-row]");
   const [dl2] = await Promise.all([e2.page.waitForEvent("download", { timeout: 8000 }), e2.page.locator("[data-detail-export]").click()]);
   check("Örnek veri CSV'si 'ornek-veri-' önekiyle iner (gerçek veriyle karışmaz)", dl2.suggestedFilename().startsWith("ornek-veri-"), dl2.suggestedFilename());
-  check("Örnek veri backend'e yazılmadı", (await snapCount()) === before2, `${before2} → ${await snapCount()}`);
+  await e2.page.waitForTimeout(1500);
+  check("Örnek veri backend'e yazılmadı (kayıtlarda 'ornek-' cihazı yok)", (await sampleKeysInBackend()) === 0, String(await sampleKeysInBackend()));
   await e2.page.locator("[data-sample-toggle]").click(); await e2.page.waitForTimeout(600);
   check("Örnek veri kapatılınca gerçek (boş) duruma dönülüyor, sayı kalmıyor", (await e2.page.locator("[data-kpi]").count()) === 0 && (await e2.page.locator("[data-sample-banner]").count()) === 0);
   await e2.ctx.close();
