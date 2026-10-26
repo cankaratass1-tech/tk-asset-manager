@@ -123,6 +123,19 @@ try {
   const svgAfter = await page.locator('[data-exec-trend] svg[role="img"]').innerHTML();
   check("Seri düğmeleri çalışıyor (çözülen ve yeni kapatılınca sütunlar kalkıyor)", svgAfter.length < svgBefore.length && (await page.locator('[data-series-toggle="open"]').getAttribute("aria-pressed")) === "true");
   await page.locator('[data-series-toggle="solved"]').click(); await page.locator('[data-series-toggle="fresh"]').click();
+  // Grafik okunabilirliği: eksen verinin aralığına göre ölçeklenir, çizgi düz çıkmaz; "başlangıca göre fark" görünümü
+  const lineSpread = async () => page.locator('[data-exec-trend] svg[role="img"] polyline').first().evaluate((pl) => { const ys = pl.getAttribute("points").split(" ").map((p) => Number(p.split(",")[1])); return Math.max(...ys) - Math.min(...ys); });
+  const ticks = async () => (await page.locator("[data-axis-tick]").allTextContents()).map((t) => Number(t.replace(/\./g, "").replace("−", "-").replace("+", "")));
+  const tk0 = await ticks();
+  check("Grafik (Sayı görünümü): eksen sıfırdan başlamıyor, veri aralığına göre ölçekleniyor", Math.min(...tk0) > 0.6 * Math.min(all.openStart, all.openEnd), tk0.join(", "));
+  check("Grafik (Sayı görünümü): çizgi düz değil (dikey yayılım ≥ 40 px)", (await lineSpread()) >= 40, `${Math.round(await lineSpread())} px`);
+  await page.locator('[data-trend-mode="change"]').click(); await page.waitForTimeout(300);
+  const tk1 = await ticks();
+  check("Grafik (Başlangıca göre fark): eksen 0'ı içeriyor, iyileşme sıfırın altında (eksi değerler), çizgi okunur", tk1.includes(0) && Math.min(...tk1) < 0 && (await lineSpread()) >= 40, `${tk1.join(", ")} · ${Math.round(await lineSpread())} px`);
+  check("Grafik: başlangıç seviyesi çizgisi etiketli ve fark görünümünde son nokta toplam değişimi gösteriyor", /Başlangıç: \d/.test(await page.locator('[data-exec-trend] svg[role="img"]').innerHTML().then((h) => h.replace(/<[^>]+>/g, " "))) && (await page.locator('[data-exec-trend] svg[role="img"] text').allTextContents()).includes(sgn(all.openEnd - all.openStart)));
+  await page.locator('[data-trend-hit]').nth(3).hover(); await page.waitForTimeout(200);
+  check("Tooltip'te 'Başlangıca göre' farkı var", /Başlangıca göre/.test(await page.locator("[data-trend-tip]").innerText()));
+  await page.locator('[data-trend-mode="level"]').click(); await page.waitForTimeout(300);
   const sBlocks = await page.locator("[data-summary-block]").allInnerTexts();
   check("Yönetici özeti: olumlu / dikkat / aksiyon üç bölümü dolu ve veriden rakam içeriyor", sBlocks.length === 3 && sBlocks.every((b) => b.length > 30) && /\d/.test(sBlocks.join(" ")), sBlocks.map((b) => b.split("\n")[1]?.slice(0, 50)).join(" // "));
   check("Özet hatalı zimmet artışını gösteriyor (zimmet artıyor)", /Hatalı zimmet/.test(sBlocks[1]), sBlocks[1].slice(0, 110));
