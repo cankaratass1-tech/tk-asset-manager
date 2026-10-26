@@ -71,6 +71,11 @@ export default function ExecTrendChart({ pal, exec, points, targetValue = null }
     </div>
   );
 
+  const verdict = c.delta < 0
+    ? { tone: C.good, text: `Açık cihaz ${nf(c.openStart)} → ${nf(c.openEnd)}: ${nf(-c.delta)} cihaz azaldı${c.decreasePct != null ? ` (${pf(c.decreasePct)})` : ""}. İyileşme var.` }
+    : c.delta > 0
+    ? { tone: C.bad, text: `Açık cihaz ${nf(c.openStart)} → ${nf(c.openEnd)}: ${nf(c.delta)} cihaz arttı. Dikkat gerekiyor.` }
+    : { tone: pal.inkSoft, text: `Açık cihaz sayısı değişmedi (${nf(c.openEnd)}).` };
   const summary = (
     <div data-trend-summary style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", margin: "2px 0 10px", fontSize: 13, color: pal.inkSoft }}>
       <span>Başlangıç <b style={{ color: pal.ink }}>{nf(c.openStart)}</b></span>
@@ -80,6 +85,10 @@ export default function ExecTrendChart({ pal, exec, points, targetValue = null }
         ? <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>Önceki dönem sonu <b style={{ color: pal.ink }}>{nf(exec.previous.openEnd)}</b> <DeltaLine pal={pal} abs={exec.changes.openEnd.abs} pct={exec.changes.openEnd.pct} goodWhen="down" /></span>
         : <span>Önceki dönem: yeterli geçmiş yok</span>}
     </div>
+  );
+
+  const verdictBar = (
+    <div data-trend-verdict style={{ borderLeft: `3px solid ${verdict.tone}`, background: pal.fieldBg, borderRadius: 10, padding: "8px 12px", margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: pal.ink }}>{verdict.text}</div>
   );
 
   if (n < 2) {
@@ -108,7 +117,8 @@ export default function ExecTrendChart({ pal, exec, points, targetValue = null }
 
   return (
     <Card pal={pal} data-exec-trend>
-      <CardHead pal={pal} title="Açık cihaz ve iş yükü nasıl değişiyor?" sub="Üst panel: dönem sonundaki açık cihaz sayısı (stok), eksen verinin aralığına göre ölçeklenir; başlangıç seviyesinin altı yeşil (iyileşme), üstü mercan (artış). Alt panel: o dönemde çözülen ve yeni açılan işler (akış). Paneller ayrı ölçektedir." right={header} />
+      <CardHead pal={pal} title="Açık cihaz ve iş yükü nasıl değişiyor?" sub="Çizgi aşağı iniyorsa açık cihaz azalıyor (iyi), yukarı çıkıyorsa artıyor (dikkat). Sütunlar her kayıt aralığında çözülen (yeşil) ve yeni çıkan (kırmızı) işleri gösterir." right={header} />
+      {verdictBar}
       {summary}
       {!anyOn ? <p style={{ color: pal.inkSoft, fontSize: 13, padding: "20px 0" }}>Gösterilecek seri seçilmedi.</p> : (
         <div style={{ position: "relative" }}>
@@ -119,6 +129,7 @@ export default function ExecTrendChart({ pal, exec, points, targetValue = null }
             </defs>
             {on.open && (
               <g>
+                <text x={L} y={11} style={{ fontSize: 11.5, fontWeight: 700, fill: pal.inkSoft }}>{mode === "change" ? "Başlangıca göre fark (cihaz)" : "Açık cihaz sayısı"}</text>
                 {ax.ticks.map((v) => (
                   <g key={v}><line x1={L} x2={W - R} y1={yOpen(v)} y2={yOpen(v)} stroke={grid} /><text data-axis-tick x={L - 8} y={yOpen(v) + 4} textAnchor="end" style={{ fontSize: 11, fill: pal.inkSoft }}>{tickLabel(v)}</text></g>
                 ))}
@@ -128,7 +139,6 @@ export default function ExecTrendChart({ pal, exec, points, targetValue = null }
                 <text x={W - R} y={yB - 5} textAnchor="end" style={{ fontSize: 11, fill: pal.inkSoft }}>Başlangıç: {nf(base)}</text>
                 <polyline points={linePts.join(" ")} fill="none" stroke={C.blue} strokeWidth="2.8" strokeLinejoin="round" strokeLinecap="round" />
                 {t != null && targetIn && <g><line x1={L} x2={W - R} y1={yOpen(t)} y2={yOpen(t)} stroke={C.good} strokeDasharray="6 4" strokeWidth="1.6" /><text x={L + 6} y={yOpen(t) - 5} style={{ fontSize: 11, fill: C.good, fontWeight: 700 }}>Hedef: en çok {nf(targetValue)} açık</text></g>}
-                {t != null && !targetIn && <text data-target-offscale x={L + 6} y={H1 - B1 - 2} style={{ fontSize: 11, fill: C.good, fontWeight: 700 }}>▼ Hedef: en çok {nf(targetValue)} açık (grafiğin çok altında)</text>}
                 {points.map((p, i) => (<circle key={p.t} cx={x(i)} cy={yOpen(val(p))} r={hi === i ? 5.8 : 3.8} fill={C.blue} stroke={pal.panelSolid} strokeWidth="2" />))}
                 {points.map((p, i) => (showAll || i === 0 || i === n - 1) && (
                   <text key={`v${p.t}`} x={x(i)} y={yOpen(val(p)) + (val(p) >= baseV ? -10 : 17)} textAnchor={i === 0 && !showAll ? "start" : i === n - 1 && !showAll ? "end" : "middle"} style={{ fontSize: 12, fontWeight: 700, fill: pal.ink }}>{mode === "change" ? sn(val(p)) : nf(p.open)}</text>
@@ -137,6 +147,7 @@ export default function ExecTrendChart({ pal, exec, points, targetValue = null }
             )}
             {(on.solved || on.fresh) && (
               <g transform={`translate(0, ${H1})`}>
+                <text x={L} y={8} style={{ fontSize: 11.5, fontWeight: 700, fill: pal.inkSoft }}>Çözülen ve yeni açılan iş (adet)</text>
                 {[0, 0.5, 1].map((tt) => (<g key={tt}><line x1={L} x2={W - R} y1={yFlow(tt * flowMax)} y2={yFlow(tt * flowMax)} stroke={grid} /><text x={L - 8} y={yFlow(tt * flowMax) + 4} textAnchor="end" style={{ fontSize: 11, fill: pal.inkSoft }}>{nf(Math.round(tt * flowMax))}</text></g>))}
                 {points.map((p, i) => {
                   if (p.cozulen == null) return null;
@@ -169,6 +180,7 @@ export default function ExecTrendChart({ pal, exec, points, targetValue = null }
           )}
         </div>
       )}
+      {t != null && !targetIn && <p data-target-offscale style={{ margin: "8px 0 0", fontSize: 12, color: C.good, fontWeight: 700 }}>▼ Hedef: en çok {nf(targetValue)} açık bulgu; grafiğin çok altında kaldığı için çizgi gösterilmedi (ayrıntı "Hedefler ve riskler" kartında).</p>}
       <p style={{ margin: "8px 0 0", fontSize: 11.5, color: pal.inkSoft }}>Noktalar gerçek veri yükleme anlarıdır; aralarındaki dönemler tahmin edilmez.</p>
     </Card>
   );
