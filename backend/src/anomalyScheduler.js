@@ -1,7 +1,7 @@
 // Zamanlanmış Otomatik Tarama.
 //
 // Frontend'deki comparisonService.js (ES module, Vite/tarayıcı için) burada require EDİLEMEZ —
-// backend CommonJS. Bu yüzden sadece bu özellik için gereken İKİ kontrolün (Mükerrer Çift Zimmet,
+// backend CommonJS. Bu yüzden sadece bu özellik için gereken İKİ kontrolün (Birden Fazla Zimmet Mevcut,
 // Lokasyon Hostname/IP Uyuşmazlığı) minimal bir kopyası burada tutuluyor — mantık frontend'deki
 // gerçek servislerle (comparisonService.js / locationIpService.js) AYNI kalmalı, biri değişirse
 // diğeri de güncellenmeli.
@@ -73,7 +73,7 @@ function computeNextRun(cfg, afterDate) {
   return next;
 }
 
-// ---- TH: Mükerrer Çift Zimmet (comparisonService.js'teki mantıkla AYNI, sadece TH gerekir) ----
+// ---- TH: Birden Fazla Zimmet Mevcut (comparisonService.js'teki mantıkla AYNI, sadece TH gerekir) ----
 function findDuplicateNotebooks(thRawRows) {
   const rows = thRawRows.map((raw) => ({
     serial: col(raw, "Seri No"),
@@ -95,7 +95,7 @@ function findDuplicateNotebooks(thRawRows) {
     });
   const anomalies = [];
   groups.forEach((rs) => {
-    if (rs.length > 1) rs.forEach((r) => anomalies.push({ key: `dup:${r.serial}`, label: `${r.owner} — ${r.serial} (mükerrer, ${rs.length} notebook)` }));
+    if (rs.length > 1) rs.forEach((r) => anomalies.push({ key: `dup:${r.serial}`, label: `${r.owner} — ${r.serial} (birden fazla zimmet, ${rs.length} notebook)` }));
   });
   return anomalies;
 }
@@ -210,7 +210,7 @@ async function runScan({ force = false } = {}) {
   try {
     lokasyon = loadLatestReport(fileSourceCfg.folderPath, "LokasyonMailListesi", { sheetIndex: 0, headerRow: 0 }).rows;
   } catch {
-    // Lokasyon Mail Listesi henüz yüklenmemişse sadece Mükerrer Çift Zimmet kontrolü çalışır.
+    // Lokasyon Mail Listesi henüz yüklenmemişse sadece Birden Fazla Zimmet Mevcut kontrolü çalışır.
   }
 
   const anomalies = [...findDuplicateNotebooks(th), ...findLocationIpMismatches(sccm, lokasyon)];

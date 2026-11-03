@@ -16,6 +16,7 @@ const SUITES = [
   ["BitLocker (SCCM raporu filtresi)", "node", ["e2e/bitlockercheck.mjs", "--skip-build"]],
   ["Toplu dosya yükleme (otomatik tanıma)", "node", ["e2e/bulkuploadcheck.mjs", "--skip-build"]],
   ["Mail", "node", ["e2e/mailtest.mjs", "--skip-build"]],
+  ["Zimmet sahibi mailleri (çoklu notebook senaryoları)", "node", ["e2e/zimmetowner.mjs", "--skip-build"]],
   ["Üst yönetim ekranı (Operasyonel Durum Özeti)", "node", ["e2e/execcheck.mjs", "--skip-build"]],
   ["Gönderim günlüğü", "node", ["e2e/sendlogcheck.mjs", "--skip-build"]],
   ["Dashboard doğruluğu", "node", ["e2e/dashcheck.mjs", "--skip-build"]],

@@ -86,7 +86,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
   const userDir = buildUserDirectory(thRows);
   const fullNameOf = (u) => { const h = userDir.byUser.get(userKey(u)); return h ? h.name : ""; };
 
-  // "Mükerrer Çift Zimmet" (madde: kırılım) — aynı kişiye (Owner Username, yoksa Sicil, yoksa
+  // "Birden Fazla Zimmet Mevcut" (madde: kırılım) — aynı kişiye (Owner Username, yoksa Sicil, yoksa
   // isim) User kategorisinde BİRDEN FAZLA NOTEBOOK zimmetli görünmesi — normalde bir kişiye bir
   // laptop beklenir, ikinci bir laptop görülmesi kendi başına bir uyuşmazlık (kullanım eşleşmesi
   // doğru olsa bile). Sadece NOTEBOOK için; Desktop/Monitor bu kurala dahil değil.
@@ -236,7 +236,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
     const s = sccmBySerial.get(norm(th.serial));
     const sccmUser = s && s.userLabel && s.userLabel !== "Tespit Edilemedi" ? s.userLabel : "";
     let statusTag, matched, userDetail;
-    let duplicateDevices = []; // Mükerrer Çift Zimmet: aynı kişiye zimmetli notebook'lar (popup/detay listesi için)
+    let duplicateDevices = []; // Birden Fazla Zimmet Mevcut: aynı kişiye zimmetli notebook'lar (popup/detay listesi için)
 
     if (!s) {
       // SCCM'de kaydı yok (ör. ajan hiç kurulmamış/silinmiş) — bunu otomatik "hatalı" saymak
@@ -273,21 +273,26 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       }
     }
 
-    // Mükerrer çift zimmet — bu satırın kendi doğru/hatalı kullanım sonucundan BAĞIMSIZ olarak,
-    // aynı kişiye ikinci (veya daha fazla) bir notebook zimmetli görünmesi başlı başına bir
-    // uyuşmazlıktır; bu yüzden yukarıdaki statusTag'i EZER (override).
+    // Birden fazla zimmet — aynı kişiye ikinci (veya daha fazla) bir notebook zimmetli görünmesi başlı başına bir
+    // uyuşmazlıktır; yukarıdaki statusTag'i EZER (override). İSTİSNA: cihazı kullanan kişi zimmet sahibi DEĞİLSE
+    // ("Zimmet Hatalı") etiket korunur — mail cihazı kullanan kişiye gider ve ona "üzerinize birden fazla notebook
+    // zimmetli" demek yanlış olur; ona transfer maili gitmeli. Sahibe ayrıca bilgilendirme gider (duplicateDevices).
     if (th.deviceType === "NOTEBOOK") {
       const dupSerials = notebookOwnerCounts.get(ownerIdentity(th));
       if (dupSerials && dupSerials.length > 1) {
         const others = dupSerials.filter((sn) => sn !== th.serial);
-        statusTag = "Mükerrer Çift Zimmet";
-        matched = false;
+        const usedByOther = statusTag === "Zimmet Hatalı";
+        if (!usedByOther) {
+          statusTag = "Birden Fazla Zimmet Mevcut";
+          matched = false;
+        }
         duplicateDevices = dupSerials.map((sn) => {
           const t = thBySerialAll.get(norm(sn)) || {};
           const ss = sccmBySerial.get(norm(sn));
           return { serial: sn, isThis: sn === th.serial, model: (ss && ss.deviceModel) || t.model || "", hostname: ss ? ss.hostname : "", user: ss && ss.userLabel && ss.userLabel !== "Tespit Edilemedi" ? ss.userLabel : "", userName: ss && ss.userLabel ? fullNameOf(ss.userLabel) : "", lastLogonTime: ss ? ss.lastLogonTime : "", assetNote: t.asset || "" };
         });
-        userDetail = `${th.owner} kişisine birden fazla notebook zimmetli görünüyor: ${th.serial} (bu kayıt) + ${others.join(", ")} — mükerrer/çift zimmet olabilir, tekilleştirme gerekir.`;
+        const dupNote = `${th.owner} kişisine birden fazla notebook zimmetli görünüyor: ${th.serial} (bu kayıt) + ${others.join(", ")} — kullanılmayan varsa iade edilmeli ya da gerekçesi belirtilmeli.`;
+        userDetail = usedByOther ? `${userDetail} Ayrıca ${dupNote}` : dupNote;
       }
     }
 
@@ -323,6 +328,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       statusTag: finalStatusTag,
       hostname: s ? s.hostname : "—",
       duplicateDevices,
+      ownerMail: th.ownerMail || "",
       deviceModel: s ? s.deviceModel : th.model,
       lastLogonTime: s ? s.lastLogonTime : "",
       ouName: s ? s.ouName : "",

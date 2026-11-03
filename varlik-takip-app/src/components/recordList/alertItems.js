@@ -13,7 +13,7 @@ export function inaktifActionItems(row) {
   ];
 }
 
-// Zimmet Uyuşmazlığı — yalnız aksiyon gerektiren iki durum (Zimmet Hatalı, Mükerrer Çift Zimmet)
+// Zimmet Uyuşmazlığı — yalnız aksiyon gerektiren iki durum (Zimmet Hatalı, Birden Fazla Zimmet Mevcut)
 export function zimmetAlertItems(row) {
   const tag = String(row.personStatusTag ?? row.statusTag ?? "");
   const user = row.userLabel && row.userLabel !== "Tespit Edilemedi" ? row.userLabel : "";
@@ -26,16 +26,19 @@ export function zimmetAlertItems(row) {
     return [
       ...base,
       { label: "Cihazı kullanan", value: row.userFullName || user, lines: [row.userFullTitle, user !== (row.userFullName || user) ? user : "", row.mail, "SCCM · son oturum açan"] },
+      ...(row.duplicateDevices && row.duplicateDevices.length > 1
+        ? [{ label: "Not", value: `Zimmet sahibine ${row.duplicateDevices.length} notebook zimmetli; sahibine de hangi cihazın kimde olduğunu gösteren bilgilendirme gider` }]
+        : []),
       { label: "Yapılacak", value: `Zimmet ${user} adına aktarılmalı ya da kullanım düzeltilmeli`, action: true },
     ];
   }
-  if (/^Mükerrer Çift Zimmet/.test(tag)) {
+  if (/^Birden Fazla Zimmet Mevcut/.test(tag)) {
     return [
       ...base,
       { label: "Durum", value: `Aynı kişiye ${(row.duplicateDevices || []).length || "birden fazla"} notebook zimmetli` },
       ...(row.duplicateDevices && row.duplicateDevices.length
         ? [{
-            label: "Mükerrer olabilecek cihazlar",
+            label: "Aynı kişiye zimmetli cihazlar",
             list: row.duplicateDevices.map((d) => ({
               serial: d.serial,
               isThis: d.isThis,

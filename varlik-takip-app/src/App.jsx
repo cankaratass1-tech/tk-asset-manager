@@ -809,9 +809,9 @@ export default function App({ user, onLogout } = {}) {
   const anyMonitorIssue = useMemo(() => isZimmet && zimmetRows.some((r) => r.monitorIssue), [isZimmet, zimmetRows]);
   // Madde 3 — "TH Kaydı YOK" segmenti sadece gerçekten bu tip satır varsa gösterilir.
   const anyNoThRecord = useMemo(() => isZimmet && zimmetRows.some((r) => r.statusTag === "TH Kaydı YOK"), [isZimmet, zimmetRows]);
-  // "Mükerrer Çift Zimmet" segmenti — aynı kişiye birden fazla notebook zimmetli görünen kayıtlar
+  // "Birden Fazla Zimmet Mevcut" segmenti — aynı kişiye birden fazla notebook zimmetli görünen kayıtlar
   //.
-  const anyDuplicateNotebook = useMemo(() => isZimmet && zimmetRows.some((r) => r.statusTag === "Mükerrer Çift Zimmet"), [isZimmet, zimmetRows]);
+  const anyDuplicateNotebook = useMemo(() => isZimmet && zimmetRows.some((r) => r.statusTag === "Birden Fazla Zimmet Mevcut"), [isZimmet, zimmetRows]);
 
   // Genel Bakış'taki durum akışı (Yeni/İnceleniyor/Çözüldü) dağılımı
   const statusFlowStats = useMemo(() => {
@@ -963,7 +963,7 @@ export default function App({ user, onLogout } = {}) {
       if (segment === "monitorIssue" && !r.monitorIssue) return false;
       if ((segment === "critical" || segment === "warning" || segment === "normal") && r.diskLevel !== segment) return false;
       if (segment === "noThRecord" && r.statusTag !== "TH Kaydı YOK") return false;
-      if (segment === "duplicateNotebook" && r.statusTag !== "Mükerrer Çift Zimmet") return false;
+      if (segment === "duplicateNotebook" && r.statusTag !== "Birden Fazla Zimmet Mevcut") return false;
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         const haystack = `${r.owner} ${r.sub} ${r.serial} ${r.model} ${r.location} ${locationOf(r)} ${r.windowsSearch || ""}`.toLowerCase();
@@ -1514,10 +1514,25 @@ export default function App({ user, onLogout } = {}) {
       footer: MAIL_FOOTER,
     });
 
-  // Zimmet Uyuşmazlığı — cihazı fiilen kullanan kişiye. Aynı kişiye hem "Zimmet Hatalı" hem "Mükerrer Çift Zimmet" (ve monitör)
+  // Zimmet Uyuşmazlığı — cihazı fiilen kullanan kişiye. Aynı kişiye hem "Zimmet Hatalı" hem "Birden Fazla Zimmet Mevcut" (ve monitör)
   // kaydı düşebilir (aynı mail adresi): tek mailde bölümler halinde birleşir. Aktif kullanıcı r.userFull/r.userLabel'de (bkz. comparisonService.js).
   const zimmetDevRow = (r) => devRow(r, ownerWithTitle(r), [r.userFull || r.userLabel, r.lastLogonTime].filter(Boolean).join(" · "));
-  const buildZimmetCombinedMailHtml = (mismatchRows, duplicateRows, monitorRows = []) => {
+  // Zimmet sahibine "hangi notebook kimde" tablosu (dev: comparisonService duplicateDevices öğeleri)
+  const ownerOverviewTable = (devs) =>
+    dataTable(["Seri No", "Marka / Model", "Hostname", "Şu an kullanan", "Last Logon"], devs.map((d) => [d.serial, d.model, d.hostname, d.userName || d.user || "Tespit edilemedi", d.lastLogonTime]));
+  const OWNER_OVERVIEW_INTRO = "Sistem kayıtlarımıza göre üzerinize <strong>birden fazla notebook</strong> zimmetli görünüyor. Her cihazı şu anda kimin kullandığı aşağıda listelenmiştir. Cihazı kullanan kişilere zimmet transferi için ayrıca bilgilendirme yapılmıştır; kullanmadığınız cihaz(lar) için iade/transfer sürecini lütfen takip ediniz.";
+  const buildOwnerOverviewMailHtml = (devs) =>
+    mailShell({
+      eyebrow: "ZİMMET BİLGİLENDİRME",
+      title: "NOTEBOOK ZİMMETLERİNİZİN DURUMU",
+      greeting: "Merhabalar,",
+      intro: OWNER_OVERVIEW_INTRO,
+      bodyHtml: ownerOverviewTable(devs),
+      action: stepsBox("Zimmet kayıtlarının güncellenmesi için gerekirse TuruncuHat üzerinden bir kayıt oluşturunuz:"),
+      notes: [REC_NOTE],
+      footer: MAIL_FOOTER,
+    });
+  const buildZimmetCombinedMailHtml = (mismatchRows, duplicateRows, monitorRows = [], ownerOverview = []) => {
     // Monitör satırında Hostname = bağlı olduğu cihaz, Last Logon = monitörü kullanan kişi.
     const monitorEntries = monitorRows.flatMap((r) => (r.monitorDetails || []).filter((m) => m.ok === false));
     const monitorDevRow = (m) => [[m.serial, m.barkod], [m.marka, m.label], m.asset, m.assignedToFull || m.assignedTo, m.hostname || "", m.usedBy];
@@ -1527,14 +1542,16 @@ export default function App({ user, onLogout } = {}) {
     const DUP_INTRO = "Sistem kayıtlarımıza göre üzerinize <strong>birden fazla notebook</strong> zimmetli görünüyor (aşağıdaki liste). Zimmet envanterinin doğru tutulabilmesi için, kullanmadığınız cihaz(lar)ın iade edilmesi ya da gerçekten ihtiyaç duyduğunuz birden fazla cihaz varsa bu durumun gerekçesiyle birlikte bildirilmesi rica olunur.";
     const transferTable = dataTable(devHead("Kayıtlı Sahibi (Eski)"), [...mismatchRows.map(zimmetDevRow), ...monitorEntries.map(monitorDevRow)]);
     const dupTable = dataTable(devHead("Zimmetli Kişi"), duplicateRows.map(zimmetDevRow));
+    // Alıcı aynı zamanda başkasının kullandığı notebook'lara sahipse: tüm notebook'larının kimde olduğu ek bölüm olarak gelir
+    const overviewHtml = ownerOverview.length ? mailSection("Notebook zimmetlerinizin durumu", `<p style="margin:0 0 8px;">${OWNER_OVERVIEW_INTRO}</p>` + ownerOverviewTable(ownerOverview)) : "";
     return mailShell({
-      eyebrow: hasTransfer ? "ZİMMET UYUŞMAZLIĞI" : "MÜKERRER ZİMMET",
-      title: hasTransfer ? "ZİMMET TRANSFERİ GEREKLİ" : "MÜKERRER ÇİFT ZİMMET BİLDİRİMİ",
+      eyebrow: hasTransfer ? "ZİMMET UYUŞMAZLIĞI" : "BİRDEN FAZLA ZİMMET",
+      title: hasTransfer ? "ZİMMET TRANSFERİ GEREKLİ" : "BİRDEN FAZLA ZİMMET BİLDİRİMİ",
       greeting: "Merhabalar,",
       intro: hasTransfer ? TRANSFER_INTRO : DUP_INTRO,
       bodyHtml: hasTransfer
-        ? transferTable + (hasDup ? mailSection("Mükerrer çift zimmet", `<p style="margin:0 0 8px;">Ayrıca, ${DUP_INTRO.charAt(0).toLowerCase()}${DUP_INTRO.slice(1)}</p>` + dupTable) : "")
-        : dupTable,
+        ? transferTable + (hasDup ? mailSection("Birden fazla zimmet", `<p style="margin:0 0 8px;">Ayrıca, ${DUP_INTRO.charAt(0).toLowerCase()}${DUP_INTRO.slice(1)}</p>` + dupTable) : "") + overviewHtml
+        : dupTable + overviewHtml,
       action: stepsBox("İşleminiz için lütfen aşağıdaki adımları izleyerek TuruncuHat üzerinden bir kayıt oluşturunuz:"),
       notes: [REC_NOTE],
       footer: MAIL_FOOTER,
@@ -1543,13 +1560,13 @@ export default function App({ user, onLogout } = {}) {
 
   // Zimmet Uyuşmazlığı "Mail Gönder" — ÖNCEDEN demo stub'du. Artık gerçek gönderim: "Zimmet
   // Doğru" (ve "Zimmet Doğru + Monitör Uyuşmazlığı" — zimmet kısmı zaten doğru, sorun monitörde,
-  // bu akışın konusu değil) HİÇBİR ZAMAN mail almaz. "Zimmet Hatalı" VE "Mükerrer Çift Zimmet"
+  // bu akışın konusu değil) HİÇBİR ZAMAN mail almaz. "Zimmet Hatalı" VE "Birden Fazla Zimmet Mevcut"
   // ikisi de mail alır — ama farklı içerikle: Zimmet Hatalı "cihaz size zimmetli değil ama
-  // kullanıyorsunuz, transfer edin" der; Mükerrer Çift Zimmet "üzerinize birden fazla notebook
+  // kullanıyorsunuz, transfer edin" der; Birden Fazla Zimmet Mevcut "üzerinize birden fazla notebook
   // zimmetli, gereksizleri iade edin" der. Aynı kişiye iki türden de kayıt varsa TEK mailde iki
   // ayrı bölüm halinde birleşir. Muhatap: cihazı fiilen kullanan kişi (SCCM'den r.mail) — bu,
   // Mükerrer durumunda da doğru kişidir çünkü o satırlarda zaten owner==user'dır.
-  const isZimmetMailable = (r) => r.statusTag === "Zimmet Hatalı" || r.statusTag === "Mükerrer Çift Zimmet" || Boolean(r.monitorIssue);
+  const isZimmetMailable = (r) => r.statusTag === "Zimmet Hatalı" || r.statusTag === "Birden Fazla Zimmet Mevcut" || Boolean(r.monitorIssue);
   const handleZimmetMail = async () => {
     const deptName = currentDeptLabel;
     const targetRows = resolveTargetRows();
@@ -1558,7 +1575,7 @@ export default function App({ user, onLogout } = {}) {
     const mismatchRows = targetRows.filter((r) => isZimmetMailable(r));
 
     if (mismatchRows.length === 0) {
-      showToast("Seçili/filtrelenmiş kayıtlarda Zimmet Hatalı, Mükerrer Çift Zimmet ya da Monitör Uyuşmazlığı yok — gönderilecek kayıt bulunamadı (sorunsuz kayıtlara hiçbir zaman e-posta gitmez)");
+      showToast("Seçili/filtrelenmiş kayıtlarda Zimmet Hatalı, Birden Fazla Zimmet Mevcut ya da Monitör Uyuşmazlığı yok — gönderilecek kayıt bulunamadı (sorunsuz kayıtlara hiçbir zaman e-posta gitmez)");
       return;
     }
 
@@ -1573,7 +1590,19 @@ export default function App({ user, onLogout } = {}) {
       byActualUser.get(r.mail).push(r);
     });
 
-    let sent = 0, failed = 0, duplicateSent = 0, extraIncluded = 0;
+    // Zimmet sahibine bilgilendirme: cihazı başkası kullanan ("Zimmet Hatalı") satırların sahibinde birden fazla notebook zimmetliyse,
+    // sahibe de (kullananlara giden transfer mailine ek olarak) hangi cihazın kimde olduğunu gösteren mail gider. Sahip zaten bu gönderimde
+    // alıcıysa (ör. kendi kullandığı mükerrer cihazlar için) aynı mailde ek bölüm olur, ikinci mail gitmez.
+    const ownerGroups = new Map();
+    mismatchRows.forEach((r) => {
+      if (r.statusTag !== "Zimmet Hatalı" || !(r.duplicateDevices && r.duplicateDevices.length > 1)) return;
+      const to = String(r.ownerMail || "").trim().toLowerCase();
+      const id = to || `no-mail|${r.owner}`;
+      if (!ownerGroups.has(id)) ownerGroups.set(id, { to, label: r.ownerFull && r.ownerFull !== "—" ? r.ownerFull : r.owner, devices: r.duplicateDevices, rows: [], merged: false });
+      ownerGroups.get(id).rows.push(r);
+    });
+
+    let sent = 0, failed = 0, duplicateSent = 0, extraIncluded = 0, ownerInfoSent = 0, ownerInfoFailed = 0, ownerInfoNoMail = 0;
     const skipped = noMailRows.length;
     const details = noMailRows.map((r) => ({ location: r.userFull || r.userLabel || r.hostname, to: null, count: 1, devices: devRef([r]), ok: false, message: "SCCM'de bu kullanıcı için e-posta adresi bulunamadı" }));
 
@@ -1585,27 +1614,29 @@ export default function App({ user, onLogout } = {}) {
       const personRows = zimmetRows.filter((r) => r.mail === to && isZimmetMailable(r));
       const mailRows = [...rows, ...personRows.filter((p) => !rows.some((r) => rowKeyOf(r) === rowKeyOf(p)))];
       const rowsMismatch = mailRows.filter((r) => r.statusTag === "Zimmet Hatalı");
-      const rowsDuplicate = mailRows.filter((r) => r.statusTag === "Mükerrer Çift Zimmet");
+      const rowsDuplicate = mailRows.filter((r) => r.statusTag === "Birden Fazla Zimmet Mevcut");
       const rowsMonitor = mailRows.filter((r) => r.monitorIssue);
       const subject = (rowsMismatch.length || rowsMonitor.length) && rowsDuplicate.length
-        ? "Zimmet Uyuşmazlığı ve Mükerrer Zimmet Bildirimi — Aksiyon Gerekli"
+        ? "Zimmet Uyuşmazlığı ve Birden Fazla Zimmet Bildirimi — Aksiyon Gerekli"
         : rowsDuplicate.length
-        ? "Mükerrer Çift Zimmet Bildirimi — Aksiyon Gerekli"
+        ? "Birden Fazla Zimmet Bildirimi — Aksiyon Gerekli"
         : "Zimmet Uyuşmazlığı — Kullandığınız Cihaz(lar) İçin Zimmet Transferi Gerekli";
+      const ownerGroup = ownerGroups.get(String(to).trim().toLowerCase());
+      if (ownerGroup) ownerGroup.merged = true;
       try {
         const result = await backendClient.sendMail({
           to,
           subject,
           text: `Aşağıdaki cihaz(lar) için aksiyon gereklidir:\n\n${mailRows.map((r) => `- ${r.serial} (${r.deviceModel || r.hostname}) — ${r.statusTag}${r.statusTag === "Zimmet Hatalı" ? `, kayıtlı eski sahibi: ${ownerWithTitle(r)}` : ""}`).join("\n")}`,
-          html: buildZimmetCombinedMailHtml(rowsMismatch, rowsDuplicate, rowsMonitor),
+          html: buildZimmetCombinedMailHtml(rowsMismatch, rowsDuplicate, rowsMonitor, ownerGroup ? ownerGroup.devices : []),
         });
         if (result.ok) {
           sent += rows.length;
           // sayaçlar yalnızca SEÇİLİ/hedef kayıtları sayar; aynı kişiye ait ek kayıtlar ayrıca "extraIncluded" olarak raporlanır
-          duplicateSent += rows.filter((r) => r.statusTag === "Mükerrer Çift Zimmet").length;
+          duplicateSent += rows.filter((r) => r.statusTag === "Birden Fazla Zimmet Mevcut").length;
           extraIncluded += mailRows.length - rows.length;
           details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: true, message: "Gönderildi" });
-          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `${r.statusTag === "Mükerrer Çift Zimmet" ? "Mükerrer çift zimmet" : r.monitorIssue && r.statusTag !== "Zimmet Hatalı" ? "Monitör uyuşmazlığı" : "Zimmet uyuşmazlığı"} e-postası gönderildi (${label})`, mailSubject: subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
+          rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `${r.statusTag === "Birden Fazla Zimmet Mevcut" ? "Birden fazla zimmet" : r.monitorIssue && r.statusTag !== "Zimmet Hatalı" ? "Monitör uyuşmazlığı" : "Zimmet uyuşmazlığı"} e-postası gönderildi (${label})`, mailSubject: subject, user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
         } else {
           failed += rows.length;
           details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: false, message: result.message || "Gönderilemedi" });
@@ -1613,6 +1644,34 @@ export default function App({ user, onLogout } = {}) {
       } catch (err) {
         failed += rows.length;
         details.push({ location: label, to, count: rows.length, devices: devRef(rows), ok: false, message: err.message || "Gönderilemedi" });
+      }
+    }
+
+    for (const g of ownerGroups.values()) {
+      if (g.merged) continue;
+      if (!g.to) {
+        ownerInfoNoMail += 1;
+        details.push({ location: `${g.label} (zimmet sahibi)`, to: null, count: g.rows.length, devices: devRef(g.rows), ok: false, message: "TuruncuHat'ta zimmet sahibinin e-posta adresi yok — bilgilendirme gönderilemedi" });
+        continue;
+      }
+      try {
+        const result = await backendClient.sendMail({
+          to: g.to,
+          subject: "Zimmetli Notebook Cihazlarınız İçin Bilgilendirme",
+          text: `Üzerinize birden fazla notebook zimmetli görünüyor:\n\n${g.devices.map((d) => `- ${d.serial} (${d.model || d.hostname}) — kullanan: ${d.userName || d.user || "tespit edilemedi"}`).join("\n")}`,
+          html: buildOwnerOverviewMailHtml(g.devices),
+        });
+        if (result.ok) {
+          ownerInfoSent += 1;
+          details.push({ location: `${g.label} (zimmet sahibi)`, to: g.to, count: g.rows.length, devices: devRef(g.rows), ok: true, message: "Zimmet sahibine bilgilendirme gönderildi" });
+          g.rows.forEach((r) => logDeviceAction(r, { type: "Mail", description: `Zimmet sahibine bilgilendirme e-postası gönderildi (${g.label})`, mailSubject: "Zimmetli Notebook Cihazlarınız İçin Bilgilendirme", user: user?.username || "", reportId: activeReport, status: "Başarılı" }));
+        } else {
+          ownerInfoFailed += 1;
+          details.push({ location: `${g.label} (zimmet sahibi)`, to: g.to, count: g.rows.length, devices: devRef(g.rows), ok: false, message: result.message || "Gönderilemedi" });
+        }
+      } catch (err) {
+        ownerInfoFailed += 1;
+        details.push({ location: `${g.label} (zimmet sahibi)`, to: g.to, count: g.rows.length, devices: devRef(g.rows), ok: false, message: err.message || "Gönderilemedi" });
       }
     }
 
@@ -1627,8 +1686,9 @@ export default function App({ user, onLogout } = {}) {
     });
 
     const dupNote =
-      (duplicateSent > 0 ? ` (${duplicateSent} kaydı mükerrer çift zimmet bildirimiydi)` : "") +
-      (extraIncluded > 0 ? ` (+${extraIncluded} ilgili kayıt, aynı kişiye ait olduğu için aynı e-postaya eklendi)` : "");
+      (duplicateSent > 0 ? ` (${duplicateSent} kaydı birden fazla zimmet bildirimiydi)` : "") +
+      (extraIncluded > 0 ? ` (+${extraIncluded} ilgili kayıt, aynı kişiye ait olduğu için aynı e-postaya eklendi)` : "") +
+      (ownerGroups.size > 0 ? ` (zimmet sahibine bilgilendirme: ${ownerInfoSent} gönderildi${[...ownerGroups.values()].filter((g) => g.merged).length ? `, ${[...ownerGroups.values()].filter((g) => g.merged).length} sahibe aynı e-postada` : ""}${ownerInfoNoMail ? `, ${ownerInfoNoMail} için e-posta adresi yok` : ""}${ownerInfoFailed ? `, ${ownerInfoFailed} başarısız` : ""})` : "");
     if (sent === 0 && failed === 0 && skipped > 0) {
       showToast(`❌ Gönderilemedi — ${skipped} kayıt için SCCM'de kullanıcı e-postası bulunamadı`);
     } else if (skipped > 0) {
@@ -4256,7 +4316,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   disabled={!scheduleConfig.enabled}
                 />
                 <p style={{ ...styles.formHelper, margin: "4px 0 0" }}>
-                  Mükerrer Çift Zimmet ve Lokasyon Hostname/IP Uyuşmazlığı için — sadece bir önceki taramadan bu yana YENİ çıkanlar e-posta edilir, ilk taramada sadece mevcut durum baz alınır.
+                  Birden Fazla Zimmet Mevcut ve Lokasyon Hostname/IP Uyuşmazlığı için — sadece bir önceki taramadan bu yana YENİ çıkanlar e-posta edilir, ilk taramada sadece mevcut durum baz alınır.
                 </p>
                 <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14, flexWrap: "wrap" }}>
                   <button style={styles.btnPrimary} onClick={saveAnomalySchedule} disabled={savingSchedule}>
@@ -5238,7 +5298,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       // görünürdü.
                       ...(isZimmet && anyMonitorIssue ? [{ id: "monitorIssue", label: "Monitör Uyuşmazlığı" }] : []),
                       ...(isZimmet && anyNoThRecord ? [{ id: "noThRecord", label: "TH Kaydı YOK" }] : []),
-                      ...(isZimmet && anyDuplicateNotebook ? [{ id: "duplicateNotebook", label: "Mükerrer Çift Zimmet" }] : []),
+                      ...(isZimmet && anyDuplicateNotebook ? [{ id: "duplicateNotebook", label: "Birden Fazla Zimmet Mevcut" }] : []),
                     ].map((s) => (
                       <div key={s.id} onClick={() => setSegment(s.id)} style={{ ...styles.seg, ...(segment === s.id ? styles.segActive : {}) }}>
                         {s.label}

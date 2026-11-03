@@ -116,14 +116,14 @@ ${body}`);
   }
 
   await page.locator("input[type=checkbox]").first().uncheck().catch(() => {});
-  await segment("Mükerrer Çift Zimmet");
+  await segment("Birden Fazla Zimmet Mevcut");
   await selectRows(1);
   r = await sendAndCollect(() => mailButton().click());
-  check("Mükerrer Çift Zimmet: seçili kayda e-posta gidiyor", r.mails.length >= 1, r.toast);
+  check("Birden Fazla Zimmet Mevcut: seçili kayda e-posta gidiyor", r.mails.length >= 1, r.toast);
   if (r.mails[0]) {
-    sane("Mükerrer", r.mails);
+    sane("Birden Fazla Zimmet", r.mails);
     const t = stripHtml(r.mails[0].html);
-    check("Mükerrer: 'birden fazla notebook' bölümü ve 'Zimmetli Kişi' sütunu", /birden fazla notebook/.test(t) && t.includes("Zimmetli Kişi"));
+    check("Birden Fazla Zimmet: 'birden fazla notebook' bölümü ve 'Zimmetli Kişi' sütunu", /birden fazla notebook/.test(t) && t.includes("Zimmetli Kişi"));
   }
 
   await page.reload();
