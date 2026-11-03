@@ -21,8 +21,6 @@ export const REPORT_CATEGORIES = [
       { id: "atil-monitor", name: "Atıl Monitörler" },
       { id: "kapatma-onayi", name: "Kapatma Onayı Bekleyen Kayıtlar" },
       { id: "yeni-kurulum", name: "Yeni Kurulum Kaydı" },
-      { id: "checkpoint", name: "Checkpoint" },
-      { id: "bitlocker", name: "BitLocker Kontrol" },
       { id: "sccm-ajan", name: "SCCM Ajan Raporu" },
     ],
   },

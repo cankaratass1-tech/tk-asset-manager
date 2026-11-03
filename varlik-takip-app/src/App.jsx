@@ -5,6 +5,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { DEPARTMENTS, REPORT_TYPES, REPORT_CATEGORIES, NETWORK_ITEMS, REPORTS_WITHOUT_MODEL_FILTER, REPORTS_WITH_REAL_DATA, STATUS_FLOW } from "./data/constants";
 import MultiSelectFilter from "./components/MultiSelectFilter";
+import BulkFileDrop from "./components/BulkFileDrop";
+import { detectFile, pickNewestPerKind, KIND_LABELS } from "./services/fileDetect";
 import Pagination from "./components/Pagination";
 import { getZimmetRows, computeOverallZimmetStats, getAllMismatchRows, computeZimmetChains, isZimmetUnverified } from "./services/zimmetService";
 import { computeComparisonRows } from "./services/comparisonService";
@@ -148,7 +150,11 @@ export default function App({ user, onLogout } = {}) {
   const pal = PALETTES[theme] || LIGHT_PALETTE;
   const styles = useMemo(() => buildStyles(pal), [theme]);
   const [activeDept, setActiveDept] = useState("d1");
-  const [activeReport, setActiveReport] = useState(() => loadNavState().activeReport || "inaktif");
+  const [activeReport, setActiveReport] = useState(() => {
+    const saved = loadNavState().activeReport;
+    if (saved === "bitlocker") return "sccm-ajan"; // BitLocker sekmesi kaldırıldı; kontrol artık SCCM Ajan Raporu'nda
+    return REPORT_TYPES.some((r) => r.id === saved) ? saved : "inaktif";
+  });
   // Sol menüde Rapor Türü kategorileri (Genel Raporlar / LAKESIDE) ve Network menüsü
   // açılır/kapanır (gereksinim #1, #2) — varsayılan hepsi açık
   const [expandedReportCategories, setExpandedReportCategories] = useState(() => new Set(REPORT_CATEGORIES.map((c) => c.id)));
@@ -404,6 +410,8 @@ export default function App({ user, onLogout } = {}) {
   const [bantSearch, setBantSearch] = useState("");
   const [bantStatusFilter, setBantStatusFilter] = useState("all"); // all | warning | ok
   const [loadingBant, setLoadingBant] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResults, setBulkResults] = useState([]);
   const [bantLoaded, setBantLoaded] = useState(false);
   const [bsodMailTo, setBsodMailTo] = useState("");
   // LAKESIDE "Battery Health" — artık backend'de kalıcı saklanıyor, Ofis Bant Genişliği ile aynı desen.
@@ -2837,6 +2845,40 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     reader.readAsArrayBuffer(file);
   };
 
+  // Toplu yükleme: bırakılan her dosyanın türü otomatik tanınır (bkz. services/fileDetect.js) ve o türün mevcut
+  // yükleyicisine verilir — tek tek seçmekle aynı kayıt/kalıcılık yolu. Aynı türden birden çok dosya varsa en yenisi alınır.
+  const handleBulkFiles = async (files) => {
+    setBulkBusy(true);
+    const detected = [];
+    for (const f of files) detected.push({ file: f, name: f.name, lastModified: f.lastModified, ...(await detectFile(f)) });
+    const plan = pickNewestPerKind(detected);
+    setBulkResults(plan.map((p) => ({ name: p.name, kind: p.kind, label: p.kind ? KIND_LABELS[p.kind] : "", via: p.via, status: "wait" })));
+    const handlers = {
+      inaktif: handleManualInaktifFile, disk: handleManualDiskFile, sccm: handleManualSccmFile, th: handleManualThFile,
+      monitor: handleManualMonitorFile, lokasyon: handleManualLokasyonMailFile, bsod: handleManualBsodFile,
+      battery: handleManualBatteryFile, bant: handleManualBantFile,
+    };
+    const results = [];
+    for (const p of plan) {
+      let r;
+      if (p.action === "unknown") r = { status: "unknown", detail: "Dosya adı ve sütun başlıkları hiçbir rapor türüyle eşleşmedi" };
+      else if (p.action === "skip") r = { status: "skip", detail: `Aynı türden daha yeni dosya var (${p.newerName})` };
+      else {
+        try {
+          await handlers[p.kind]({ target: { files: [p.file], value: "" } });
+          r = { status: "ok", detail: "İlgili rapor ekranlarına eklendi" };
+        } catch (err) {
+          r = { status: "error", detail: err.message };
+        }
+      }
+      results.push({ name: p.name, kind: p.kind, label: p.kind ? KIND_LABELS[p.kind] : "", via: p.via, ...r });
+      setBulkResults([...results, ...plan.slice(results.length).map((q) => ({ name: q.name, kind: q.kind, label: q.kind ? KIND_LABELS[q.kind] : "", via: q.via, status: "wait" }))]);
+    }
+    setBulkBusy(false);
+    const okN = results.filter((x) => x.status === "ok").length;
+    showToast(`${okN} dosya otomatik tanınıp eklendi${results.length - okN ? `, ${results.length - okN} dosya eklenmedi` : ""}`);
+  };
+
   // Lokasyon→mail eşleşmesini elle metin kutusuna yapıştırmak yerine doğrudan bir Excel/CSV
   // dosyasından da doldurabiliriz — "Lokasyon" ve "Mail"e benzer iki sütun aranır, bulunamazsa
   // ilk iki sütun kullanılır. Kaydetmeden önce yine textarea'da gözden geçirilip düzenlenebilir.
@@ -4151,6 +4193,16 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               <div style={{ ...styles.panel, padding: "20px 24px" }}>
                 <p style={styles.pageTitle}>Veri Girişi</p>
                 <p style={styles.pageSub}>Rapor verilerinin geldiği kaynaklar: API bağlantısı, SharePoint Excel klasörü, TuruncuHat / Monitor dosyaları, Kullanılmayan Cihazlar &amp; LakeSide batarya ve zamanlanmış otomatik tarama</p>
+              </div>
+
+              <div style={{ ...styles.panel, padding: "20px 24px" }}>
+                <p style={styles.settingsSectionTitle}>Dosyaları Toplu Yükle (otomatik tanıma)</p>
+                <p style={styles.pageSub}>
+                  Tüm rapor dosyalarını (İnaktif, Disk, SCCM, TuruncuHat, Monitör, Lokasyon, BSOD, Battery Health, Bant Genişliği)
+                  tek seferde bırakın. Sistem her dosyanın türünü adından ya da sütun başlıklarından tanır; aynı türden birden
+                  fazla dosya varsa en yenisini alır. Aşağıdaki tek tek seçme alanları yedek olarak duruyor.
+                </p>
+                <BulkFileDrop pal={pal} busy={bulkBusy} results={bulkResults} onFiles={handleBulkFiles} onClear={() => setBulkResults([])} />
               </div>
 
               <div style={{ ...styles.panel, padding: "20px 24px" }}>

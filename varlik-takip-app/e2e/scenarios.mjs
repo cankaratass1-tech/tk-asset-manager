@@ -163,7 +163,8 @@ try {
   // ============ 7) BOTTLENECK ============
   console.log("\n7) Bottleneck: pil + disk birlikte kritik → cihaz darboğaz listesinde");
   const b = await bottleneckRow(dev.host.split(".")[0]);
-  check("Bottleneck raporunda cihaz var; Pil ve Disk kritik (kırmızı), skor ≥4", /%42/.test(b) && /0\.9 GB/.test(b) && /(\d+)\s*$/.test(b) && Number((b.match(/(\d+)\s*$/) || [0, 0])[1]) >= 4, b.slice(0, 180));
+  // Sağlık skoru: 100 − pil kritik (30) − disk kritik (40) = 30 (yaş da kritikse daha düşük); 50 altı = Acil
+  check("Bottleneck raporunda cihaz var; Pil ve Disk kritik (kırmızı), sağlık skoru ≤ 30 ve grup Acil", /%42/.test(b) && /0\.9 GB/.test(b) && /Acil/.test(b) && Number((b.match(/^\s*(\d+)/) || [0, 999])[1]) <= 30, b.slice(0, 180));
   await shot("7-bottleneck");
 
   // ============ 8) LOKASYON / IP ============

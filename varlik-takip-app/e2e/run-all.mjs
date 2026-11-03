@@ -13,6 +13,8 @@ const SUITES = [
   ["Ana Sayfa etkileşimleri (varsayılan görünüm, dağılım, trend)", "node", ["e2e/interactcheck.mjs", "--skip-build"]],
   ["Özellikler (cihaz kartı, tam ad, Atıl filtreleri, e-posta önizleme)", "node", ["e2e/featurecheck.mjs", "--skip-build"]],
   ["Duman testi", "node", ["e2e/smoke.mjs", "--skip-build"]],
+  ["BitLocker (SCCM raporu filtresi)", "node", ["e2e/bitlockercheck.mjs", "--skip-build"]],
+  ["Toplu dosya yükleme (otomatik tanıma)", "node", ["e2e/bulkuploadcheck.mjs", "--skip-build"]],
   ["Mail", "node", ["e2e/mailtest.mjs", "--skip-build"]],
   ["Üst yönetim ekranı (Operasyonel Durum Özeti)", "node", ["e2e/execcheck.mjs", "--skip-build"]],
   ["Gönderim günlüğü", "node", ["e2e/sendlogcheck.mjs", "--skip-build"]],

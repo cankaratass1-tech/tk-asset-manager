@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Pagination from "./Pagination";
+import { bitlockerColumns, cellHasZero, hasBitlockerZero, bitlockerDiskSummary, ALL_ENCRYPTED } from "../services/bitlockerCheck";
+
+// BitLocker bölümünden hesaplanan sütun: hangi disk şifreli değil (hücredeki değer sırası: 1. = C diski, 2. = Q diski, 3. = harici USB)
+export const DISK_COLUMN = "Şifrelenmeyen Disk (hesaplanan)";
+const DISK_HELP = "BitLocker değerlerinde 1. değer C diskini, 2. değer Q diskini, 3. değer harici USB'yi belirtir; 0 = o disk şifreli değil.";
 
 // SCCM Ajan Raporu: Excel'deki tüm alanlar tek sayfada gösterilir. Ayrı bir dosya/kaynak DEĞİL, diğer raporların (Zimmet Uyuşmazlığı vb.) zaten
 // kullandığı SCCM envanteri (realSccmAll) — ama burada mapSccmRow'un dönüştürdüğü/özetlediği
@@ -123,14 +128,38 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
   // girdi yoksa) o sütunda filtre uygulanmaz — Set doluysa SADECE o değerler gösterilir.
   const [columnFilters, setColumnFilters] = useState({});
   const [openFilterCol, setOpenFilterCol] = useState(null);
+  // "BitLocker Sorunlu Cihazlar": BitLocker bölümünde (başlığında "bitlocker" geçen sütunlar) en az bir 0 değeri olan cihazlar (bkz. services/bitlockerCheck.js)
+  const [blOnly, setBlOnly] = useState(false);
 
-  const columns = useMemo(() => (rows.length ? Object.keys(rows[0]) : []), [rows]);
+  const rawColumns = useMemo(() => (rows.length ? Object.keys(rows[0]) : []), [rows]);
+  const blCols = useMemo(() => bitlockerColumns(rawColumns), [rawColumns]);
+  // Excel satırlarına, BitLocker sütununun hemen yanına "Şifrelenmeyen Disk" hesaplanan sütunu eklenir (filtre ve arama diğer sütunlar gibi çalışır)
+  const viewRows = useMemo(() => {
+    if (!blCols.length) return rows;
+    const last = blCols[blCols.length - 1];
+    return rows.map((r) => {
+      const out = {};
+      for (const k of Object.keys(r)) {
+        out[k] = r[k];
+        if (k === last) out[DISK_COLUMN] = bitlockerDiskSummary(r, blCols);
+      }
+      return out;
+    });
+  }, [rows, blCols]);
+  const baseColumns = useMemo(() => (viewRows.length ? Object.keys(viewRows[0]) : []), [viewRows]);
+  // BitLocker filtresi açıkken önemli sütunlar (hangi disk şifreli değil + BitLocker değerleri) Hostname'in hemen yanına alınır; kapalıyken Excel sırası korunur
+  const columns = useMemo(() => {
+    if (!blOnly || !blCols.length) return baseColumns;
+    const pinned = [baseColumns[0], DISK_COLUMN, ...blCols];
+    return [...pinned, ...baseColumns.filter((c) => !pinned.includes(c))];
+  }, [baseColumns, blOnly, blCols]);
+  const blProblemCount = useMemo(() => viewRows.filter((r) => hasBitlockerZero(r, blCols)).length, [viewRows, blCols]);
 
   // Bir sütunun (diğer sütunlardaki aktif filtreler uygulanmış haliyle) değer + sayaç listesi —
   // Excel'de de bir sütunun filtre listesi diğer sütunlardaki filtrelerden etkilenir.
   const valuesForColumn = (col) => {
     const otherActive = Object.entries(columnFilters).filter(([c, set]) => c !== col && set && set.size > 0);
-    const base = otherActive.length ? rows.filter((r) => otherActive.every(([c, set]) => set.has(String(r[c] ?? "").trim()))) : rows;
+    const base = otherActive.length ? viewRows.filter((r) => otherActive.every(([c, set]) => set.has(String(r[c] ?? "").trim()))) : viewRows;
     const counts = new Map();
     base.forEach((r) => {
       const v = String(r[col] ?? "").trim();
@@ -154,15 +183,16 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
   };
 
   const filtered = useMemo(() => {
-    let list = rows;
+    let list = viewRows;
     const activeCols = Object.entries(columnFilters).filter(([, set]) => set && set.size > 0);
     if (activeCols.length) {
       list = list.filter((r) => activeCols.every(([c, set]) => set.has(String(r[c] ?? "").trim())));
     }
+    if (blOnly) list = list.filter((r) => hasBitlockerZero(r, blCols));
     const q = norm(search);
     if (q) list = list.filter((r) => columns.some((c) => norm(r[c]).includes(q)));
     return list;
-  }, [rows, columns, search, columnFilters]);
+  }, [viewRows, columns, search, columnFilters, blOnly, blCols]);
 
   const totalPages = pageSize === Infinity ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -178,7 +208,7 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
         <p style={styles.pageTitle}>SCCM Ajan Raporu</p>
         <p style={styles.pageSub}>
           {meta
-            ? `${meta.fileName} (${new Date(meta.modifiedAt).toLocaleString("tr-TR")}) — ${rows.length} kayıt, Excel'deki tüm sütunlarla (${columns.length} sütun) birebir.`
+            ? `${meta.fileName} (${new Date(meta.modifiedAt).toLocaleString("tr-TR")}) — ${rows.length} kayıt, Excel'deki tüm sütunlarla (${rawColumns.length} sütun) birebir${blCols.length ? " + BitLocker değerlerinden hesaplanan 1 sütun (Şifrelenmeyen Disk)" : ""}.`
             : "Henüz SCCM envanter dosyası yüklenmedi — aşağıdan yükleyin"}
         </p>
         <div style={{ ...styles.chipToggle, display: "inline-block", marginTop: 8 }} onClick={loading ? undefined : onLoadClick}>
@@ -188,6 +218,7 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
 
       {rows.length > 0 && (
         <div style={{ ...styles.panel, padding: "20px 24px" }}>
+          {blCols.length > 0 && <p data-bitlocker-help style={{ margin: "0 0 10px", fontSize: 12.5, color: pal.inkSoft }}>BitLocker: {DISK_HELP} Hangi diskin şifreli olmadığı "{DISK_COLUMN}" sütununda yazar.</p>}
           <div style={styles.toolbar} className="no-print">
             <div style={styles.toolbarFiltersRow}>
               <div style={styles.searchWrap}>
@@ -206,6 +237,17 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
                   style={styles.searchInput}
                 />
               </div>
+              <button
+                type="button"
+                data-bitlocker-filter
+                aria-pressed={blOnly}
+                disabled={blCols.length === 0}
+                title={blCols.length === 0 ? "SCCM dosyasında BitLocker sütunu bulunamadı" : "BitLocker bölümünde en az bir 0 değeri olan cihazları listeler"}
+                onClick={() => { setBlOnly((v) => !v); setPage(1); }}
+                style={{ ...styles.btnGhost, padding: "6px 12px", fontSize: 12.5, cursor: blCols.length === 0 ? "not-allowed" : "pointer", opacity: blCols.length === 0 ? 0.5 : 1, fontWeight: blOnly ? 700 : 500, color: blOnly ? pal.bad : undefined, border: `1px solid ${blOnly ? pal.bad : pal.line}`, background: blOnly ? `${pal.bad}14` : "transparent" }}
+              >
+                BitLocker Sorunlu Cihazlar{blCols.length > 0 ? ` (${blProblemCount.toLocaleString("tr-TR")})` : ""}
+              </button>
               {activeFilterCount > 0 && (
                 <button type="button" style={{ ...styles.btnGhost, padding: "4px 10px", fontSize: 12 }} onClick={clearColumnFilters}>
                   Sütun Filtrelerini Temizle ({activeFilterCount})
@@ -221,7 +263,7 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
                   {columns.map((c) => {
                     const active = columnFilters[c] && columnFilters[c].size > 0;
                     return (
-                      <th key={c} style={{ ...styles.th, whiteSpace: "nowrap", position: "relative" }}>
+                      <th key={c} title={c === DISK_COLUMN ? DISK_HELP : undefined} style={{ ...styles.th, whiteSpace: "nowrap", position: "relative", ...(c === DISK_COLUMN ? { fontStyle: "italic" } : {}) }}>
                         <div
                           style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer" }}
                           onClick={() => setOpenFilterCol(openFilterCol === c ? null : c)}
@@ -248,9 +290,14 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
               <tbody>
                 {paged.map((r, i) => (
                   <tr key={i}>
-                    {columns.map((c) => (
-                      <td key={c} style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap" }}>{r[c] || <span style={{ color: pal.inkSoft }}>—</span>}</td>
-                    ))}
+                    {columns.map((c) => {
+                      const bad = (blCols.includes(c) && cellHasZero(r[c])) || (c === DISK_COLUMN && r[c] && r[c] !== ALL_ENCRYPTED);
+                      return (
+                        <td key={c} style={{ ...styles.td, fontSize: 13, whiteSpace: "nowrap", ...(bad ? { color: pal.bad, fontWeight: 700 } : c === DISK_COLUMN && r[c] === ALL_ENCRYPTED ? { color: pal.inkSoft } : {}) }} data-bitlocker-bad={bad ? "1" : undefined} data-disk-cell={c === DISK_COLUMN ? "1" : undefined}>
+                          {r[c] === 0 ? "0" : r[c] || <span style={{ color: pal.inkSoft }}>—</span>}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -269,7 +316,7 @@ export default function SccmAjanScreen({ styles, pal, rows, meta, loading, onLoa
           <div style={{ ...styles.tableFooter, flexWrap: "wrap", gap: 10, marginTop: 10 }}>
             <span>
               {filtered.length} kayıttan {paged.length} tanesi gösteriliyor
-              {rows.length !== filtered.length ? ` (filtre öncesi ${rows.length})` : ""}
+              {viewRows.length !== filtered.length ? ` (filtre öncesi ${viewRows.length})` : ""}
               {pageSize !== Infinity && totalPages > 1 ? ` · Sayfa ${safePage} / ${totalPages}` : ""}
             </span>
             <Pagination page={safePage} totalPages={totalPages} onChange={setPage} styles={styles} pal={pal} />

@@ -6,6 +6,7 @@ import { norm, compareAssignment } from "./comparisonService";
 import { classifyDisk } from "./dashboardService";
 import { deviceAgeYears, daysSince } from "./unusedDeviceService";
 import { findBattery } from "./batteryFileService";
+import { bitlockerAllOn, cellHasZero } from "./bitlockerCheck";
 import { matchesWindowsQuery } from "./windowsVersionService.js";
 
 const OK = "ok", WARN = "warn", CRIT = "crit", NONE = "none";
@@ -63,7 +64,8 @@ export function buildDeviceOverview(query, { sccmRows = [], thRows = [], monitor
   const diskClass = cDrive ? classifyDisk(freeGb) : "unknown";
 
   const val = (v, fallback = "Veri Yok") => (v != null && v !== "" ? v : fallback);
-  const bitOn = /^(yes|true|1|evet|on)$/i.test(String(sccm?.bitlocker || ""));
+  // BitLocker: herhangi bir değer 0 ise (sürücü başına olabilir) kritik; tüm değerler olumluysa açık (bkz. bitlockerCheck.js)
+  const bitOn = bitlockerAllOn(sccm?.bitlocker) && !cellHasZero(sccm?.bitlocker);
 
   return {
     query,

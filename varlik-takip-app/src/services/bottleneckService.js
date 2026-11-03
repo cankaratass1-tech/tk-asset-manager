@@ -4,6 +4,11 @@
 //   bsod       : Weekly BSOD (toplam çökme adedi)
 //   battery    : Battery Health (pil sağlığı %)
 //   age        : SCCM BIOS Date'ten cihaz yaşı
+// SAĞLIK SKORU (0-100, yüksek = sağlıklı; düşük skor aksiyon gerektirir): 100'den her sinyalin ağırlıklı cezası düşülür, 0'ın altına inmez.
+//   Ceza (uyarı / kritik):  Disk 20 / 40 · BSOD 20 / 40 · Pil 15 / 30 · Cihaz yaşı 8 / 15
+//   Veri olmayan sinyal ceza almaz (uydurulmaz) ama "kaç sinyal ölçüldü" bilgisiyle birlikte gösterilir; hiç sinyal ölçülmemişse skor yoktur.
+// Bantlar: 90-100 İyi · 80-89 İzle (aksiyon gerekmez) · 50-79 Aksiyon gerekli · 0-49 Acil.
+// Ağırlıklar öyle seçildi ki "bottleneck" tanımıyla birebir örtüşür: bottleneck ⇔ skor < 80 (birim testi tüm sinyal kombinasyonlarında doğrular).
 // Cihaz "bottleneck" sayılır: performans/dayanıklılık sinyallerinde (disk, bsod, pil) en az 1 KRİTİK ya da en az 2 UYARI varsa;
 // cihaz yaşı tek başına bottleneck nedeni DEĞİLDİR (eski ama sorunsuz cihaz bottleneck değil) — yalnızca tek bir uyarıyı tamamlayıcı destekler.
 const shortHost = (h) => String(h || "").trim().split(".")[0];
@@ -20,6 +25,40 @@ export const BOTTLENECK_THRESHOLDS = {
   battery: { warn: 80, crit: 60 }, // sağlık % (altı)
   age: { warn: 4, crit: 5 }, // yıl (üstü)
 };
+
+export const HEALTH_PENALTY = {
+  disk: { warn: 20, crit: 40 },
+  bsod: { warn: 20, crit: 40 },
+  battery: { warn: 15, crit: 30 },
+  age: { warn: 8, crit: 15 },
+};
+export const HEALTH_BANDS = [
+  { id: "good", label: "İyi", min: 90, hint: "Aksiyon gerekmez" },
+  { id: "watch", label: "İzle", min: 80, hint: "Şimdilik aksiyon gerekmez, izlenmeli" },
+  { id: "action", label: "Aksiyon gerekli", min: 50, hint: "Müdahale planlanmalı" },
+  { id: "urgent", label: "Acil", min: 0, hint: "Öncelikli müdahale" },
+];
+const ACTION_TEXT = {
+  disk: "Disk alanını boşalt ya da diski genişlet",
+  bsod: "BSOD kayıtlarını incele (sürücü / donanım kontrolü)",
+  battery: "Pil değişimi planla",
+  age: "Cihaz yenileme planına al",
+};
+export const bandOf = (health) => (health == null ? "nodata" : (HEALTH_BANDS.find((b) => health >= b.min) || HEALTH_BANDS[HEALTH_BANDS.length - 1]).id);
+export const BAND_LABELS = { ...Object.fromEntries(HEALTH_BANDS.map((b) => [b.id, b.label])), nodata: "Veri yok" };
+
+// signals: { disk, bsod, battery, age } → { health, measured, band, actions[] } (actions: cezası en yüksek sinyalden başlayarak)
+export function healthOf(signals) {
+  const ids = Object.keys(HEALTH_PENALTY);
+  const measured = ids.filter((id) => signals[id] && signals[id].level !== "none").length;
+  if (measured === 0) return { health: null, measured: 0, band: "nodata", actions: [] };
+  const issues = ids
+    .map((id) => ({ id, pen: signals[id] && HEALTH_PENALTY[id][signals[id].level] ? HEALTH_PENALTY[id][signals[id].level] : 0 }))
+    .filter((x) => x.pen > 0)
+    .sort((a, b) => b.pen - a.pen);
+  const health = Math.max(0, 100 - issues.reduce((a, x) => a + x.pen, 0));
+  return { health, measured, band: bandOf(health), actions: issues.map((x) => ACTION_TEXT[x.id]) };
+}
 
 export const SIGNALS = [
   ["disk", "Disk"],
@@ -102,18 +141,23 @@ export function computeBottlenecks({ sccmRows = [], diskRows = [], bsodRows = []
       signals: d.signals,
       crit,
       warn,
-      score: crit * 2 + warn,
+      ...healthOf(d.signals), // health (0-100), measured, band, actions
       primary: primaryId,
       isBottleneck: perfCrit >= 1 || perfWarn >= 2 || (perfWarn >= 1 && d.signals.age.level !== "ok" && d.signals.age.level !== "none"),
     });
   });
-  rows.sort((a, b) => b.score - a.score || b.crit - a.crit || a.hostname.localeCompare(b.hostname));
+  // En düşük sağlık skoru (en acil) üstte; skoru olmayanlar sonda
+  rows.sort((a, b) => (a.health ?? 101) - (b.health ?? 101) || b.crit - a.crit || a.hostname.localeCompare(b.hostname));
 
   const bn = rows.filter((r) => r.isBottleneck);
   const byCause = Object.fromEntries(SIGNALS.map(([id]) => [id, bn.filter((r) => r.signals[id].level === "crit" || r.signals[id].level === "warn").length]));
   const available = Object.fromEntries(SIGNALS.map(([id]) => [id, rows.some((r) => r.signals[id].level !== "none")]));
+  const byBand = { good: 0, watch: 0, action: 0, urgent: 0, nodata: 0 };
+  rows.forEach((r) => { byBand[r.band] += 1; });
+  const scored = rows.filter((r) => r.health != null);
+  const avgHealth = scored.length ? Math.round((scored.reduce((a, r) => a + r.health, 0) / scored.length) * 10) / 10 : null;
   return {
     rows,
-    summary: { analyzed: rows.length, bottleneck: bn.length, critical: bn.filter((r) => r.crit > 0).length, multi: bn.filter((r) => r.crit + r.warn >= 2).length, byCause, available },
+    summary: { analyzed: rows.length, bottleneck: bn.length, critical: bn.filter((r) => r.crit > 0).length, multi: bn.filter((r) => r.crit + r.warn >= 2).length, byCause, available, byBand, avgHealth },
   };
 }
