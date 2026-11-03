@@ -6,6 +6,7 @@ import autoTable from "jspdf-autotable";
 import { DEPARTMENTS, REPORT_TYPES, REPORT_CATEGORIES, NETWORK_ITEMS, REPORTS_WITHOUT_MODEL_FILTER, REPORTS_WITH_REAL_DATA, STATUS_FLOW } from "./data/constants";
 import MultiSelectFilter from "./components/MultiSelectFilter";
 import BulkFileDrop from "./components/BulkFileDrop";
+import NavIcon, { MENU_ICONS } from "./components/NavIcon";
 import { detectFile, pickNewestPerKind, KIND_LABELS } from "./services/fileDetect";
 import Pagination from "./components/Pagination";
 import { getZimmetRows, computeOverallZimmetStats, getAllMismatchRows, computeZimmetChains, isZimmetUnverified } from "./services/zimmetService";
@@ -3187,7 +3188,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
               style={{ ...styles.deptItem, ...(showDashboard ? styles.deptItemActive : {}) }}
             >
               <div style={styles.deptLeft}>
-                <span style={{ ...styles.deptDot, ...(showDashboard ? styles.deptDotActive : {}) }} />
+                <NavIcon name="home" active={showDashboard} pal={pal} />
                 Ana Sayfa
               </div>
             </div>
@@ -3220,7 +3221,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         style={{ ...styles.deptItem, ...(allActive ? styles.deptItemActive : {}) }}
                       >
                         <div style={styles.deptLeft}>
-                          <span style={{ ...styles.deptDot, ...(allActive ? styles.deptDotActive : {}) }} />
+                          <NavIcon name="layers" active={allActive} pal={pal} />
                           Tüm Şirketler
                         </div>
                         <span style={{ ...styles.deptCount, ...(allActive ? styles.deptCountActive : {}) }}>{noCompanyData ? "—" : countSource.length}</span>
@@ -3245,7 +3246,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                             style={{ ...styles.deptItem, ...(active ? styles.deptItemActive : {}) }}
                           >
                             <div style={styles.deptLeft}>
-                              <span style={{ ...styles.deptDot, ...(active ? styles.deptDotActive : {}) }} />
+                              <NavIcon name="building" active={active} pal={pal} />
                               {companyShortLabel(company)}
                             </div>
                             <span style={{ ...styles.deptCount, ...(active ? styles.deptCountActive : {}) }}>{noCompanyData ? "—" : count}</span>
@@ -3267,7 +3268,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   return (
                     <div key={d.id} onClick={() => goDept(d.id)} style={{ ...styles.deptItem, ...(active ? styles.deptItemActive : {}) }}>
                       <div style={styles.deptLeft}>
-                        <span style={{ ...styles.deptDot, ...(active ? styles.deptDotActive : {}) }} />
+                        <NavIcon name="building" active={active} pal={pal} />
                         {d.name}
                       </div>
                       <span style={{ ...styles.deptCount, ...(active ? styles.deptCountActive : {}) }}>{count}</span>
@@ -3296,7 +3297,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       return (
                         <div key={r.id} onClick={() => goReport(r.id)} style={{ ...styles.deptItem, ...(active ? styles.deptItemActive : {}) }}>
                           <div style={styles.deptLeft}>
-                            <span style={{ ...styles.deptDot, ...(active ? styles.deptDotActive : {}) }} />
+                            <NavIcon name={MENU_ICONS[r.id]} active={active} pal={pal} />
                             {r.name}
                           </div>
                         </div>
@@ -3327,7 +3328,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     style={{ ...styles.deptItem, ...(active ? styles.deptItemActive : {}) }}
                   >
                     <div style={styles.deptLeft}>
-                      <span style={{ ...styles.deptDot, ...(active ? styles.deptDotActive : {}) }} />
+                      <NavIcon name={MENU_ICONS[n.id]} active={active} pal={pal} />
                       {n.name}
                     </div>
                   </div>
@@ -3340,7 +3341,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
           <div style={styles.deptList}>
             <div onClick={() => { closeAllViews(); setShowHistory(true); }} style={{ ...styles.deptItem, ...(showHistory ? styles.deptItemActive : {}) }}>
               <div style={styles.deptLeft}>
-                <span style={{ ...styles.deptDot, ...(showHistory ? styles.deptDotActive : {}) }} />
+                <NavIcon name="mail" active={showHistory} pal={pal} />
                 Gönderim Geçmişi
               </div>
               {mailHistory.length > 0 && <span style={{ ...styles.deptCount, ...(showHistory ? styles.deptCountActive : {}) }}>{mailHistory.length}</span>}
