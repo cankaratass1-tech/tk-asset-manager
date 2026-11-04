@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { assignmentLabel } from "./assignmentLabel";
 import { isZimmetUnverified } from "../../services/zimmetService";
 import { isInaktifUnverified, needsInaktifAction, inaktifUsageTone } from "../../services/inaktifComparisonService";
 import { deviceKeyOf } from "../../services/deviceActionService";
@@ -226,7 +227,7 @@ export default function DetailAside({ row, isZimmet, ownerLabel, serialLabel, mo
         {isZimmet && (
           <div style={styles.detailFieldRow}>
             <span style={{ color: pal.ink, fontWeight: 700 }}>Zimmet Türü</span>
-            <span>{row.assignmentType === "OBS" ? "OBS (Müdürlük)" : row.assignmentType === "User" ? "User (Kişi)" : "—"}</span>
+            <span>{assignmentLabel(row.assignmentType)}</span>
           </div>
         )}
         {isZimmet && !descriptionShownInAlert(row) && <DescriptionRow text={row.model} styles={styles} pal={pal} />}

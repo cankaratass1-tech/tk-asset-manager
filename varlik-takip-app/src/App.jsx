@@ -9,7 +9,8 @@ import BulkFileDrop from "./components/BulkFileDrop";
 import NavIcon, { MENU_ICONS } from "./components/NavIcon";
 import { detectFile, pickNewestPerKind, KIND_LABELS } from "./services/fileDetect";
 import Pagination from "./components/Pagination";
-import { getZimmetRows, computeOverallZimmetStats, getAllMismatchRows, computeZimmetChains, isZimmetUnverified } from "./services/zimmetService";
+import { computeDeviceHealth } from "./services/deviceHealthService";
+import { getZimmetRows, computeOverallZimmetStats, getAllMismatchRows, computeZimmetChains, isZimmetUnverified, zimmetBucket } from "./services/zimmetService";
 import { computeComparisonRows } from "./services/comparisonService";
 import { computeInaktifComparisonRows, needsInaktifAction } from "./services/inaktifComparisonService";
 import { getReportRows, getDeptAssetCount, USE_MOCK_DATA } from "./services/reportService";
@@ -17,6 +18,9 @@ import { fetchInaktifRowsFromFile, mapInaktifRow } from "./services/inaktifFileS
 import { fetchDiskRowsFromFile, mapDiskRow } from "./services/diskFileService";
 import { fetchSccmRowsFromFile, mapSccmRow } from "./services/sccmFileService";
 import { mapThRows, fetchThRowsFromFile } from "./services/thFileService";
+import { assignmentLabel } from "./components/recordList/assignmentLabel";
+import { findHeaderRow, REQUIRED_COLUMNS } from "./services/headerRowFileService";
+import { excludedSerialsOf, dropOtherTypes, isCoreSccmRaw, isCoreInaktifRaw } from "./services/thCoreFilter";
 import { mapMonitorRows, fetchMonitorRowsFromFile } from "./services/monitorFileService";
 import { fetchLokasyonMailRowsFromFile, mapLokasyonMailRows, resolveMailForLocationName } from "./services/lokasyonMailService";
 import { computeLocationIpRows, buildLocationIpMail } from "./services/locationIpService";
@@ -348,6 +352,8 @@ export default function App({ user, onLogout } = {}) {
   const [locationFilter, setLocationFilter] = useState([]);
   // Model filtresi (gereksinim #3) — tüm rapor ekranlarında standart, çoklu seçim
   const [modelFilter, setModelFilter] = useState([]);
+  // Zimmet türü filtresi (OBS / User / Depo ...) — Zimmet Uyuşmazlığı. null = kullanıcı dokunmadı: varsayılan olarak yalnız User (Kişi) gösterilir
+  const [assignFilter, setAssignFilter] = useState(null);
   const [windowsFilter, setWindowsFilter] = useState([]); // Windows sürümü filtresi (Zimmet Uyuşmazlığı)
   // Durum filtresi — Model'in yanına,
   // r.statusTag üzerinden çoklu seçim.
@@ -369,7 +375,7 @@ export default function App({ user, onLogout } = {}) {
   const staleDays = Number(appConfig.unusedStaleDays) > 0 ? Number(appConfig.unusedStaleDays) : DEFAULT_STALE_DAYS;
   // Tek dosyada tüm şirketler/departmanlar bulunuyor (Sahibi Firma sütunu ile ayrışıyor),
   // bu yüzden departman bazında değil tek seferde, düz bir dizi olarak tutuluyor
-  const [realInaktifAll, setRealInaktifAll] = useState([]);
+  const [realInaktifRaw, setRealInaktifAll] = useState([]); // ham; TH'de başka türde görünenler elenmiş hâli aşağıda realInaktifAll
   const [realInaktifMeta, setRealInaktifMeta] = useState(null); // { fileName, modifiedAt }
   const [loadingRealInaktif, setLoadingRealInaktif] = useState(false);
   const [realDiskRaw, setRealDiskAll] = useState([]);
@@ -377,7 +383,17 @@ export default function App({ user, onLogout } = {}) {
   const [loadingRealDisk, setLoadingRealDisk] = useState(false);
   // Zimmet Uyuşmazlığı artık gerçek SCCM envanter export'undan besleniyor —
   // İnaktif Cihazlar/Disk Alanı gibi tek seferde düz bir dizi, departman ayrımı yok
-  const [realSccmAll, setRealSccmAll] = useState([]);
+  const [realSccmRaw, setRealSccmAll] = useState([]); // ham; TH'de başka türde görünenler elenmiş hâli aşağıda realSccmAll
+  const [realThAll, setRealThAll] = useState([]);
+  // TH'de Desktop/Notebook/Monitor dışı türle görünen cihazların seri no'ları (TH içe aktarımında elenenler)
+  const [thExcludedSerials, setThExcludedSerials] = useState([]);
+  const realSccmAll = useMemo(() => dropOtherTypes(realSccmRaw, thExcludedSerials, realThAll), [realSccmRaw, thExcludedSerials, realThAll]);
+  // İnaktif Cihazlar bilgisayar listesidir: monitörler (TH'de MONITOR) ve TH'de başka türde görünenler listeye alınmaz.
+  const realInaktifAll = useMemo(() => {
+    const monitorSerials = realThAll.filter((t) => String(t.deviceType || "").toUpperCase() === "MONITOR").map((t) => t.serial);
+    const pcRows = realThAll.filter((t) => String(t.deviceType || "").toUpperCase() !== "MONITOR");
+    return dropOtherTypes(realInaktifRaw, [...thExcludedSerials, ...monitorSerials], pcRows);
+  }, [realInaktifRaw, thExcludedSerials, realThAll]);
   // Disk Alanı dosyasında şirket sütunu yok: hostname (Name) SCCM envanterindeki cihazla eşleşirse şirket ("İştirak") oradan alınır.
   // SCCM'de bulunamayan cihazlar şirketsiz kalır (yalnız "Tüm Şirketler"de görünür) — şirket uydurulmaz.
   const realDiskAll = useMemo(() => {
@@ -394,12 +410,13 @@ export default function App({ user, onLogout } = {}) {
   const [loadingRealLokasyonMail, setLoadingRealLokasyonMail] = useState(false);
   // TuruncuHat/Monitor Raporu artık İnaktif/Disk/SCCM ile aynı şekilde backend'in senkron
   // klasöründen otomatik yükleniyor.
-  const [realThAll, setRealThAll] = useState([]);
   // Yeni Kurulum / Kapatma Onayı kayıtlarının şirketi (kişi → TuruncuHat, lokasyon → SCCM)
   const recordCompanyOf = useMemo(() => buildRecordCompanyResolver({ thRows: realThAll, sccmRows: realSccmAll }), [realThAll, realSccmAll]);
   const [realThMeta, setRealThMeta] = useState(null);
   const [loadingRealTh, setLoadingRealTh] = useState(false);
   const [realMonitorAll, setRealMonitorAll] = useState([]);
+  // Atıl Monitörler ekranının açılış listesi (Atıl / kullanılmıyor; OBS, Site ve ATO emirli monitörler hariç) — sol paneldeki şirket sayıları bununla aynı olsun
+  const atilScopeRows = useMemo(() => (activeReport === "atil-monitor" ? computeAtilMonitorRows({ thRows: realThAll, monitorRows: realMonitorAll }).stages.atil : []), [activeReport, realThAll, realMonitorAll]);
   const [realMonitorMeta, setRealMonitorMeta] = useState(null);
   const [loadingRealMonitor, setLoadingRealMonitor] = useState(false);
   // LAKESIDE "Weekly_BSOD" raporu — sadece elle dosya seçimi (bkz. bsodFileService.js)
@@ -486,10 +503,16 @@ export default function App({ user, onLogout } = {}) {
 
   const toggleDetailRow = (key) => setDetailRowKey((prev) => (prev === key ? null : key));
 
+  // Ana Sayfa'dan rapora gidilince Zimmet Türü filtresi varsayılana (User) DÖNMEZ — kartlardaki sayı (tüm türler) ile liste tutsun
+  const keepAssignRef = useRef(false);
   useEffect(() => {
+    setStatusFilter([]); // Durum seçenekleri rapora özeldir; başka rapordan kalan seçim bu raporu boş bırakmasın
+    setLbsParentFilter([]);
     setTypeFilter([]);
     setLocationFilter([]);
     setModelFilter([]); setWindowsFilter([]);
+    setAssignFilter(keepAssignRef.current ? [] : null);
+    keepAssignRef.current = false;
     setCurrentPage(1);
   }, [activeDept, activeReport]);
 
@@ -811,6 +834,8 @@ export default function App({ user, onLogout } = {}) {
   const anyNoThRecord = useMemo(() => isZimmet && zimmetRows.some((r) => r.statusTag === "TH Kaydı YOK"), [isZimmet, zimmetRows]);
   // "Birden Fazla Zimmet Mevcut" segmenti — aynı kişiye birden fazla notebook zimmetli görünen kayıtlar
   //.
+  // OBS (müdürlük/ortak) zimmetli cihazlar — Zimmet Türü sütunundaki "OBS (Müdürlük)"; ayrı filtre olarak da listelenir
+  const anyObs = useMemo(() => isZimmet && zimmetRows.some((r) => r.assignmentType === "OBS"), [isZimmet, zimmetRows]);
   const anyDuplicateNotebook = useMemo(() => isZimmet && zimmetRows.some((r) => r.statusTag === "Birden Fazla Zimmet Mevcut"), [isZimmet, zimmetRows]);
 
   // Genel Bakış'taki durum akışı (Yeni/İnceleniyor/Çözüldü) dağılımı
@@ -876,7 +901,7 @@ export default function App({ user, onLogout } = {}) {
   const byCompany = (rows, co) => (co === "all" ? rows : rows.filter((r) => r.company === co));
 
   const rawRows = isZimmet
-    ? byCompany(zimmetRows, activeCompany)
+    ? byCompany(zimmetRows.filter((r) => r.assignmentType !== "Warehouse"), activeCompany) // Zimmet = kişi (User) zimmetleri; depodaki (Warehouse) cihazlar sayıya girmez
     : isLokasyonIp
     ? byCompany(lokasyonIpRows, activeCompany)
     : isBsod
@@ -890,6 +915,11 @@ export default function App({ user, onLogout } = {}) {
     : usingRealDisk
     ? byCompany(realDiskAll, activeCompany) // şirket: hostname → SCCM eşleşmesinden (bkz. realDiskAll)
     : getReportRows(activeDept, activeReport);
+  const assignCategories = useMemo(() => (isZimmet ? Array.from(new Set(rawRows.map((r) => r.assignmentType).filter(Boolean))).map(assignmentLabel).sort((a, b) => a.localeCompare(b, "tr")) : []), [isZimmet, rawRows]);
+  // Varsayılan (dokunulmamış) durumda yalnız User (Kişi) görünür; TH'de türü belirsiz (boş) satırlar ve "OBS" segmenti gizlenmez
+  const assignDefault = assignFilter === null && segment !== "obs" && assignCategories.length > 1 && assignCategories.includes("User (Kişi)");
+  const assignSelected = useMemo(() => (assignFilter === null ? (assignDefault ? ["User (Kişi)"] : []) : assignFilter), [assignFilter, assignDefault]);
+  const obsCount = useMemo(() => (isZimmet ? rawRows.filter((r) => r.assignmentType === "OBS").length : 0), [isZimmet, rawRows]);
 
   // Zimmet'te "sub" = "Monitör — Dell 24"" (tür " — " öncesi); diğer raporlarda "sub" = birim/departman
   // Zimmet / Kullanılmayan / Lokasyon IP'de "sub" = "Tür — Model"; BSOD/Pil'de sub bir kategori değil
@@ -954,16 +984,19 @@ export default function App({ user, onLogout } = {}) {
       if (locationFilter.length > 0 && !locationFilter.includes(locationOf(r))) return false;
       if (modelFilter.length > 0 && !modelFilter.includes(modelOf(r))) return false;
       if (windowsFilter.length > 0 && !windowsFilter.includes(r.windowsLabel || "")) return false;
+      if (assignSelected.length > 0 && !assignSelected.includes(assignmentLabel(r.assignmentType)) && !(assignDefault && !r.assignmentType)) return false;
       if (statusFilter.length > 0 && !statusFilter.includes(r.statusTag)) return false;
-      if (segment === "matched" && !r.matched) return false;
+      if (segment === "matched" && (isZimmet ? zimmetBucket(r) !== "ok" : !r.matched)) return false;
       // "Zimmet Hatalı" segmenti sadece KESİN uyuşmazlıkları göstermeli — doğrulanamayan (ör.
       // TH bazlı tasarımda "SCCM'de Bulunamadı") kayıtlar buraya karışmamalı, bunlar hatalı
       // değil sadece doğrulanamamış demek.
-      if (segment === "unmatched" && (r.matched || (isZimmet && isZimmetUnverified(r.statusTag)))) return false;
+      if (segment === "unmatched" && (isZimmet ? zimmetBucket(r) !== "bad" : r.matched)) return false;
+      if (segment === "unverified" && zimmetBucket(r) !== "unverified") return false;
       if (segment === "monitorIssue" && !r.monitorIssue) return false;
-      if ((segment === "critical" || segment === "warning" || segment === "normal") && r.diskLevel !== segment) return false;
+      if ((segment === "critical" || segment === "warning" || segment === "normal" || segment === "unknown") && r.diskLevel !== segment) return false;
       if (segment === "noThRecord" && r.statusTag !== "TH Kaydı YOK") return false;
       if (segment === "duplicateNotebook" && r.statusTag !== "Birden Fazla Zimmet Mevcut") return false;
+      if (segment === "obs" && r.assignmentType !== "OBS") return false;
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         const haystack = `${r.owner} ${r.sub} ${r.serial} ${r.model} ${r.location} ${locationOf(r)} ${r.windowsSearch || ""}`.toLowerCase();
@@ -971,7 +1004,7 @@ export default function App({ user, onLogout } = {}) {
       }
       return true;
     });
-  }, [rawRows, segment, search, isZimmet, showSnoozed, showNotedOnly, rowMeta, typeFilter, locationFilter, modelFilter, windowsFilter, statusFilter, usingRealFileData, lbsParentFilter]);
+  }, [rawRows, segment, search, isZimmet, showSnoozed, showNotedOnly, rowMeta, typeFilter, locationFilter, modelFilter, windowsFilter, assignSelected, assignDefault, statusFilter, usingRealFileData, lbsParentFilter]);
 
   // Sayfalama — filtrelenmiş sonuç listesi büyük olabileceği için görünüm bu dilime göre render edilir;
   // Tümünü Seç / Excel'e Aktar / Mail Gönder gibi işlemler yine filteredRows'un tamamı üzerinden çalışır
@@ -986,13 +1019,13 @@ export default function App({ user, onLogout } = {}) {
     return filteredRows.slice(start, start + pageSize);
   }, [filteredRows, pageSize, safePage]);
 
-  const matchedCount = rawRows.filter((r) => r.matched).length;
+  const matchedCount = isZimmet ? rawRows.filter((r) => zimmetBucket(r) === "ok").length : rawRows.filter((r) => r.matched).length;
   // Doğrulanamayan (isZimmetUnverified) kayıtlar "hatalı" değil — üstteki özet kartı da segment
   // filtresiyle (bkz. filteredRows) tutarlı olsun diye onları saymıyor.
   const unmatchedCount = isZimmet
-    ? rawRows.filter((r) => !r.matched && !isZimmetUnverified(r.statusTag)).length
+    ? rawRows.filter((r) => zimmetBucket(r) === "bad").length
     : rawRows.length - matchedCount;
-  const unverifiedCount = isZimmet ? rawRows.filter((r) => isZimmetUnverified(r.statusTag)).length : 0;
+  const unverifiedCount = isZimmet ? rawRows.filter((r) => zimmetBucket(r) === "unverified").length : 0;
   const snoozedCount = isZimmet ? rawRows.filter((r) => rowMeta[deviceKeyOf(r)]?.snoozed).length : 0;
   const notedCount = isZimmet ? rawRows.filter((r) => rowMeta[deviceKeyOf(r)]?.notes?.length > 0).length : 0;
   const detailRow = filteredRows.find((r) => rowKeyOf(r) === detailRowKey) || null;
@@ -1098,15 +1131,19 @@ export default function App({ user, onLogout } = {}) {
 
   // Filtre kombinasyonu (arama hariç) sonucu 0 kayıt bırakırsa kullanıcı sıkışıp kalmasın diye
   // otomatik olarak filtresiz hale dönülür
+  const zeroCheckKeyRef = useRef("");
   useEffect(() => {
     if (showDashboard || showHistory || showSettings) return;
+    // Rapor/departman az önce değiştiyse filtreler bu render'da henüz sıfırlanmamıştır (başka rapordan kalan seçim) — uyarı verme, sıfırlamayı bekle
+    const reportKey = `${activeDept}|${activeReport}`;
+    if (zeroCheckKeyRef.current !== reportKey) { zeroCheckKeyRef.current = reportKey; return; }
     if (search.trim()) return;
     if (rawRows.length > 0 && filteredRows.length === 0) {
       setSegment("all");
       setTypeFilter([]);
       setLocationFilter([]);
       setLbsParentFilter([]);
-      setModelFilter([]); setWindowsFilter([]);
+      setModelFilter([]); setWindowsFilter([]); setAssignFilter([]); setStatusFilter([]);
       setShowSnoozed(false);
       setShowNotedOnly(false);
       setCurrentPage(1);
@@ -1230,7 +1267,7 @@ export default function App({ user, onLogout } = {}) {
           "Windows Sürümü": r.windowsLabel || "",
           "Windows Destek": r.windowsSupportLabel || "",
           "Kullanan Kişi": r.userFullName || r.userLabel,
-          "Zimmet Türü": r.assignmentType === "OBS" ? "OBS (Müdürlük)" : r.assignmentType === "User" ? "User (Kişi)" : "—",
+          "Zimmet Türü": assignmentLabel(r.assignmentType),
           "Açıklama": r.model,
           "Durum": r.statusTag,
         };
@@ -2636,8 +2673,9 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   const loadRealThData = async ({ silent = false } = {}) => {
     setLoadingRealTh(true);
     try {
-      const { fileName, modifiedAt, rows } = await fetchThRowsFromFile();
+      const { fileName, modifiedAt, rows, excludedSerials } = await fetchThRowsFromFile();
       setBackendReachable(true);
+      setThExcludedSerials(excludedSerials || []);
       setRealThAll(rows);
       setRealThMeta({ fileName, modifiedAt });
       if (!silent) showToast(`${fileName} içinden ${rows.length} kayıt yüklendi`);
@@ -2693,8 +2731,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
         const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
         const idx = Math.min(1, wb.SheetNames.length - 1); // gerçek veri 2. sheet'te (bkz. backend/src/routes/reports.js)
         const sheet = wb.Sheets[wb.SheetNames[idx]];
-        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 0 });
-        const rows = raw.map(mapInaktifRow);
+        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: findHeaderRow(sheet, REQUIRED_COLUMNS.inaktif, 0) });
+        const rows = raw.filter(isCoreInaktifRaw).map(mapInaktifRow); // yalnız Desktop/Notebook
         setRealInaktifAll(rows);
         setRealInaktifMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
         setBackendReachable(true);
@@ -2716,8 +2754,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       try {
         const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        // Gerçek sütun başlıkları 1. satırda değil, 6. satırda (range: 5) — bkz. backend/src/routes/reports.js
-        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 5 });
+        // Gerçek sütun başlıkları normalde 6. satırda (range: 5); farklı satırdaysa otomatik bulunur — bkz. backend/src/routes/reports.js
+        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: findHeaderRow(sheet, REQUIRED_COLUMNS.disk, 5) }).filter(isCoreSccmRaw); // Type varsa yalnız Desktop/Laptop
         const rows = raw.map(mapDiskRow);
         setRealDiskAll(rows);
         setRealDiskMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
@@ -2741,8 +2779,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
         const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         // Gerçek sütun başlıkları 1. satırda değil, 4. satırda (range: 3) — bkz. backend/src/routes/reports.js
-        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 3 });
-        const rows = raw.map(mapSccmRow);
+        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: findHeaderRow(sheet, REQUIRED_COLUMNS.sccm, 3) });
+        const rows = raw.filter(isCoreSccmRaw).map(mapSccmRow);
         setRealSccmAll(rows);
         setRealSccmMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
         setBackendReachable(true);
@@ -2760,14 +2798,20 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (file.size > BIG_FILE_BYTES) {
+      showToast(`${file.name} çok büyük (${Math.round(file.size / 1048576)} MB): sunucuda işleniyor, bu birkaç on saniye sürebilir…`);
+      persistImport("th", file).then((ok) => { if (ok) loadRealThData(); });
+      return;
+    }
     persistImport("th", file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 0 });
+        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: findHeaderRow(sheet, REQUIRED_COLUMNS.th, 0) });
         const rows = mapThRows(raw);
+        setThExcludedSerials(excludedSerialsOf(raw));
         setRealThAll(rows);
         setRealThMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
         showToast(`${file.name} içinden ${rows.length} kayıt yüklendi${rows.length === 0 ? " (dosya boş)" : ""}`);
@@ -2781,16 +2825,23 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   // Elle seçilen dosyayı backend'e de kaydet: uygulama kapanıp açılsa ya da sayfa yenilense bile rapor
   // ekranları veriyi otomatik geri yükler (bkz. backend/src/importStore.js). Başarısız olursa (ör. yetki)
   // bu oturumdaki veri yine de kullanılır, kullanıcıya uyarı gösterilir.
-  const persistImport = (kind, file) => {
+  const persistImport = (kind, file) =>
     backendClient
       .importFile(kind, file)
       .then((res) => {
         // Sütun kontrolü: eksik/benzer-ama-tanınmayan başlık varsa kullanıcıya hemen bildir (sessizce boş rapor olmasın)
         const c = res?.check;
         if (c && (!c.ok || c.missingRecommended.length > 0 || c.nearMisses.length > 0)) showToast(`${c.ok ? "⚠️" : "❌"} ${res.checkSummary}`);
+        return true;
       })
-      .catch((err) => showToast(`Dosya bu oturumda yüklendi ama kalıcı kaydedilemedi: ${err.message}`));
-  };
+      .catch((err) => {
+        showToast(`Dosya bu oturumda yüklendi ama kalıcı kaydedilemedi: ${err.message}`);
+        return false;
+      });
+
+  // Bu boyutun üstündeki dosyalar tarayıcıda açılmaz (SheetJS, açılmış sayfa XML'i ~512 MB'ı aşınca sayfayı hiç üretemez → boş rapor);
+  // sunucuya kaydedilir, sunucu akışla okur ve rapor oradan yüklenir (bkz. backend/src/bigXlsx.js)
+  const BIG_FILE_BYTES = 30 * 1024 * 1024;
 
   // Lokasyon Mail Listesi — başlık satırı ilk satırda (Lokasyon Kodu, Açık Lokasyon Adı, Mail Adresi, IP_Address);
   // klasör senkronu olmayan ortamlarda (ör. tek exe) elle yüklenebilsin diye.
@@ -2804,7 +2855,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       try {
         const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 0 });
+        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: findHeaderRow(sheet, REQUIRED_COLUMNS.lokasyon, 0) });
         const rows = mapLokasyonMailRows(raw);
         setRealLokasyonMailAll(rows);
         setRealLokasyonMailMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
@@ -2828,7 +2879,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       try {
         const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 1 });
+        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: findHeaderRow(sheet, REQUIRED_COLUMNS.monitor, 1) });
         const rows = mapMonitorRows(raw);
         setRealMonitorAll(rows);
         setRealMonitorMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
@@ -2894,7 +2945,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
         const wb = XLSX.read(ev.target.result, { type: "array", dense: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         // "Weekly_BSOD" dosyasında 1. satır boş, başlık 2. satırda → range: 1
-        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 1 });
+        const raw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: findHeaderRow(sheet, REQUIRED_COLUMNS.bsod, 1) });
         const rows = mapBsodRows(raw);
         setRealBsodAll(rows);
         setRealBsodMeta({ fileName: file.name, modifiedAt: new Date(file.lastModified).toISOString() });
@@ -3125,7 +3176,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   // filtre daraltınca boş bir sayfada kalabilirdi
   useEffect(() => {
     setCurrentPage(1);
-  }, [typeFilter, locationFilter, modelFilter, statusFilter, lbsParentFilter, segment, search, pageSize]);
+  }, [typeFilter, locationFilter, modelFilter, assignSelected, statusFilter, lbsParentFilter, segment, search, pageSize]);
 
   // Sayfa/şirket değiştiğinde sayfalamayı baştan başlat, seçim listesini temizle
   useEffect(() => {
@@ -3259,11 +3310,13 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
             {hasRealCompanies
               ? (() => {
                   // [ŞİRKET-FİLTRESİ] sayılar açık raporun kendi satırlarından; Disk dosyasında şirket bilgisi yok ("—")
-                  const thMonitors = realThAll.filter((r) => String(r.deviceType || "").toLowerCase() === "monitor");
+                  const thMonitors = atilScopeRows;
                   const countSource = showDashboard
                     ? realInaktifAll
-                    : ({ inaktif: realInaktifAll, kullanilmayan: unusedDeviceRows, zimmet: zimmetRows, "lokasyon-ip": lokasyonIpRows, bsod: bsodRows, "battery-health": batteryRows, "atil-monitor": thMonitors, disk: realDiskAll, "sccm-ajan": realSccmAll }[activeReport] || realInaktifAll);
-                  const noCompanyData = !showDashboard && (activeReport === "yeni-kurulum" || activeReport === "kapatma-onayi");
+                    : ({ inaktif: realInaktifAll, kullanilmayan: unusedDeviceRows, zimmet: zimmetRows.filter((r) => r.assignmentType !== "Warehouse"), "lokasyon-ip": lokasyonIpRows, bsod: bsodRows, "battery-health": batteryRows, "atil-monitor": thMonitors, disk: realDiskAll, "sccm-ajan": realSccmAll }[activeReport] || realInaktifAll);
+                  const COMPANY_COUNT_REPORTS = ["inaktif", "kullanilmayan", "zimmet", "lokasyon-ip", "bsod", "battery-health", "atil-monitor", "disk", "sccm-ajan"];
+                  // Şirket sayısı olmayan ekranlarda (Yeni Kurulum, Kapatma Onayı, Ajan Yüklü, Bottleneck, Bant, Geçmiş) başka raporun sayısı gösterilmez: "—"
+                  const noCompanyData = !showDashboard && (!COMPANY_COUNT_REPORTS.includes(activeReport) || showHistory || activeNetworkView);
                   const allActive = showDashboard ? dashboardCompanyFilter === "all" : activeCompany === "all" && !showHistory;
                   return (
                     <>
@@ -3515,6 +3568,14 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                 const zimmetScoped = byCompany(zimmetRows, dc);
                 const overallZimmet = computeOverallZimmetStats(zimmetScoped);
                 const mismatchTotal = overallZimmet.bad + overallZimmet.noRecord;
+                // Cihaz sağlığı: payda = SCCM envanteri; sorunlu cihaz = en az bir bulgusu olan TEKİL SCCM cihazı (bkz. deviceHealthService.js)
+                const health = computeDeviceHealth({
+                  sccmRows: byCompany(realSccmAll, dc),
+                  inaktifRows: dc === "all" ? realInaktifAll : realInaktifAll.filter((r) => r.company === dc),
+                  zimmetBadRows: zimmetScoped.filter((r) => zimmetBucket(r) === "bad"),
+                  diskCriticalRows: diskScoped ? byCompany(realDiskAll, dc).filter((r) => classifyDisk(r.freeSpaceGb) === "critical") : [],
+                  unusedRows: byCompany(unusedDeviceRows, dc),
+                });
                 const zimmetMismatchRows = getAllMismatchRows(zimmetScoped);
                 const zimmetTopLocations = computeZimmetLocationBreakdown(zimmetMismatchRows, 10, { company: dashboardCompanyFilter });
                 // "Genel Trend" paneli — Sage Intelligence tarzı bar+line. Zaman
@@ -3550,7 +3611,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   return rank === 0 ? "Kritik" : rank === 1 ? "Uyarı" : "Normal";
                 };
 
-                const goDashboardReport = (id) => { goReport(id); };
+                const goDashboardReport = (id) => { if (activeReport !== id) keepAssignRef.current = true; setAssignFilter([]); goReport(id); };
 
                 // "Rapor Durumu Mini Özeti" — Dashboard KPI kartlarının üstündeki boş alan İÇİN
                 // VE her rapor sayfasının üst kısmı için. TEK kaynak: periodComparisonService.latestPeriodSummary +
@@ -3602,14 +3663,14 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   const inCo = (d) => dc === "all" || d.company === dc;
                   const sm = (id) => latestPeriodSummary(reportSnapshots[id], summaryPeriod, inCo);
                   const devices = byCompany(realSccmAll, dc).length;
-                  const openTotal = inaktifStats.total + overallZimmet.bad + unusedScoped.length + (diskScoped ? diskStats.critical : 0);
+                  const openTotal = health.totalFindings; // = inaktif + hatalı zimmet + kritik disk + kullanılmayan (bulgu sayısı; cihaz sayısı değil)
                   const meta = (label, m) => ({ label, at: m?.modifiedAt || null, file: m?.fileName });
                   const v2 = {
                     scope: dc === "all" ? "Tüm Şirketler" : companyShortLabel(dc),
                     diskScoped,
-                    totals: { devices, open: openTotal, healthPct: devices ? Math.max(0, Math.round(((devices - openTotal) / devices) * 100)) : 0 },
+                    totals: { devices, open: openTotal, problemDevices: health.problemDevices, healthyDevices: health.healthyDevices, outsideInventory: health.outsideInventory, healthPct: health.healthPct },
                     cards: {
-                      zimmet: { value: overallZimmet.bad, unverified: overallZimmet.noRecord, monitor: overallZimmet.monitorIssueCount, summary: sm("zimmet") },
+                      zimmet: { value: overallZimmet.bad, unverified: overallZimmet.noRecord, obs: overallZimmet.obs, ok: overallZimmet.ok, total: overallZimmet.total, monitor: overallZimmet.monitorIssueCount, summary: sm("zimmet") },
                       inaktif: { value: inaktifStats.total, summary: sm("inaktif") },
                       disk: { value: diskScoped ? diskStats.critical : null, warning: diskStats.warning, summary: diskScoped ? sm("disk") : null },
                       unused: { value: unusedScoped.length, summary: sm("kullanilmayan") },
@@ -3632,7 +3693,14 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     const unu = byCompany(unusedDeviceRows, c).length;
                     const dsk = byCompany(realDiskAll, c).filter((r) => classifyDisk(r.freeSpaceGb) === "critical").length;
                     const open = inak + zim + unu + dsk;
-                    return { key: c, label: companyShortLabel(c), devices: dev, inaktif: inak, zimmet: zim, unused: unu, disk: dsk, open, healthPct: dev ? Math.max(0, Math.round(((dev - open) / dev) * 100)) : 0 };
+                    const ch = computeDeviceHealth({
+                      sccmRows: byCompany(realSccmAll, c),
+                      inaktifRows: realInaktifAll.filter((r) => r.company === c),
+                      zimmetBadRows: byCompany(zimmetRows, c).filter((r) => zimmetBucket(r) === "bad"),
+                      diskCriticalRows: byCompany(realDiskAll, c).filter((r) => classifyDisk(r.freeSpaceGb) === "critical"),
+                      unusedRows: byCompany(unusedDeviceRows, c),
+                    });
+                    return { key: c, label: companyShortLabel(c), devices: dev, inaktif: inak, zimmet: zim, unused: unu, disk: dsk, open, problemDevices: ch.problemDevices, healthPct: ch.healthPct };
                   });
                   // Ana Sayfa kartlarından / grafiklerinden rapora yönlendirme (filtre ve şirketle birlikte) — yeni görünüm ve Yönetici Özeti ortak kullanır
                   const dashNavigate = (id, opts = {}) => {
@@ -3642,7 +3710,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       goReport(id);
                       if (opts.atilStage) setAtilStage(opts.atilStage);
                       setActiveCompany(dc);
-                      setTypeFilter([]); setModelFilter([]); setWindowsFilter([]); setStatusFilter([]); setSearch(""); setShowSnoozed(false);
+                      setTypeFilter([]); setModelFilter([]); setWindowsFilter([]); if (activeReport !== id) keepAssignRef.current = true; setAssignFilter([]); setStatusFilter([]); setSearch(""); setShowSnoozed(false);
                       if (effectsWillReset) pendingNavRef.current = { location: opts.location, segment: opts.segment, status: opts.status };
                       else { setLocationFilter(opts.location ? [opts.location] : []); setStatusFilter(opts.status ? [opts.status] : []); setSegment(opts.segment || "all"); }
                   };
@@ -3730,7 +3798,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         <span style={{ ...styles.kpiValue, color: overallZimmet.bad ? pal.bad : pal.ink }}>{overallZimmet.bad}</span>
                         <span style={styles.kpiLabel}>zimmet uyuşmazlığı</span>
                         <span style={{ ...styles.kpiSub, color: pal.inkSoft }}>
-                          {overallZimmet.noRecord > 0 ? `${overallZimmet.noRecord} kayıt doğrulanamadı` : "TuruncuHat ile karşılaştırıldı"}
+                          {`Toplam ${overallZimmet.total} = ${overallZimmet.ok} doğru + ${overallZimmet.bad} hatalı + ${overallZimmet.noRecord} doğrulanamadı${overallZimmet.obs ? ` + ${overallZimmet.obs} OBS` : ""}`}
                         </span>
                       </div>
                       {/* "son veri güncelleme" KPI kartı global footer'a taşındı (madde 1). */}
@@ -3750,6 +3818,8 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                         zimmetDogru: overallZimmet.ok,
                         kritikDisk: diskScoped ? diskStats.critical : 0,
                         kullanilmayan: byCompany(unusedDeviceRows, dc).length,
+                        problemDevices: health.problemDevices,
+                        outsideInventory: health.outsideInventory,
                       }}
                       styles={styles}
                       pal={pal}
@@ -3868,7 +3938,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                           <div style={{ marginTop: 14 }}>
                             <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                               <span style={{ ...styles.kpiValue, fontSize: 36, color: diskFilterColor }}>%{diskFilterPct}</span>
-                              <span style={{ color: pal.inkSoft, fontSize: 13 }}>{diskFilterCount} / {diskStats.total} birim</span>
+                              <span style={{ color: pal.inkSoft, fontSize: 13 }}>{diskFilterCount} / {diskStats.total} birim{diskStats.unknown ? ` (${diskStats.unknown} birimin boş alanı okunamadı)` : ""}</span>
                             </div>
                             <div style={{ ...styles.dashBar, marginTop: 12 }}>
                               <div style={{ ...styles.dashBarSeg, width: `${diskFilterPct}%`, background: diskFilterColor }} />
@@ -5092,6 +5162,26 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                     <span style={styles.statLabel}>{isZimmet ? "Zimmet Hatalı" : activeReport === "inaktif" ? "Kullanımda" : "Eşleşmeyen"}</span>
                   </div>
                   )}
+                  {isZimmet && (
+                  <div
+                    style={{ ...styles.stat, ...styles.statClickable, ...(segment === "unverified" ? styles.statActive : {}) }}
+                    onClick={() => setSegment("unverified")}
+                    title="Doğrulanamayan kayıtlar: karşılaştırma için gereken veri (SCCM/TH/Monitör kaydı) yok — hatalı sayılmaz"
+                  >
+                    <span style={{ ...styles.statNum, color: pal.inkSoft }}>{unverifiedCount}</span>
+                    <span style={styles.statLabel}>Doğrulanamayan</span>
+                  </div>
+                  )}
+                  {isZimmet && anyObs && (
+                  <div
+                    style={{ ...styles.stat, ...styles.statClickable, ...(segment === "obs" ? styles.statActive : {}) }}
+                    onClick={() => setSegment("obs")}
+                    title="OBS (müdürlük) zimmetli cihazlar: hatalı sayılmaz, ayrı sayılır"
+                  >
+                    <span style={{ ...styles.statNum, color: pal.inkSoft }}>{obsCount}</span>
+                    <span style={styles.statLabel}>OBS (Müdürlük)</span>
+                  </div>
+                  )}
                   {/* Disk Alanı — "Tümü/Eşleşen/Eşleşmeyen" anlamsız (bu raporda
                       eşleşme kavramı yok), dashboard'daki Kritik/Uyarı/Normal eşikleriyle aynı
                       seviyelere göre filtre. */}
@@ -5123,6 +5213,16 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   >
                     <span style={{ ...styles.statNum, color: pal.ok }}>{rawRows.filter((r) => r.diskLevel === "normal").length}</span>
                     <span style={styles.statLabel}>Normal (&gt;20 GB)</span>
+                  </div>
+                  )}
+                  {isDiskReport && rawRows.some((r) => r.diskLevel === "unknown") && (
+                  <div
+                    style={{ ...styles.stat, ...styles.statClickable, ...(segment === "unknown" ? styles.statActive : {}) }}
+                    onClick={() => setSegment("unknown")}
+                    title="Boş alan bilgisi okunamayan birimler"
+                  >
+                    <span style={{ ...styles.statNum, color: pal.inkSoft }}>{rawRows.filter((r) => r.diskLevel === "unknown").length}</span>
+                    <span style={styles.statLabel}>Bilinmiyor</span>
                   </div>
                   )}
                   {isBattery && (
@@ -5249,6 +5349,16 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       pal={pal}
                     />
                   )}
+                  {isZimmet && assignCategories.length > 1 && (
+                    <MultiSelectFilter
+                      label="Zimmet Türü"
+                      options={assignCategories}
+                      selected={assignSelected}
+                      onChange={setAssignFilter}
+                      styles={styles}
+                      pal={pal}
+                    />
+                  )}
                   {windowsCategories.length > 0 && (
                     <MultiSelectFilter
                       label="Windows"
@@ -5297,8 +5407,10 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       // burada SAYILMAZ; aksi halde TH eksikse rapor hep "uyumsuz"
                       // görünürdü.
                       ...(isZimmet && anyMonitorIssue ? [{ id: "monitorIssue", label: "Monitör Uyuşmazlığı" }] : []),
+                      ...(isZimmet && unverifiedCount > 0 ? [{ id: "unverified", label: `Doğrulanamayan · ${unverifiedCount}` }] : []),
                       ...(isZimmet && anyNoThRecord ? [{ id: "noThRecord", label: "TH Kaydı YOK" }] : []),
                       ...(isZimmet && anyDuplicateNotebook ? [{ id: "duplicateNotebook", label: "Birden Fazla Zimmet Mevcut" }] : []),
+                      ...(isZimmet && anyObs ? [{ id: "obs", label: `OBS (Müdürlük) · ${obsCount}` }] : []),
                     ].map((s) => (
                       <div key={s.id} onClick={() => setSegment(s.id)} style={{ ...styles.seg, ...(segment === s.id ? styles.segActive : {}) }}>
                         {s.label}
@@ -5414,6 +5526,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
                 {layoutMode === "classic" && (
                   <TableView
+                    companyLabelOf={companyShortLabel}
                     rows={pagedRows}
                     ownerLabel={ownerLabel}
                     serialLabel={serialLabel}
@@ -5503,6 +5616,10 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                       ? realThMeta
                         ? `Gerçek veri: ${realThMeta.fileName}${realSccmMeta ? ` + ${realSccmMeta.fileName}` : ""}`
                         : "Veri yüklenmedi"
+                      : isLokasyonIp
+                      ? realSccmMeta && realLokasyonMailMeta
+                        ? `Gerçek veri: ${realSccmMeta.fileName} + ${realLokasyonMailMeta.fileName}`
+                        : "Veri yüklenmedi (SCCM + Lokasyon E-posta Listesi gerekir)"
                       : isBsod
                       ? realBsodMeta
                         ? `Gerçek veri: ${realBsodMeta.fileName}`

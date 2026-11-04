@@ -68,6 +68,9 @@ export function isZimmetDepoda(thRow) {
 }
 
 export function isIslemdekiMalzemeEmri(thRow) {
+  // Gerçek TuruncuHat'ta bilgi "İşlemdeki Malzeme Emri" adlı ayrı bir sütunda emir numarası olarak gelir (ör. "ATO-00301971"); boş ya da "-" = emir yok
+  const order = String(thRow.materialOrder ?? "").trim();
+  if (order !== "" && order !== "-") return true;
   const target = normalizeText(MATERIAL_ORDER_STATUS_LABEL);
   return statusValues(thRow).some((v) => normalizeText(v).includes(target));
 }

@@ -68,7 +68,9 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
       }),
     [live]
   );
-  const temiz = wf[wf.length - 1].value;
+  // Temiz cihaz = SCCM envanteri − en az bir bulgusu olan TEKİL cihaz (kategori toplamları çakışabildiği için tek tek çıkarılmaz; bkz. deviceHealthService.js)
+  const problemDevices = live.problemDevices != null ? live.problemDevices : wf[0].value - wf[wf.length - 1].value;
+  const temiz = Math.max(0, live.toplamCihaz - problemDevices);
   const saglikPct = live.toplamCihaz ? Math.round((temiz / live.toplamCihaz) * 100) : 0;
   const zToplam = live.zimmetDogru + live.zimmetHatali;
   const zimmetUyumPct = zToplam ? Math.round((live.zimmetDogru / zToplam) * 100) : 0;
@@ -92,19 +94,13 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
   // ulaşılır. Grafik yerine: tek yığılı çubuk (kompozisyon) + çıkarma tablosu (anlaşılır).
   // (Başlık "Şelale/waterfall" idi — kart gerçek bir waterfall grafiği çizmediği için değiştirildi.)
   const healthRows = [
-    { key: "Toplam Cihaz", value: live.toplamCihaz, sign: "", color: C.slate, bold: true },
-    { key: "İnaktif Cihaz", value: live.inaktif, sign: "−", color: C.coral },
-    { key: "Zimmet Hatalı", value: live.zimmetHatali, sign: "−", color: C.coral },
-    { key: "Kritik Disk", value: live.kritikDisk, sign: "−", color: C.coral },
-    { key: "Kullanılmayan", value: live.kullanilmayan, sign: "−", color: C.coral },
+    { key: "Toplam Cihaz (SCCM envanteri)", value: live.toplamCihaz, sign: "", color: C.slate, bold: true },
+    { key: "Sorunlu Cihaz (en az bir bulgusu olan, tekil)", value: problemDevices, sign: "−", color: C.coral },
     { key: "Temiz Cihaz", value: temiz, sign: "=", color: C.emerald, bold: true },
   ];
   const stackSegs = [
     { key: "Temiz", value: temiz, color: C.emerald },
-    { key: "İnaktif", value: live.inaktif, color: "#F4A0A0" },
-    { key: "Zimmet Hatalı", value: live.zimmetHatali, color: C.coral },
-    { key: "Kritik Disk", value: live.kritikDisk, color: "#E0533A" },
-    { key: "Kullanılmayan", value: live.kullanilmayan, color: "#B23B27" },
+    { key: "Sorunlu", value: problemDevices, color: C.coral },
   ];
   const stackTotal = stackSegs.reduce((s, x) => s + x.value, 0) || 1;
 
@@ -257,7 +253,7 @@ export default function OverviewPanel({ snapshots, period, setPeriod, live, styl
         {/* ---- Satır 2: Cihaz Sağlık Şelalesi (yığılı çubuk + çıkarma tablosu) ---- */}
         <Card title="Cihaz Sağlığı Durumu" accent={C.slate} span={7}>
           <p style={{ ...styles.pageSub, margin: "0 0 12px", fontSize: 12 }}>
-            Toplam cihazdan problem kategorileri çıkarılınca kalan "temiz" cihaz (bir cihaz birden çok kategoride olabilir)
+            SCCM envanterindeki cihazlardan, en az bir bulgusu olan (inaktif / hatalı zimmet / kritik disk / kullanılmayan) cihazlar çıkarılınca kalan "temiz" cihaz. Aynı cihaz birden çok bulguda olsa da bir kez sayılır; SCCM envanterinde olmayan bulgular bu oranı etkilemez.
           </p>
 
           {/* Tek yığılı çubuk — kompozisyon */}

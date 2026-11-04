@@ -163,7 +163,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
           </div>
           <p style={{ margin: "8px 0 0", fontSize: 16, lineHeight: 1.5, color: pal.ink }}>{summaryText}</p>
           <p style={{ margin: "6px 0 0", fontSize: 13, color: pal.inkSoft }}>
-            {fmt(totals.devices)} cihaz üzerinden · {fmt(totals.open)} açık bulgu{data.diskScoped ? "" : " (Disk şirket bazında ayrılamadığı için dahil değil)"}
+            {fmt(totals.devices)} cihazın {fmt(totals.problemDevices)}'inde sorun var · {fmt(totals.open)} açık bulgu{totals.outsideInventory ? ` (${fmt(totals.outsideInventory)} bulgu SCCM envanteri dışında)` : ""}{data.diskScoped ? "" : " (Disk şirket bazında ayrılamadığı için dahil değil)"}
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
@@ -180,7 +180,7 @@ export default function DashboardV2({ styles, pal, data, snapshots, company, sum
 
       {/* Anahtar sayılar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
-        <Kpi title="Hatalı zimmet" value={cards.zimmet.value} tone={cards.zimmet.value ? pal.bad : pal.ok} sub={`${fmt(cards.zimmet.unverified)} kayıt doğrulanamadı`} summary={cards.zimmet.summary} to="zimmet" opts={{ segment: "unmatched" }} />
+        <Kpi title="Hatalı zimmet" value={cards.zimmet.value} tone={cards.zimmet.value ? pal.bad : pal.ok} sub={`Toplam ${fmt(cards.zimmet.total)} = ${fmt(cards.zimmet.ok)} doğru + ${fmt(cards.zimmet.value)} hatalı + ${fmt(cards.zimmet.unverified)} doğrulanamadı${cards.zimmet.obs ? ` + ${fmt(cards.zimmet.obs)} OBS` : ""}`} summary={cards.zimmet.summary} to="zimmet" opts={{ segment: "unmatched" }} />
         <Kpi title="İnaktif cihaz" value={cards.inaktif.value} tone={cards.inaktif.value ? pal.warnFg : pal.ok} sub="sahibi inaktif" summary={cards.inaktif.summary} to="inaktif" />
         <Kpi title="Kritik disk" value={cards.disk.value} tone={cards.disk.value ? pal.bad : pal.ok} sub={cards.disk.value == null ? "" : `${fmt(cards.disk.warning)} birim uyarı seviyesinde`} summary={cards.disk.summary} to="disk" opts={{ segment: "critical" }} na={cards.disk.value == null} />
         <Kpi title="Kullanılmayan" value={cards.unused.value} tone={cards.unused.value ? pal.warnFg : pal.ok} sub="zimmetli, kullanılmıyor" summary={cards.unused.summary} to="kullanilmayan" />

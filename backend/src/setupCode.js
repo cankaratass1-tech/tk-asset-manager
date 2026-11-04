@@ -20,12 +20,19 @@ function getSetupCode() {
 
 const digest = (v) => crypto.createHash("sha256").update(String(v ?? "")).digest();
 
+// SETUP_CODE_REQUIRED=0 ise ilk kurulumda kod istenmez (yalnızca yerel/taşınabilir test paketi için: baslat.bat). Varsayılan: kod ZORUNLU.
+const setupCodeRequired = () => String(process.env.SETUP_CODE_REQUIRED ?? "1").trim() !== "0";
+
 function verifySetupCode(input) {
   return crypto.timingSafeEqual(digest(input), digest(getSetupCode()));
 }
 
 // Master henüz yoksa, kodu operatörün görebileceği tek yere (sunucu konsolu) yazar.
 function announceSetupCode() {
+  if (!setupCodeRequired()) {
+    console.log("İlk kurulum için Master User oluşturulmamış. Kurulum kodu İSTENMİYOR (SETUP_CODE_REQUIRED=0); yalnız kullanıcı adı ve şifre girilir.");
+    return;
+  }
   const code = getSetupCode();
   if (generated) {
     console.log(
@@ -37,4 +44,4 @@ function announceSetupCode() {
   }
 }
 
-module.exports = { getSetupCode, verifySetupCode, announceSetupCode };
+module.exports = { getSetupCode, verifySetupCode, announceSetupCode, setupCodeRequired };

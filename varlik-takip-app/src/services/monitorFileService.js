@@ -19,6 +19,7 @@ export function mapMonitorRow(raw) {
     rowKey: `monitor|${monitorSerial || hostname}`,
     hostname,
     username: col(raw, "Username"),
+    mail: col(raw, "Mail"), // TuruncuHat kullanıcı adı içermiyorsa (v2) kullanıcı bu e-posta ile eşleştirilir
     monitorSerial,
     monitorManufacturer: col(raw, "Monitor Manufacturer"),
     monitorModel: col(raw, "Monitor Model"),

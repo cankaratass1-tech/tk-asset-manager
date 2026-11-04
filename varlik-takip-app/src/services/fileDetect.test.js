@@ -63,3 +63,66 @@ test("aynı türden birden çok dosyada yalnız en yenisi kullanılır, tanınma
   assert.deepEqual(r.map((e) => e.action), ["skip", "use", "use", "unknown"]);
   assert.equal(r[0].newerName, "b.xlsx");
 });
+
+test("Adı 'SCCM' ile başlayan Disk (low disk space) raporu SCCM Envanteri sanılmaz; gerçek SCCM envanteri yine SCCM", async () => {
+  const { detectFile } = await import("./fileDetect.js");
+  const mk = (name, aoa) => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "S");
+    return new File([XLSX.write(wb, { type: "buffer", bookType: "xlsx" })], name);
+  };
+  const low = mk("SCCM Low Disk Space.xlsx", [["Rapor"], [""], ["Hostname", "Volume Name", "Free Space", "Size", "Durum"], ["IST1", "C", 1000, 2000, "Kritik"]]);
+  assert.deepEqual(await detectFile(low), { kind: "disk", via: "sütunlar" });
+  const inv = mk("SCCM Inventory Report.xlsx", [["Rapor"], [""], [""], ["Hostname", "Serial Number", "LastLogon UserName", "Type"], ["h", "s", "u", "Laptop"]]);
+  assert.equal((await detectFile(inv)).kind, "sccm");
+  const unreadable = new File([new Uint8Array([1, 2, 3])], "SCCM bilinmeyen.xlsx");
+  assert.equal((await detectFile(unreadable)).kind, "sccm", "sütunlar okunamazsa ad kuralına düşer");
+});
+
+test("'C Size Less Than 10 GB' (SCCM envanter alt kümesi, C boş alan/boyut) Disk Alanı sayılır; gerçek SCCM envanteri SCCM kalır", async () => {
+  const { detectFile } = await import("./fileDetect.js");
+  const mk = (name, aoa) => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "S");
+    return new File([XLSX.write(wb, { type: "buffer", bookType: "xlsx" })], name);
+  };
+  const cDisk = mk("C Size Less Than 10 GB.xlsx", [[""], [""], ["SCCM Inventory Report"], [""], [""], ["Hostname", "Serial Number", "LastLogon UserName", "Type", "C Free Space MB ", "C Size MB "], ["H1", "S1", "u", "Laptop", 9800, 152094]]);
+  assert.equal((await detectFile(cDisk)).kind, "disk");
+  const inv = mk("rapor.xlsx", [["r"], [""], [""], ["Hostname", "Serial Number", "LastLogon UserName", "Type"], ["h", "s", "u", "Laptop"]]);
+  assert.equal((await detectFile(inv)).kind, "sccm");
+});
+
+test("Turuncuhat v2 başlıkları (adı tanınmasa da) TuruncuHat olarak tanınır", async () => {
+  const { detectFile } = await import("./fileDetect.js");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Total", "Seri No", "Barkod", "Model", "Cihaz Sahibi", "Location identifier"], [1, "S1", "B1", "NOTEBOOK", "X", "User"]]), "S");
+  const f = new File([XLSX.write(wb, { type: "buffer", bookType: "xlsx" })], "rapor-ekim.xlsx");
+  assert.equal((await detectFile(f)).kind, "th");
+});
+
+test("Tam SCCM envanteri (C boş alan sütunları da var ama İştirak/Last LogonSicil/Bitlocker var) SCCM kalır; 'C Size Less Than' alt kümesi Disk olur", async () => {
+  const { detectFile } = await import("./fileDetect.js");
+  const mk = (name, aoa) => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "S");
+    return new File([XLSX.write(wb, { type: "buffer", bookType: "xlsx" })], name);
+  };
+  const full = mk("SCCM Inventory Report-W Collection.xlsx", [[""], [""], [""], ["Hostname", "Serial Number", "LastLogon UserName", "Type", "İştirak", "Last LogonSicil ", "C Free Space MB ", "C Size MB ", "Bitlocker Enabled"], ["h", "s", "u", "Laptop", "TKAO", "123", 9000, 100000, "Yes"]]);
+  assert.equal((await detectFile(full)).kind, "sccm");
+  const anyName = mk("rapor.xlsx", [[""], [""], [""], ["Hostname", "Serial Number", "LastLogon UserName", "Type", "İştirak", "C Free Space MB ", "C Size MB "], ["h", "s", "u", "Laptop", "TKAO", 9000, 100000]]);
+  assert.equal((await detectFile(anyName)).kind, "sccm");
+  const subset = mk("C Size Less Than 10 GB.xlsx", [[""], ["SCCM Inventory Report"], ["Hostname", "Serial Number", "LastLogon UserName", "Type", "C Free Space MB ", "C Size MB "], ["h", "s", "u", "Laptop", 9000, 100000]]);
+  assert.equal((await detectFile(subset)).kind, "disk");
+});
+
+test("Lokasyon listesi iki biçimde de tanınır (Lokasyon Kodu/Mail Adresi ve Caption/Node_CP_ContactMail); yalnız 2 sütunlu eksik liste tanınmaz", async () => {
+  const { detectFile } = await import("./fileDetect.js");
+  const mk = (name, aoa) => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "S");
+    return new File([XLSX.write(wb, { type: "buffer", bookType: "xlsx" })], name);
+  };
+  assert.equal((await detectFile(mk("a.xlsx", [["Lokasyon Kodu", "Açık Lokasyon Adı", "Mail Adresi", "Node_CP_ContactMail2", "IP_Address"], ["X", "Y", "a@b", "c@d", "1.1.1.1"]]))).kind, "lokasyon");
+  assert.equal((await detectFile(mk("b.xlsx", [["Caption", "Lokasyon", "Node_CP_ContactMail", "Node_CP_ContactMail2", "IP_Address"], ["X", "Y", "a@b", "c@d", "1.1.1.1"]]))).kind, "lokasyon");
+  assert.equal((await detectFile(mk("c.xlsx", [["Lokasyon Kodu", "Açık Lokasyon Adı"], ["X", "Y"]]))).kind, null);
+});

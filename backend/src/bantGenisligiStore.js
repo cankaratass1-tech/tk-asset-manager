@@ -2,6 +2,7 @@
 // (monitoring aracının export adı, klasör senkronuna uygun sabit bir prefix yok) için diğer
 // raporlar gibi otomatik klasör senkronu yerine Ayarlar > Veri Input'tan TEK SEFERLİK yükleme +
 // backend'de saklama modeli kullanılıyor.
+const { demoDataEnabled } = require("./demoData");
 const fs = require("fs");
 const path = require("path");
 const XLSX = require("xlsx");
@@ -47,7 +48,7 @@ function load() {
   if (meta && fs.existsSync(filePath())) {
     return { fileName: meta.fileName, modifiedAt: meta.uploadedAt, rows: parseFile(filePath()) };
   }
-  if (fs.existsSync(BUNDLED_FILE)) {
+  if (demoDataEnabled() && fs.existsSync(BUNDLED_FILE)) {
     const stat = fs.statSync(BUNDLED_FILE);
     return { fileName: "Bant Genişliği Trend - Yurt Disi.csv (örnek)", modifiedAt: stat.mtime.toISOString(), rows: parseFile(BUNDLED_FILE) };
   }

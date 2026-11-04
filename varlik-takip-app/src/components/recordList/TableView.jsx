@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { assignmentLabel } from "./assignmentLabel";
 import { isZimmetUnverified } from "../../services/zimmetService";
 import { isInaktifUnverified, inaktifUsageTone } from "../../services/inaktifComparisonService";
 import { ownerTitleOf } from "../../services/ownerName";
@@ -8,6 +9,7 @@ import { ownerTitleOf } from "../../services/ownerName";
 export default function TableView({
   rows,
   isZimmet,
+  companyLabelOf,
   ownerLabel,
   serialLabel,
   modelLabel,
@@ -127,13 +129,14 @@ export default function TableView({
                   </td>
                   <td style={tdS}>
                     {r.assignmentType ? (
-                      <span style={{ ...styles.badge, ...(r.assignmentType === "OBS" ? styles.badgeNeutral : styles.badgeOk) }}>
-                        <span style={{ ...styles.badgeDot, background: r.assignmentType === "OBS" ? pal.inkSoft : pal.ok }} />
-                        {r.assignmentType === "OBS" ? "OBS (Müdürlük)" : "User (Kişi)"}
+                      <span style={{ ...styles.badge, ...(r.assignmentType === "User" ? styles.badgeOk : styles.badgeNeutral) }}>
+                        <span style={{ ...styles.badgeDot, background: r.assignmentType === "User" ? pal.ok : pal.inkSoft }} />
+                        {assignmentLabel(r.assignmentType)}
                       </span>
                     ) : (
                       <span style={{ color: pal.inkSoft, fontSize: 13 }} title="TuruncuHat'ta bu cihazın kaydı olmadığı için belirlenemedi">—</span>
                     )}
+                    {r.company && companyLabelOf ? <div data-company-tag style={{ ...styles.cellSub, marginTop: 4 }} title="Cihazın ait olduğu şirket (Sahibi Firma)">{companyLabelOf(r.company)}</div> : null}
                   </td>
                 </>
               ) : (

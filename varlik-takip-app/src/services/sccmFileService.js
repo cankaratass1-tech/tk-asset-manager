@@ -12,6 +12,7 @@
 import { backendClient } from "./backendClient";
 import { daysSince, DEFAULT_STALE_DAYS } from "./comparisonService";
 import { describeWindows } from "./windowsVersionService.js";
+import { normalizeDateColumns } from "./excelDate.js";
 
 function col(row, ...names) {
   for (const name of names) {
@@ -27,7 +28,8 @@ function shortName(full) {
   return idx > 0 ? full.slice(0, idx).trim() : full;
 }
 
-export function mapSccmRow(raw) {
+export function mapSccmRow(rawIn) {
+  const raw = normalizeDateColumns(rawIn); // LastLogonTime / BIOS Date / OSInstallDate… Excel seri numarasıysa tarih metnine çevrilir
   const hostname = col(raw, "Hostname");
   // Windows sürümü: gerçek export'ta sütun adları doğrulanmadı — olası varyantlar denenir; hiçbiri yoksa boş kalır ("Veri Yok").
   // Ad ve build ayrı sütunlarda gelebilir ("Operating System" + "OS Version"/"OS Build"); ikisi birlikte ayrıştırılır.

@@ -23,18 +23,20 @@ test("demo dosyaların hepsi şemadan geçer (zorunlu + önerilen sütunlar tam)
 test("sayfa ve başlık satırı değerleri routes/reports.js ile aynı (kayma koruması)", () => {
   const src = fs.readFileSync(path.join(__dirname, "routes", "reports.js"), "utf8");
   for (const [kind, s] of Object.entries(SCHEMAS).filter(([, x]) => !x.fromUpload)) {
-    const re = new RegExp(`loadLatestReport\\(cfg\\.folderPath, "${s.prefix}", \\{ sheetIndex: (\\d+)(?:, headerRow: (\\d+))? \\}\\)`);
+    const re = new RegExp(`loadLatestReport(?:Async)?\\(cfg\\.folderPath, "${s.prefix}", \\{ sheetIndex: (\\d+)(?:, headerRow: (\\d+))?(?:, requiredColumns: .*?)?(?:, rowFilter: \\w+)?(?:, excludedKey: "[^"]*")? \\}\\)`);
     const m = src.match(re);
     assert.ok(m, `${kind}: reports.js'te "${s.prefix}" okuması bulunamadı`);
     assert.equal(Number(m[1]), s.sheetIndex, `${kind}: sheetIndex farklı`);
-    assert.equal(Number(m[2] || 0), s.headerRow, `${kind}: headerRow farklı`);
+    // şemada dizi ise ilk eleman tercih edilen (varsayılan) satırdır
+    assert.equal(Number(m[2] || 0), Array.isArray(s.headerRow) ? s.headerRow[0] : s.headerRow, `${kind}: headerRow farklı`);
   }
 });
 
 test("zorunlu sütun eksikse ok=false ve eksik adı döner", () => {
   const r = checkHeaders("th", ["Seri No", "Sahibi", "Model", "Konum Kategorisi"]);
   assert.equal(r.ok, false);
-  assert.deepEqual(r.missingRequired, ["Owner Username"]);
+  // kullanıcı adı yoksa sicil de kabul edilir (Turuncuhat v2); ikisi de yoksa grup adı birlikte bildirilir
+  assert.deepEqual(r.missingRequired, ["Owner Username / Cihaz Sahibinin Sicili / Cihaz Sahibinin Sicil No"]);
 });
 
 test("alternatifli sütun: biri yeterli", () => {
@@ -97,4 +99,42 @@ test("bant: zorunlu sütunlar (Lokasyon, Hat, Bant Genişliği, Uyarı Durumu)",
   assert.equal(r.ok, false);
   assert.deepEqual(r.missingRequired, ["Uyarı Durumu"]);
   assert.equal(checkHeaders("bant", ["Lokasyon", "Hat", "Bant Genişliği", "Uyarı Durumu"]).ok, true);
+});
+
+test("Disk Alanı: başlık satırı 6. satırda değilse de bulunur (doğrulama + okuyucu)", () => {
+  const os = require("os");
+  const { readRows } = require("./excelSource");
+  for (const pad of [0, 2, 8]) {
+    const aoa = [...Array(pad).fill(["Rapor başlığı"]), ["Name", "Volume Name", "Free Space", "Size", "Site Code"], ["IST1", "C", 1000, 2000, "IST"]];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "S");
+    const f = path.join(os.tmpdir(), `disk-hdr-${pad}-${process.pid}.xlsx`);
+    XLSX.writeFile(wb, f);
+    try {
+      const r = checkWorkbook("disk", XLSX.readFile(f));
+      assert.equal(r.ok, true, `üstte ${pad} satır: doğrulama geçmeli`);
+      assert.equal(r.headerRow, pad + 1);
+      const rows = readRows(f, 0, 5, SCHEMAS.disk.required);
+      assert.equal(rows[0]["Free Space"], 1000, `üstte ${pad} satır: okuyucu doğru satırı bulmalı`);
+    } finally {
+      fs.rmSync(f, { force: true });
+    }
+  }
+});
+
+test("Disk Alanı: sütun adı 'Hostname' (Name değil) ve başlık ilk satırda olan dosya kabul edilir ve okunur", () => {
+  const os = require("os");
+  const { readRows } = require("./excelSource");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Hostname", "Volume Name", "Free Space", "Size", "Durum"], ["IST1", "C", 1000, 2000, "Kritik"]]), "S");
+  const f = path.join(os.tmpdir(), `disk-hostname-${process.pid}.xlsx`);
+  XLSX.writeFile(wb, f);
+  try {
+    const r = checkWorkbook("disk", XLSX.readFile(f));
+    assert.equal(r.ok, true, summarize(r));
+    assert.equal(r.headerRow, 1);
+    assert.equal(readRows(f, 0, 5, SCHEMAS.disk.required)[0].Hostname, "IST1");
+  } finally {
+    fs.rmSync(f, { force: true });
+  }
 });

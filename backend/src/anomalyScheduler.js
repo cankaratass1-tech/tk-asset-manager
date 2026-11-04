@@ -14,7 +14,9 @@ const path = require("path");
 const nodemailer = require("nodemailer");
 const { readSection, writeSection } = require("./store");
 const { getFileSourceConfig } = require("./importStore");
-const { loadLatestReport } = require("./excelSource");
+const { loadLatestReportAsync, coreDeviceRow, coreSccmRow } = require("./excelSource");
+const { SCHEMAS } = require("./fileSchemas");
+const { normalizeThRow } = require("./thAlias");
 const { buildTransport } = require("./mailTransport");
 const sendLog = require("./mailSendLog");
 const { addEntry: addMailHistoryEntry } = require("./routes/mailhistory");
@@ -204,11 +206,11 @@ async function runScan({ force = false } = {}) {
   const fileSourceCfg = getFileSourceConfig();
   if (!fileSourceCfg.folderPath) throw new Error("Dosya kaynağı klasörü tanımlı değil");
 
-  const th = loadLatestReport(fileSourceCfg.folderPath, "TH", { sheetIndex: 0, headerRow: 0 }).rows;
-  const sccm = loadLatestReport(fileSourceCfg.folderPath, "SCCM Inventory Report", { sheetIndex: 0, headerRow: 3 }).rows;
+  const th = (await loadLatestReportAsync(fileSourceCfg.folderPath, "TH", { sheetIndex: 0, headerRow: 0, requiredColumns: SCHEMAS.th.required, rowMap: normalizeThRow, rowFilter: coreDeviceRow })).rows;
+  const sccm = (await loadLatestReportAsync(fileSourceCfg.folderPath, "SCCM Inventory Report", { sheetIndex: 0, headerRow: 3, requiredColumns: SCHEMAS.sccm.required, rowFilter: coreSccmRow })).rows;
   let lokasyon = [];
   try {
-    lokasyon = loadLatestReport(fileSourceCfg.folderPath, "LokasyonMailListesi", { sheetIndex: 0, headerRow: 0 }).rows;
+    lokasyon = (await loadLatestReportAsync(fileSourceCfg.folderPath, "LokasyonMailListesi", { sheetIndex: 0, headerRow: 0, requiredColumns: SCHEMAS.lokasyon.required })).rows;
   } catch {
     // Lokasyon Mail Listesi henüz yüklenmemişse sadece Birden Fazla Zimmet Mevcut kontrolü çalışır.
   }

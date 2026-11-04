@@ -35,7 +35,7 @@ const norm = (v) => String(v ?? "").trim().toLowerCase();
 const HEADERS = ["Monitör Seri No", "Model", "Zimmet Türü", "Sahibi", "Şu An Kullanan", "Şirket", "Lokasyon", "Neden / Durum"];
 const TYPE_LABELS = { Warehouse: "Depo", Site: "Saha (Site)", Supplier: "Tedarikçi (Supplier)", "": "Tür yok" };
 const typeLabel = (t) => TYPE_LABELS[t] ?? t ?? "Tür yok";
-const isMainType = (t) => t === "User" || t === "OBS" || t === "Warehouse";
+const isMainType = (t) => t === "User" || t === "Warehouse";
 const toCells = (r) => [r.monitorSerial, r.model, typeLabel(r.assignmentType), r.owner, r.usedBy, r.company, r.location, r.reason];
 const toExportRow = (r) => Object.fromEntries(HEADERS.map((h, i) => [h, toCells(r)[i]]));
 const sheetFrom = (rows) => XLSX.utils.json_to_sheet(rows.map(toExportRow), { header: HEADERS });
@@ -68,7 +68,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
   const [expandedOwner, setExpandedOwner] = useState(null); // { rowKey, ownerKey, userKey, person }
   const [detailRow, setDetailRow] = useState(null);
-  const [typeFilter, setTypeFilter] = useState("all"); // all | User | OBS | Warehouse | other
+  const [typeFilter, setTypeFilter] = useState("all"); // all | User | Warehouse | other
   // Ek filtreler (yalnız veri modelinde karşılığı olan alanlar: şirket, lokasyon, marka, model, kullanım durumu). Hepsi birlikte uygulanır.
   const [facets, setFacets] = useState({ company: [], location: [], brand: [], model: [] });
   const [usage, setUsage] = useState("all"); // all | used | unused  (Monitör Raporu'nda kullanan kişi var mı)
@@ -88,7 +88,6 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
     () => ({
       all: stageList.length,
       User: stageList.filter((r) => r.assignmentType === "User").length,
-      OBS: stageList.filter((r) => r.assignmentType === "OBS").length,
       Warehouse: stageList.filter((r) => r.assignmentType === "Warehouse").length,
       other: stageList.filter((r) => !isMainType(r.assignmentType)).length,
     }),
@@ -205,11 +204,11 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
   const depotIdle = stats.depotTotal - stats.depotUsed;
   const GROUP_INFO = {
     atil: {
-      what: "TuruncuHat'ta User veya OBS olarak zimmetli, ama Monitör Raporu'nda hiç satırı olmayan monitörler. Hiçbir yerde kullanılmıyor, boşta duruyor.",
+      what: "TuruncuHat'ta User olarak zimmetli, ama Monitör Raporu'nda hiç satırı olmayan monitörler. Hiçbir yerde kullanılmıyor, boşta duruyor.",
       calc: `Kapsamdaki ${stats.inScope} monitörün ${stats.atil} tanesi.`,
     },
     outside: {
-      what: "Monitör Raporu'nda görünüyor ama kullanan kişi TuruncuHat'taki zimmetli kişiden farklı, yani kayıtlarımız dışında başkası kullanıyor. OBS (müdürlük) monitörlerini herkes kullanabildiği için bu kontrole girmez.",
+      what: "Monitör Raporu'nda görünüyor ama kullanan kişi TuruncuHat'taki zimmetli kişiden farklı, yani kayıtlarımız dışında başkası kullanıyor.",
       calc: "Karşılaştırma kullanıcı adıyladır: Monitör Raporu'ndaki Username ile TuruncuHat'taki Owner Username aynı değilse bu gruba girer.",
     },
     depotUsed: {
@@ -217,11 +216,11 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
       calc: `Depoda görünen ${stats.depotTotal} monitörün ${stats.depotUsed} tanesi kullanılıyor, ${depotIdle} tanesi depoda duruyor (normal).`,
     },
     active: {
-      what: "Monitör Raporu'nda görünüyor ve kullanan kişi zimmetli kişiyle uyumlu (OBS'de herkes kullanabilir). Sorun yok.",
+      what: "Monitör Raporu'nda görünüyor ve kullanan kişi zimmetli kişiyle uyumlu. Sorun yok.",
       calc: `Atıl ${stats.atil} + Bilgi dışı ${stats.outside} + Aktif ${stats.active} = Kapsamdaki ${stats.inScope}`,
     },
     inScope: {
-      what: "Raporun değerlendirdiği tüm monitörler: TuruncuHat'ta zimmet türü User veya OBS olanlar.",
+      what: "Raporun değerlendirdiği tüm monitörler: TuruncuHat'ta zimmet türü User olanlar.",
       calc: `Atıl ${stats.atil} + Bilgi dışı ${stats.outside} + Aktif ${stats.active} = ${stats.inScope}`,
     },
     depotAll: {
@@ -229,8 +228,8 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
       calc: `${stats.depotUsed} kullanılıyor + ${depotIdle} depoda duruyor = ${stats.depotTotal}`,
     },
     excludedScope: {
-      what: "Zimmet türü User veya OBS olmayan tüm monitörler: depo, saha (Site), tedarikçi (Supplier) ya da türü boş. Bu rapor bunlar için atıl/bilgi dışı hesabı yapmaz; yalnızca depoda görünüp kullanılanları ayrıca işaretler. Depoda görünen monitörler bu grubun içindedir.",
-      calc: `Depo ${exCount.depo} + Saha (Site) ${exCount.site} + Tedarikçi (Supplier) ${exCount.supplier} + Tür yok/diğer ${exCount.other} = ${stats.excludedScope}`,
+      what: "Zimmet türü User olmayan monitörler: depo, tedarikçi (Supplier) ya da türü boş (OBS ve Site monitörleri bu raporda hiç gösterilmez). Bu rapor bunlar için atıl/bilgi dışı hesabı yapmaz; yalnızca depoda görünüp kullanılanları ayrıca işaretler. Depoda görünen monitörler bu grubun içindedir.",
+      calc: `Depo ${exCount.depo} + Tedarikçi (Supplier) ${exCount.supplier} + Tür yok/diğer ${exCount.other} = ${stats.excludedScope}`,
     },
     all: {
       what: "TuruncuHat'taki tüm monitörler (kapsamdakiler ve kapsam dışı olanlar).",
@@ -254,9 +253,9 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
       title: "Diğer",
       items: [
         ["active", "Aktif (sorunsuz)", stats.active, ""],
-        ["inScope", "Kapsamdaki (User/OBS)", stats.inScope, ""],
+        ["inScope", "Kapsamdaki (User)", stats.inScope, ""],
         ["depotAll", "Depoda görünen (Zimmet Depoda)", stats.depotTotal, ""],
-        ["excludedScope", "Kapsam dışı (User/OBS olmayan)", stats.excludedScope, ""],
+        ["excludedScope", "Kapsam dışı (User olmayan)", stats.excludedScope, ""],
         ["all", "TuruncuHat monitör toplam", stats.thMonitorTotal, ""],
       ],
     },
@@ -369,7 +368,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
 
   const STAT_LABEL = {
     atil: "Atıl (Kullanılmıyor)", outside: "Bilgi Dışı Kullanılan", depotUsed: "Depoda Ama Kullanılan",
-    active: "Aktif (Sorunsuz)", inScope: "Kapsamdaki (User/OBS)", depotAll: "Depoda Görünen", excludedScope: "Kapsam Dışı", all: "Toplam Monitör",
+    active: "Aktif (Sorunsuz)", inScope: "Kapsamdaki (User)", depotAll: "Depoda Görünen", excludedScope: "Kapsam Dışı", all: "Toplam Monitör",
   };
   const statColor = (tone) => (tone === "bad" ? pal.bad : tone === "warn" ? pal.warnFg : pal.ink);
   // Tablo sütunları: [başlık, HEADERS/toCells indeksi (sıralama), hizalama]
@@ -383,7 +382,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
       <div style={{ ...styles.panel, padding: "20px 24px" }}>
         <p style={styles.pageTitle}>Atıl Monitörler</p>
         <p style={styles.pageSub}>
-          TuruncuHat'ta User/OBS olarak zimmetli monitörlerin gerçek kullanım durumu —{" "}
+          TuruncuHat'ta User olarak zimmetli monitörlerin gerçek kullanım durumu —{" "}
           {thMeta ? thMeta.fileName : "TuruncuHat yüklenmedi"} × {monitorMeta ? monitorMeta.fileName : "Monitör Raporu yüklenmedi"}
           {loading ? " · yükleniyor…" : ""}
         </p>
@@ -391,7 +390,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
           <summary style={{ cursor: "pointer", color: pal.accent, fontWeight: 600, width: "fit-content" }}>Bu rapor ne yapar, nasıl okunur?</summary>
           <p style={{ margin: "8px 0 0", lineHeight: 1.6, maxWidth: 980 }}>
             İki şeyi bulur: <b>atıl</b> monitörler (Monitör Raporu'nda hiç görünmüyor, yani kullanılmıyor) ve <b>bilgi dışı kullanılan</b> monitörler
-            (zimmetli kişi dışında biri kullanıyor; OBS monitörlerini herkes kullanabildiği için OBS bu kontrolün dışında).
+            (zimmetli kişi dışında biri kullanıyor).
             TuruncuHat'ta <b>Zimmet Depoda</b> görünüp kullanıldığı görülen monitörler "Depoda görünen ama kullanılan" grubundadır (depoda duran, kullanılmayanlar listelenmez).
             Üstteki sayılara tıklayarak her gruptaki monitörleri, bir kişinin adına (sahibi ya da şu an kullanan) tıklayarak o kişiyle ilgili tüm monitörleri görebilirsiniz.
           </p>
@@ -456,8 +455,8 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                   <span onClick={() => { setSearchInput(""); setSearch(""); setPage(1); }} title="Aramayı temizle" style={{ cursor: "pointer", color: pal.inkSoft, fontSize: 14, lineHeight: 1, padding: "0 2px" }}>×</span>
                 )}
               </div>
-              <div style={styles.segmented} title="Zimmet türüne göre filtrele. User = kişi zimmeti, OBS = müdürlük zimmeti, Depo = TuruncuHat'ta depoda (Warehouse), Diğer = Saha (Site), Tedarikçi (Supplier) ya da tür boş">
-                {[["all", "Tümü"], ["User", "User"], ["OBS", "OBS"], ["Warehouse", "Depo"], ["other", "Diğer"]].map(([id, label]) => (
+              <div style={styles.segmented} title="Zimmet türüne göre filtrele. User = kişi zimmeti, Depo = TuruncuHat'ta depoda (Warehouse), Diğer = Tedarikçi (Supplier) ya da tür boş">
+                {[["all", "Tümü"], ["User", "User"], ["Warehouse", "Depo"], ["other", "Diğer"]].map(([id, label]) => (
                   <div key={id} onClick={() => { setTypeFilter(id); setPage(1); }} style={{ ...styles.seg, ...(typeFilter === id ? styles.segActive : {}) }}>
                     {label} ({typeCounts[id]})
                   </div>

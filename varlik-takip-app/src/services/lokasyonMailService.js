@@ -15,9 +15,10 @@ function col(row, ...names) {
 
 export function mapLokasyonMailRow(raw) {
   return {
-    kod: col(raw, "Lokasyon Kodu"),
-    locationName: col(raw, "Açık Lokasyon Adı"),
-    mail: col(raw, "Mail Adresi"),
+    // İki biçim: "Lokasyon Kodu / Açık Lokasyon Adı / Mail Adresi" ve "Caption / Lokasyon / Node_CP_ContactMail" (Lokasyonlar.xlsx)
+    kod: col(raw, "Lokasyon Kodu", "Caption"),
+    locationName: col(raw, "Açık Lokasyon Adı", "Lokasyon"),
+    mail: col(raw, "Mail Adresi", "Node_CP_ContactMail"),
     mail2: col(raw, "Node_CP_ContactMail2"),
     ipAddress: col(raw, "IP_Address"),
     _raw: raw,

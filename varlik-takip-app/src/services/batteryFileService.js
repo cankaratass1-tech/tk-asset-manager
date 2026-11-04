@@ -46,13 +46,13 @@ export function mapBatteryRow(raw) {
   const ownerMail = atIdx >= 0 ? usernameRaw : "";
   const design = num(col(raw, "Design Capacity", "DesignCapacity", "Design Capacity (mWh)", "Tasarım Kapasitesi"));
   const full = num(col(raw, "Full Charge Capacity", "FullChargeCapacity", "Full Charge Capacity (mWh)", "Tam Şarj Kapasitesi", "Current Capacity"));
-  let health = pct(col(raw, "Battery Health", "BatteryHealth", "Health", "Health (%)", "Battery Health (%)", "SoH", "State of Health", "Sağlık", "Pil Sağlığı"));
+  let health = pct(col(raw, "Battery Health", "BatteryHealth", "Health", "Health (%)", "Battery Health (%)", "SoH", "State of Health", "Sağlık", "Pil Sağlığı", "12 Month Avg Battery Health (%)"));
   if (health == null && design && full) health = Math.round((full / design) * 100);
   const cycles = num(col(raw, "Cycle Count", "CycleCount", "Cycles", "Şarj Döngüsü", "Döngü Sayısı"));
   const status = norm(col(raw, "Battery Status", "Status", "Condition", "Durum", "Pil Durumu"));
   const manufacturer = norm(col(raw, "Manufacturer", "Battery Manufacturer", "Üretici", "Marka"));
   const serial = norm(col(raw, "Battery Serial", "Serial Number", "SerialNumber", "Seri No"));
-  const model = norm(col(raw, "Model", "Device Model", "Battery Name", "Name"));
+  const model = norm(col(raw, "Model", "Device Model", "System Model", "Battery Name", "Name"));
 
   // Kurumsal eşik: <60 kritik (değişmeli), <80 uyarı (izlenmeli), ≥80 iyi.
   const durum = health == null ? "Veri Yok" : health < 60 ? "Değişmeli" : health < 80 ? "İzlenmeli" : "İyi";

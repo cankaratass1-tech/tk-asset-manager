@@ -44,12 +44,17 @@ export function detectFromName(fileName) {
 const MACHINE = ["machinename", "computername", "devicename", "hostname"];
 const SIGNATURES = [
   ["monitor", [["idmonitorserialnumber"]]],
+  // Tam SCCM envanteri de "C Free Space MB / C Size MB" taşır; ama yalnızca envantere özgü sütunları (İştirak, Last LogonSicil, Bitlocker Enabled…) vardır.
+  // Bu yüzden önce envanter işaretlerine bakılır.
+  ["sccm", [["hostname"], ["serialnumber"], ["lastlogonusername"], ["istirak", "lastlogonsicil", "bitlockerenabled", "envanterlocationparent"]]],
+  // "C Size Less Than" gibi SCCM envanter ALT KÜMELERİ (bu işaretler yok) C sürücüsü boş alan/boyut sütunlarıyla Disk Alanı'dır
+  ["disk", [["hostname"], ["cfreespacemb"], ["csizemb"]]],
   ["sccm", [["hostname"], ["serialnumber"], ["lastlogonusername"]]],
-  ["lokasyon", [["lokasyonkodu"], ["mailadresi"]]],
+  ["lokasyon", [["lokasyonkodu", "caption"], ["mailadresi", "nodecpcontactmail"], ["ipaddress"]]],
   ["bant", [["bantgenisligi"], ["uyaridurumu"]]],
   ["bsod", [MACHINE, ["applicationname", "bugcheck", "stopcode"]]],
-  ["battery", [[...MACHINE, "system", "host", "cihaz", "cihazadi"], ["batteryhealth", "health", "designcapacity", "fullchargecapacity"]]],
-  ["disk", [["name", "deviceid"], ["freespace"], ["size"]]],
+  ["battery", [[...MACHINE, "system", "host", "cihaz", "cihazadi"], ["batteryhealth", "health", "designcapacity", "fullchargecapacity", "12monthavgbatteryhealth"]]],
+  ["disk", [["name", "deviceid", "hostname"], ["freespace", "cfreespacemb"], ["size", "csizemb"]]],
 ];
 
 // Sayfanın ilk satırlarından, tüm grupları (her grup için en az bir alternatif) içeren bir başlık satırı var mı?
@@ -70,22 +75,24 @@ export function detectFromWorkbook(wb) {
   }
   // İnaktif Cihazlar 2. sayfada, TuruncuHat 1. sayfada; ikisinin sütunları benzer
   if (sheets[1] && sheetMatches(sheets[1], [["serino"], ["sahibi"], ["cihazsahibininlbsi"]])) return "inaktif";
-  if (sheets[0] && sheetMatches(sheets[0], [["serino"], ["sahibi"], ["ownerusername"]])) return "th";
+  if (sheets[0] && sheetMatches(sheets[0], [["serino"], ["sahibi", "cihazsahibi"], ["ownerusername", "locationidentifier"]])) return "th";
   return null;
 }
 
 // Tarayıcıdaki File için: önce ad, olmazsa başlıklar. { kind, via: "ad" | "sütunlar" } ya da { kind: null }
 export async function detectFile(file) {
   const byName = detectFromName(file.name);
-  if (byName) return { kind: byName, via: "ad" };
+  // "SCCM..." öneki belirsizdir: SCCM'in başka raporları da (ör. "SCCM Low Disk Space" = Disk Alanı) bu adla başlar.
+  // Ad SCCM diyorsa sütunlara da bakılır; sütunlar başka bir türü açıkça gösteriyorsa onlar esas alınır.
+  if (byName && byName !== "sccm") return { kind: byName, via: "ad" };
   try {
     const wb = XLSX.read(await file.arrayBuffer(), { type: "array", sheetRows: 12 });
     const byHeaders = detectFromWorkbook(wb);
-    if (byHeaders) return { kind: byHeaders, via: "sütunlar" };
+    if (byHeaders) return { kind: byHeaders, via: byName === "sccm" && byHeaders === "sccm" ? "ad" : "sütunlar" };
   } catch {
-    /* okunamayan dosya: tanınmadı sayılır */
+    /* okunamayan dosya */
   }
-  return { kind: null };
+  return byName ? { kind: byName, via: "ad" } : { kind: null };
 }
 
 // Aynı türden birden çok dosya varsa yalnız en yenisi (son değişiklik tarihi) kullanılır; diğerleri atlanır.

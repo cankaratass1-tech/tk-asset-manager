@@ -1,6 +1,8 @@
 const express = require("express");
 const { getFileSourceConfig } = require("../importStore");
-const { loadLatestReport } = require("../excelSource");
+const { loadLatestReportAsync, coreDeviceRow, coreSccmRow, coreInaktifRow, knownOtherTypeRow } = require("../excelSource");
+const { SCHEMAS } = require("../fileSchemas");
+const { normalizeThRow } = require("../thAlias");
 const bantStore = require("../bantGenisligiStore");
 const batteryStore = require("../batteryHealthStore");
 
@@ -9,7 +11,7 @@ const router = express.Router();
 // Ofis Bant Genişliği — Ayarlar > Veri Input'tan tek seferlik yüklenip kalıcı saklanan CSV
 //. Henüz yüklenmediyse
 // 404 döner, frontend "henüz yüklenmedi" mesajını gösterir.
-router.get("/bant-genisligi", (req, res) => {
+router.get("/bant-genisligi", async (req, res) => {
   const loaded = bantStore.load();
   if (!loaded) return res.status(404).json({ ok: false, message: "Henüz bir Bant Genişliği dosyası yüklenmedi" });
   res.json({ ok: true, fileName: loaded.fileName, modifiedAt: loaded.modifiedAt, rows: loaded.rows });
@@ -17,7 +19,7 @@ router.get("/bant-genisligi", (req, res) => {
 
 // LakeSide Battery Health — Ayarlar > Veri Input'tan tek seferlik yüklenip kalıcı saklanan Excel
 //. Henüz yüklenmediyse 404 döner.
-router.get("/battery-health", (req, res) => {
+router.get("/battery-health", async (req, res) => {
   const loaded = batteryStore.load();
   if (!loaded) return res.status(404).json({ ok: false, message: "Henüz bir Battery Health dosyası yüklenmedi" });
   res.json({ ok: true, fileName: loaded.fileName, modifiedAt: loaded.modifiedAt, rows: loaded.rows });
@@ -26,13 +28,13 @@ router.get("/battery-health", (req, res) => {
 // İnaktif Cihazlar: SharePoint/OneDrive senkron klasöründeki "İnaktifCihazlar_yyyyMMddHHmmss.xlsx"
 // dosyalarının en güncelini okuyup ham satırları döner. Kullanılacak veri dosyanın 2. sheet'inde
 // (1. sheet değil). Sütun -> rapor alanı eşlemesi frontend'de yapılır.
-router.get("/inaktif-cihazlar", (req, res) => {
+router.get("/inaktif-cihazlar", async (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
   try {
-    const { fileName, rows, modifiedAt } = loadLatestReport(cfg.folderPath, "İnaktifCihazlar", { sheetIndex: 1 });
+    const { fileName, rows, modifiedAt } = await loadLatestReportAsync(cfg.folderPath, "İnaktifCihazlar", { sheetIndex: 1, headerRow: 0, requiredColumns: SCHEMAS.inaktif.required, rowFilter: coreInaktifRow });
     res.json({ ok: true, fileName, modifiedAt, rows });
   } catch (err) {
     res.status(502).json({ ok: false, message: err.message });
@@ -42,13 +44,13 @@ router.get("/inaktif-cihazlar", (req, res) => {
 // Disk Alanı: aynı klasördeki "DiskAlani_yyyyMMddHHmmss.xlsx" dosyalarının en güncelini okur.
 // SCCM "Computers with low free disk space" raporu — gerçek sütun başlıkları 1. satırda değil,
 // üstte rapor adı/açıklama satırları olduğu için 6. satırda (headerRow: 5, 0-tabanlı).
-router.get("/disk-alani", (req, res) => {
+router.get("/disk-alani", async (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
   try {
-    const { fileName, rows, modifiedAt } = loadLatestReport(cfg.folderPath, "DiskAlani", { sheetIndex: 0, headerRow: 5 });
+    const { fileName, rows, modifiedAt } = await loadLatestReportAsync(cfg.folderPath, "DiskAlani", { sheetIndex: 0, headerRow: 5, requiredColumns: SCHEMAS.disk.required, rowFilter: coreSccmRow });
     res.json({ ok: true, fileName, modifiedAt, rows });
   } catch (err) {
     res.status(502).json({ ok: false, message: err.message });
@@ -60,13 +62,13 @@ router.get("/disk-alani", (req, res) => {
 // findLatestFile bu durumda prefix ile başlayan en son değiştirilmiş dosyaya düşer. Gerçek
 // sütun başlıkları 1. satırda değil, 4. satırda (headerRow: 3, 0-tabanlı) — üstte rapor
 // başlığı/boş satırlar var.
-router.get("/sccm", (req, res) => {
+router.get("/sccm", async (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
   try {
-    const { fileName, rows, modifiedAt } = loadLatestReport(cfg.folderPath, "SCCM Inventory Report", { sheetIndex: 0, headerRow: 3 });
+    const { fileName, rows, modifiedAt } = await loadLatestReportAsync(cfg.folderPath, "SCCM Inventory Report", { sheetIndex: 0, headerRow: 3, requiredColumns: SCHEMAS.sccm.required, rowFilter: coreSccmRow });
     res.json({ ok: true, fileName, modifiedAt, rows });
   } catch (err) {
     res.status(502).json({ ok: false, message: err.message });
@@ -76,13 +78,13 @@ router.get("/sccm", (req, res) => {
 // Lokasyon Mail Listesi: tüm lokasyon mailleri (İnaktif Cihazlar mail dağıtımı) ve Lokasyon
 // Hostname/IP Uyuşmazlığı raporu için TEK kaynak — Lokasyon Kodu, Açık Lokasyon Adı, Mail
 // Adresi, Node_CP_ContactMail2, IP_Address sütunları. Başlıklar 1. satırda.
-router.get("/lokasyon-mail", (req, res) => {
+router.get("/lokasyon-mail", async (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
   try {
-    const { fileName, rows, modifiedAt } = loadLatestReport(cfg.folderPath, "LokasyonMailListesi", { sheetIndex: 0, headerRow: 0 });
+    const { fileName, rows, modifiedAt } = await loadLatestReportAsync(cfg.folderPath, "LokasyonMailListesi", { sheetIndex: 0, headerRow: 0, requiredColumns: SCHEMAS.lokasyon.required });
     res.json({ ok: true, fileName, modifiedAt, rows });
   } catch (err) {
     res.status(502).json({ ok: false, message: err.message });
@@ -95,14 +97,15 @@ router.get("/lokasyon-mail", (req, res) => {
 // Diğer üç rapor (İnaktif/Disk/SCCM) gibi backend'den otomatik yüklenebilsin diye eklendi —
 // önceden sadece tarayıcıda manuel dosya seçimiyle geliyordu, sayfa yenilenince kayboluyordu
 //.
-router.get("/th-envanteri", (req, res) => {
+router.get("/th-envanteri", async (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
   try {
-    const { fileName, rows, modifiedAt } = loadLatestReport(cfg.folderPath, "TH", { sheetIndex: 0, headerRow: 0 });
-    res.json({ ok: true, fileName, modifiedAt, rows });
+    // excludedSerials: TH'de başka türde (Tablet/Printer...) görünen cihazların seri no'ları — SCCM/İnaktif listelerinden de elenir
+    const { fileName, rows, modifiedAt, excluded } = await loadLatestReportAsync(cfg.folderPath, "TH", { sheetIndex: 0, headerRow: 0, requiredColumns: SCHEMAS.th.required, rowMap: normalizeThRow, rowFilter: coreDeviceRow, excludedKey: "Seri No", excludeIf: knownOtherTypeRow });
+    res.json({ ok: true, fileName, modifiedAt, rows, excludedSerials: excluded });
   } catch (err) {
     res.status(502).json({ ok: false, message: err.message });
   }
@@ -113,13 +116,13 @@ router.get("/th-envanteri", (req, res) => {
 // "Crash Date | Machine Name | Application Name | BSOD Count" (bkz. bsodFileService.js).
 // Önceden sadece tarayıcıda elle dosya seçimiyle geliyordu, sayfa yenilenince kayboluyordu
 // — diğer raporlar gibi backend'den otomatik yüklensin diye eklendi.
-router.get("/bsod", (req, res) => {
+router.get("/bsod", async (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
   try {
-    const { fileName, rows, modifiedAt } = loadLatestReport(cfg.folderPath, "Weekly_BSOD", { sheetIndex: 0, headerRow: 1 });
+    const { fileName, rows, modifiedAt } = await loadLatestReportAsync(cfg.folderPath, "Weekly_BSOD", { sheetIndex: 0, headerRow: 1, requiredColumns: SCHEMAS.bsod.required });
     res.json({ ok: true, fileName, modifiedAt, rows });
   } catch (err) {
     res.status(502).json({ ok: false, message: err.message });
@@ -128,13 +131,13 @@ router.get("/bsod", (req, res) => {
 
 // Monitor Raporu: aynı klasördeki "Attached Monitors Report*.xlsx" dosyalarının en güncelini
 // okur. Başlıklar 2. satırda (headerRow: 1) — üstte tek bir rapor başlığı satırı var.
-router.get("/monitor-raporu", (req, res) => {
+router.get("/monitor-raporu", async (req, res) => {
   const cfg = getFileSourceConfig();
   if (!cfg.folderPath) {
     return res.status(400).json({ ok: false, message: "Dosya kaynağı klasörü tanımlı değil (Ayarlar > Dosya Kaynağı)" });
   }
   try {
-    const { fileName, rows, modifiedAt } = loadLatestReport(cfg.folderPath, "Attached Monitors Report", { sheetIndex: 0, headerRow: 1 });
+    const { fileName, rows, modifiedAt } = await loadLatestReportAsync(cfg.folderPath, "Attached Monitors Report", { sheetIndex: 0, headerRow: 1, requiredColumns: SCHEMAS.monitor.required });
     res.json({ ok: true, fileName, modifiedAt, rows });
   } catch (err) {
     res.status(502).json({ ok: false, message: err.message });

@@ -3,6 +3,9 @@
 // yüzden alan eşlemesi inaktifFileService.js'teki mapInaktifRow ile aynı mantığı izliyor.
 // Ayrı bir "Monitor" sütunu YOK — monitor bilgisi tamamen ayrı bir dosyadan gelir (monitorFileService.js).
 import { backendClient } from "./backendClient";
+import { isCoreDeviceRaw } from "./thCoreFilter";
+import { excelSerialToText } from "./excelDate";
+import { normalizeThRow } from "./thAliasFileService";
 
 function col(row, ...names) {
   for (const name of names) {
@@ -46,6 +49,8 @@ export function mapThRow(raw) {
     ownerMail: col(raw, "Cihaz Sahibinin Maili"),
     serial,
     barkod: col(raw, "Varlık Barkodu"),
+    // TuruncuHat'ta cihaz için açık bir ATO / malzeme emri varsa emir numarası ("ATO-00301971"); yoksa boş ya da "-"
+    materialOrder: col(raw, "İşlemdeki Malzeme Emri"),
     marka: col(raw, "Marka"),
     model: col(raw, "Asset", "Model"),
     // Ham "Asset" sütunu = "Varlık Kataloğu".
@@ -60,7 +65,7 @@ export function mapThRow(raw) {
     company: col(raw, "Sahibi Firma"),
     // Madde 8 — cihaz yaşı için yedek tarih: SCCM'de "BIOS Date" boş kalırsa TuruncuHat'taki
     // garanti başlangıç tarihi kullanılır (gerçek export'ta her kayıtta dolu — kullanıcı teyidi).
-    warrantyStartDate: col(raw, "Garanti Başlangıç Tarihi", "Garanti Baslangic Tarihi", "Garanti Başlangıç", "Warranty Start Date", "WarrantyStartDate"),
+    warrantyStartDate: excelSerialToText(col(raw, "Garanti Başlangıç Tarihi", "Garanti Baslangic Tarihi", "Garanti Başlangıç", "Warranty Start Date", "WarrantyStartDate")),
     // Ham değer — gerçek dosyada doğrulandı: "User", "Warehouse", "OBS", "Site", "Supplier"
     // (ve boş) olmak üzere 6 farklı değer var. Yalnızca User ve OBS esas alındığından burada "User"a
     // ASLA varsayılan/zorlama yapılmıyor (önceki hal: boş/Warehouse/Site/Supplier bile sessizce
@@ -68,7 +73,7 @@ export function mapThRow(raw) {
     // değildir). Filtreleme comparisonService.js'te (RELEVANT_ASSIGNMENT_TYPES) yapılıyor; burada
     // sadece ham değer olduğu gibi taşınıyor. "LBS Location Parent" yedek olarak hâlâ deneniyor.
     // Zimmet devri tarihi için kaynak: TH'nin kendi "Son Güncelleme Tarihi" alanı (gerçek export'taki tam ad doğrulanmadı — varyantlar denenir)
-    lastUpdated: col(raw, "Son Güncelleme Tarihi", "Son Güncelleme", "Güncelleme Tarihi", "Son Guncelleme Tarihi", "Last Update Date", "Last Updated", "LastUpdateDate", "Modified Date"),
+    lastUpdated: excelSerialToText(col(raw, "Son Güncelleme Tarihi", "Son Güncelleme", "Güncelleme Tarihi", "Son Guncelleme Tarihi", "Last Update Date", "Last Updated", "LastUpdateDate", "Modified Date")),
     assignmentType: col(raw, "Konum Kategorisi") || col(raw, "LBS Location Parent"),
     _raw: raw,
   };
@@ -77,8 +82,8 @@ export function mapThRow(raw) {
 export function mapThRows(rawRows) {
   // Filtre map'ten ÖNCE, ham veri üzerinde uygulanır (gereksinim #4: "sisteme aktarılmadan önce
   // filtrelensin") — bu sayede TH verisini tüketen her yer (comparisonService üçlü karşılaştırma,
-  // Zimmet raporu, mail gönderimi) otomatik olarak temiz veri görür.
-  return (rawRows || []).filter((r) => !isExcludedLineType(r)).map(mapThRow);
+  // Zimmet raporu, mail gönderimi) otomatik olarak temiz veri görür. Yalnızca Desktop/Notebook/Monitor kalır (bkz. thCoreFilter.js).
+  return (rawRows || []).filter((r) => isCoreDeviceRaw(r) && !isExcludedLineType(r)).map(normalizeThRow).map(mapThRow);
 }
 
 // Diğer üç rapor (İnaktif/Disk/SCCM) ile aynı desen — backend'in senkron klasöründen otomatik
@@ -91,5 +96,6 @@ export async function fetchThRowsFromFile() {
     fileName: result.fileName,
     modifiedAt: result.modifiedAt,
     rows: mapThRows(result.rows || []),
+    excludedSerials: result.excludedSerials || [],
   };
 }

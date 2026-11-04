@@ -26,7 +26,7 @@ try {
   const plan = [
     [join(cur, pick("SCCM")), "rapor-1.xlsx", "sccm", "use", "sütunlar"],
     [join(cur, pick("SCCM")), "SCCM Inventory Report_eski.xlsx", "sccm", "skip", "ad"],
-    [join(cur, pick("DiskAlani")), "disk son hali.xlsx", "disk", "use", "sütunlar"],
+    [join(cur, pick("DiskAlani")), "SCCM Low Disk Space.xlsx", "disk", "use", "sütunlar"], // adı SCCM ile başlıyor ama Disk Alanı raporu: SCCM envanteriyle çakışmamalı
     [join(cur, pick("Inaktif")), "bana gelen dosya.xlsx", "inaktif", "use", "sütunlar"],
     [join(cur, pick("TH_")), "TH_20260101000000.xlsx", "th", "use", "ad"],
     [join(cur, pick("Attached")), "monitorler.xlsx", "monitor", "use", "sütunlar"],

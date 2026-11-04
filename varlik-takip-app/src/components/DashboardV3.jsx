@@ -298,7 +298,7 @@ export default function DashboardV3({ styles, pal, data, snapshots, company, sum
 
       {/* Anahtar sayılar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
-        <Kpi icon="👤" title="Hatalı zimmet" value={cards.zimmet.value} tone={cards.zimmet.value ? pal.bad : pal.ok} sub={`${fmt(cards.zimmet.unverified)} kayıt doğrulanamadı`} summary={cards.zimmet.summary} to="zimmet" opts={{ segment: "unmatched" }} />
+        <Kpi icon="👤" title="Hatalı zimmet" value={cards.zimmet.value} tone={cards.zimmet.value ? pal.bad : pal.ok} sub={`Toplam ${fmt(cards.zimmet.total)} = ${fmt(cards.zimmet.ok)} doğru + ${fmt(cards.zimmet.value)} hatalı + ${fmt(cards.zimmet.unverified)} doğrulanamadı${cards.zimmet.obs ? ` + ${fmt(cards.zimmet.obs)} OBS` : ""}`} summary={cards.zimmet.summary} to="zimmet" opts={{ segment: "unmatched" }} />
         <Kpi icon="💤" title="İnaktif cihaz" value={cards.inaktif.value} tone={cards.inaktif.value ? pal.warnFg : pal.ok} sub="sahibi inaktif" summary={cards.inaktif.summary} to="inaktif" />
         <Kpi icon="💾" title="Kritik disk" value={cards.disk.value} tone={cards.disk.value ? pal.bad : pal.ok} sub={cards.disk.value == null ? "" : `${fmt(cards.disk.warning)} birim uyarıda`} summary={cards.disk.summary} to="disk" opts={{ segment: "critical" }} na={cards.disk.value == null} />
         <Kpi icon="📦" title="Kullanılmayan" value={cards.unused.value} tone={cards.unused.value ? pal.warnFg : pal.ok} sub="zimmetli, kullanılmıyor" summary={cards.unused.summary} to="kullanilmayan" />

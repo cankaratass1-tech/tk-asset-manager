@@ -88,3 +88,11 @@ test("çıkarılan cihazlar aşama listelerinde neden bilgisiyle görünür", ()
   assert.equal(res.stages.depot.find((r) => r.serial === "F4").reason, "SCCM'de yok (kapsam dışı)");
   assert.equal(res.stages.excludedIp.length, res.stats.excludedIp);
 });
+
+test("İşlemdeki Malzeme Emri ayrı sütunda emir numarası olarak gelirse (ATO-...) de tespit edilir; boş ya da '-' emir yok demektir", () => {
+  assert.equal(isIslemdekiMalzemeEmri({ materialOrder: "ATO-00301971", _raw: {} }), true);
+  assert.equal(isIslemdekiMalzemeEmri({ materialOrder: "-", _raw: {} }), false);
+  assert.equal(isIslemdekiMalzemeEmri({ materialOrder: "", _raw: {} }), false);
+  assert.equal(isIslemdekiMalzemeEmri({ _raw: {} }), false);
+  assert.equal(isIslemdekiMalzemeEmri({ _raw: { Durum: "İşlemdeki Malzeme Emri" } }), true, "eski metin tabanlı tespit de çalışır");
+});

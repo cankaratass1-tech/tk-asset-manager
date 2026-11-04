@@ -30,6 +30,17 @@ export function getSessionToken() {
     return null;
   }
 }
+// Oturum ortada geçersiz olursa (12 saatlik süre doldu, jeton başka bir sekme/kopya tarafından silindi, imza anahtarı değişti)
+// uygulama sessizce bozuk kalmasın: main.jsx bu olayı dinleyip kullanıcıyı giriş ekranına döndürür.
+export const SESSION_EXPIRED_EVENT = "varlik:session-expired";
+function notifySessionExpired() {
+  try {
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  } catch {
+    // window yoksa (test ortamı) sessizce yoksay
+  }
+}
+
 export function setSessionToken(token) {
   try {
     if (token) localStorage.setItem(SESSION_TOKEN_KEY, token);
@@ -71,7 +82,13 @@ async function request(path, options) {
     if (typeof body.error === "string") body.error += tag;
   }
   if (res.status === 401) {
-    if (!isSettingsPath && !isAuthPublicPath) setSessionToken(null); // oturum geçersiz — tekrar login gerekecek
+    // Oturum (Bearer) sorunu: requireAuth'un mesajı. Ayarlar admin şifresi hatası ("Ayarlar için giriş gerekli") bundan ayrıdır.
+    const sessionIssue = /giriş yapmalısınız|kullanıcı bulunamadı/.test(String(body.error || body.message || ""));
+    // /settings/login = Ayarlar (admin) şifresi denemesi: yanlış şifre oturumu bitirmez, yalnız hata mesajı gösterilir
+    if (path !== "/settings/login" && (sessionIssue || (!isSettingsPath && !isAuthPublicPath))) {
+      setSessionToken(null); // oturum geçersiz — tekrar login gerekecek
+      notifySessionExpired();
+    }
     throw new Error(body.error || body.message || "Yetkisiz — tekrar giriş yapmalısınız");
   }
   if (!res.ok && body.ok === undefined) {
@@ -212,6 +229,11 @@ export const backendClient = {
       body: file,
     });
     const body = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      setSessionToken(null);
+      notifySessionExpired();
+      throw new Error("Oturum süresi doldu — yeniden giriş yapın, ardından dosyayı tekrar yükleyin");
+    }
     if (!res.ok) throw new Error(body.message || body.error || `Dosya sunucuya kaydedilemedi (${res.status})`);
     return body;
   },

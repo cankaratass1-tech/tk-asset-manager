@@ -48,12 +48,20 @@ const RELEVANT_ASSIGNMENT_TYPES = new Set(["User", "OBS"]);
 // Format bağımsız kullanıcı karşılaştırması — hem PC hem monitör satırları için ortak.
 // Döndürür: { verifiable, isMatch, verifiedBy } — verifiable:false ise ne username ne sicil
 // karşılaştırılabildi demektir (çağıran taraf bu durumda SCCM/Monitor'un kendi statüsüne düşer).
-export function compareAssignment({ actualUsername, actualSicil, thUsername, thSicil }) {
+// Sıra: kullanıcı adı → sicil → e-posta. Sicil eşleşmiyorsa ama iki taraftaki e-posta aynıysa aynı kişidir (sicil biçimi farkı: "092031" / "92031",
+// SCCM'de sicil alanına kullanıcı adı yazılmış hesaplar). "Turuncuhat v2"de kullanıcı adı olmadığından bu yedekler önemlidir.
+export function compareAssignment({ actualUsername, actualSicil, thUsername, thSicil, actualMail = "", thMail = "" }) {
+  const sameMail = !!(actualMail && thMail) && norm(actualMail) === norm(thMail);
   if (actualUsername && thUsername) {
     return { verifiable: true, isMatch: norm(actualUsername) === norm(thUsername), verifiedBy: "kullanıcı adıyla" };
   }
   if (actualSicil && thSicil) {
-    return { verifiable: true, isMatch: norm(actualSicil) === norm(thSicil), verifiedBy: "sicil numarasıyla" };
+    if (norm(actualSicil) === norm(thSicil)) return { verifiable: true, isMatch: true, verifiedBy: "sicil numarasıyla" };
+    if (sameMail) return { verifiable: true, isMatch: true, verifiedBy: "e-posta adresiyle" };
+    return { verifiable: true, isMatch: false, verifiedBy: "sicil numarasıyla" };
+  }
+  if (actualMail && thMail) {
+    return { verifiable: true, isMatch: sameMail, verifiedBy: "e-posta adresiyle" };
   }
   return { verifiable: false };
 }
@@ -81,8 +89,24 @@ export function attachUserNames(row, dir) {
   return { ...row, userFullName: hit.name || (idx > 0 ? hit.full.slice(0, idx) : hit.full), userFullTitle: idx > 0 ? hit.full.slice(idx + 2).replace(/\)$/, "").trim() : "" };
 }
 
+// serial+tür başına en güncel TH satırı ("Son Güncelleme Tarihi"); tarih yoksa/eşitse dosyadaki SON satır kazanır. Sıra korunur.
+export function latestPerSerial(rows) {
+  const best = new Map(); // anahtar -> { row, ts, idx }
+  rows.forEach((row, idx) => {
+    const key = `${row.deviceType}|${norm(row.serial)}`;
+    if (!norm(row.serial)) { best.set(`#${idx}`, { row, ts: 0, idx }); return; }
+    const t = Date.parse(row.lastUpdated);
+    const ts = Number.isNaN(t) ? -Infinity : t;
+    const cur = best.get(key);
+    if (!cur || ts >= cur.ts) best.set(key, { row, ts, idx });
+  });
+  return [...best.values()].sort((a, b) => a.idx - b.idx).map((x) => x.row);
+}
+
 export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows = [], staleDays = DEFAULT_STALE_DAYS } = {}) {
-  const relevantTh = thRows.filter((r) => RELEVANT_TH_TYPES.has(r.deviceType) && RELEVANT_ASSIGNMENT_TYPES.has(r.assignmentType));
+  // Aynı seri no TH'de birden fazla satırla geçerse (eski/yeni zimmet kaydı) yalnız EN GÜNCEL kayıt esas alınır — aksi halde
+  // eski kayıt (ör. kişiye zimmet) güncel kaydı (ör. OBS) bozup yanlış "Zimmet Hatalı" üretir.
+  const relevantTh = latestPerSerial(thRows.filter((r) => RELEVANT_TH_TYPES.has(r.deviceType) && RELEVANT_ASSIGNMENT_TYPES.has(r.assignmentType)));
   const userDir = buildUserDirectory(thRows);
   const fullNameOf = (u) => { const h = userDir.byUser.get(userKey(u)); return h ? h.name : ""; };
 
@@ -130,10 +154,13 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
   // Bir PC'ye bağlı monitörleri, PC'nin kendi zimmet durumundan bağımsız olarak yapılandırılmış
   // obje dizisine çevirir — hem PC satırının "monitorDetails" alanında (popup) hem PC bulunamadığı
   // durumlarda tek başına kullanılabilir.
+  const hiddenMonitorSerials = new Set(thRows.filter((r) => r.deviceType === "MONITOR" && (r.assignmentType === "OBS" || r.assignmentType === "Site")).map((r) => norm(r.serial)));
   function buildMonitorDetails(attachedList) {
     let monitorIssue = false;
     let monitorUnverified = false;
-    const details = attachedList.map((m) => {
+    // OBS (müdürlük) ve Site (saha) monitörleri Zimmet ekranında hiç gösterilmez — kişiyi ilgilendirmez, hatalı/doğrulanamayan sayılmaz
+    const visible = attachedList.filter((m) => !hiddenMonitorSerials.has(norm(m.monitorSerial)));
+    const details = visible.map((m) => {
       const reg = thMonitorBySerial.get(norm(m.monitorSerial));
       const label = `${m.monitorManufacturer} ${m.monitorModel}`.trim();
       const monitorUser = m.username || "";
@@ -146,7 +173,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       if (reg.assignmentType === "OBS") {
         return { ...base, assignedTo: reg.owner || "Müdürlük (OBS)", status: "Müdürlük Zimmeti (OBS)", ok: true };
       }
-      const cmp = compareAssignment({ actualUsername: monitorUser, actualSicil: "", thUsername: reg.ownerUsername, thSicil: reg.ownerSicil });
+      const cmp = compareAssignment({ actualUsername: monitorUser, actualSicil: "", thUsername: reg.ownerUsername, thSicil: reg.ownerSicil, actualMail: m.mail || "", thMail: reg.ownerMail });
       if (!cmp.verifiable) {
         monitorUnverified = true;
         return { ...base, assignedTo: reg.owner || "—", status: "Bilgi Eksik (doğrulanamadı)", ok: null };
@@ -158,7 +185,9 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
     return { details, monitorIssue, monitorUnverified };
   }
 
-  const thRowsMapped = relevantTh.map((th) => {
+  // OBS (müdürlük) zimmetli cihazlar Zimmet Uyuşmazlığı listesine HİÇ alınmaz; kişinin PC'sine bağlı OBS/Site monitörleri de PC satırında gösterilmez
+  // (hiddenMonitorSerials) ve hatalı/doğrulanamayan sayılmaz.
+  const thRowsMapped = relevantTh.filter((th) => th.assignmentType !== "OBS").map((th) => {
     if (th.deviceType === "MONITOR") {
       const m = monitorsBySerial.get(norm(th.serial));
       const actualUser = m?.username || "";
@@ -174,12 +203,12 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
         userDetail = actualUser
           ? `${th.serial} seri numaralı monitör ${th.owner || "bir müdürlüğe"} zimmetli (OBS) — şu an ${actualUser} kullanıyor.`
           : `${th.serial} seri numaralı monitör ${th.owner || "bir müdürlüğe"} zimmetli (OBS), aktif kullanım kaydı bulunamadı.`;
-      } else if (!actualUser) {
+      } else if (!actualUser && !(m && m.mail)) {
         statusTag = "Kullanım Kaydı Yok";
         matched = false;
         userDetail = `${th.serial} seri numaralı monitör ${th.owner}'e zimmetli, Monitör Raporu'nda aktif kullanıcı bilgisi yok.`;
       } else {
-        const cmp = compareAssignment({ actualUsername: actualUser, actualSicil: "", thUsername: th.ownerUsername, thSicil: th.ownerSicil });
+        const cmp = compareAssignment({ actualUsername: actualUser, actualSicil: "", thUsername: th.ownerUsername, thSicil: th.ownerSicil, actualMail: m?.mail || "", thMail: th.ownerMail });
         if (!cmp.verifiable) {
           statusTag = "Doğrulanamadı";
           matched = false;
@@ -255,7 +284,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
       matched = false;
       userDetail = `${th.serial} seri numaralı cihaz ${th.owner}'e zimmetli, aktif kullanım kaydı bulunamadı.`;
     } else {
-      const cmp = compareAssignment({ actualUsername: sccmUser, actualSicil: s.userSicil, thUsername: th.ownerUsername, thSicil: th.ownerSicil });
+      const cmp = compareAssignment({ actualUsername: sccmUser, actualSicil: s.userSicil, thUsername: th.ownerUsername, thSicil: th.ownerSicil, actualMail: s.mail, thMail: th.ownerMail });
       if (!cmp.verifiable) {
         // Ne username ne sicil karşılaştırılabiliyorsa SCCM'in kendi (biçim tutarlı, güvenilir)
         // envanterUser/lastLogonUser karşılaştırmasına geri dönülür — isim tahmini yapılmaz.
@@ -277,7 +306,7 @@ export function computeComparisonRows({ sccmRows = [], thRows = [], monitorRows 
     // uyuşmazlıktır; yukarıdaki statusTag'i EZER (override). İSTİSNA: cihazı kullanan kişi zimmet sahibi DEĞİLSE
     // ("Zimmet Hatalı") etiket korunur — mail cihazı kullanan kişiye gider ve ona "üzerinize birden fazla notebook
     // zimmetli" demek yanlış olur; ona transfer maili gitmeli. Sahibe ayrıca bilgilendirme gider (duplicateDevices).
-    if (th.deviceType === "NOTEBOOK") {
+    if (th.deviceType === "NOTEBOOK" && th.assignmentType === "User") {
       const dupSerials = notebookOwnerCounts.get(ownerIdentity(th));
       if (dupSerials && dupSerials.length > 1) {
         const others = dupSerials.filter((sn) => sn !== th.serial);

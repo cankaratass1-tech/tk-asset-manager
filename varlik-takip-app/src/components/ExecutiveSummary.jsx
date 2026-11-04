@@ -232,7 +232,7 @@ export default function ExecutiveSummary({ data, snapshots, company, summaryTogg
           <HeroGauge value={healthPct} />
           <div style={{ marginTop: 2, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: status.c, background: `${status.c}22`, borderRadius: 12, padding: "3px 12px" }}>{status.t}</span>
-            <span style={{ fontSize: 12.5, color: P.sub }}>{fmt(totals.devices - totals.open)} / {fmt(totals.devices)} cihaz sorunsuz</span>
+            <span style={{ fontSize: 12.5, color: P.sub }}>{fmt(totals.healthyDevices)} / {fmt(totals.devices)} cihaz sorunsuz</span>
           </div>
           <div style={{ fontSize: 11, color: P.mute, marginTop: 6 }}>Eşikler: ≥80 iyi · 60-80 izlenmeli · &lt;60 kritik</div>
         </div>

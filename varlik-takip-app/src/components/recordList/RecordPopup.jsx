@@ -1,4 +1,5 @@
 // Bu popup birden fazla rapor türü (İnaktif Cihazlar, Disk Alanı, Zimmet Uyuşmazlığı, ...) için
+import { assignmentLabel } from "./assignmentLabel";
 // TableView'daki isim tıklamasıyla açılıyor — ama satırların alan şeması rapora göre TAMAMEN
 // farklı: Zimmet satırlarında userLabel/statusTag/matched "zimmet doğru mu" anlamına gelir,
 // diğer raporlarda (İnaktif Cihazlar vb.) bu alanlar hiç yok ya da bambaşka bir şey ifade eder
@@ -67,7 +68,7 @@ export default function RecordPopup({ row, isZimmet, styles, pal, onClose, mailH
               </div>
               <div style={styles.detailFieldRow}>
                 <span style={{ color: pal.ink, fontWeight: 700 }}>Zimmet türü</span>
-                <span>{row.assignmentType === "OBS" ? "OBS (Müdürlük)" : row.assignmentType === "User" ? "User (Kişi)" : "—"}</span>
+                <span>{assignmentLabel(row.assignmentType)}</span>
               </div>
               <div style={styles.detailFieldRow}>
                 <span style={{ color: pal.ink, fontWeight: 700 }}>Windows</span>

@@ -7,7 +7,7 @@
 //   (b) SCCM'de VAR ama Last Logon `staleDays` günden eski → "Kullanılmıyor (son giriş çok eski)".
 //
 // Eşleştirme güvenilir kimliklerle: serial → hostname.
-import { norm, daysSince, DEFAULT_STALE_DAYS } from "./comparisonService";
+import { norm, daysSince, DEFAULT_STALE_DAYS } from "./comparisonService.js";
 
 // Geriye dönük uyumluluk — App.jsx ve deviceOverviewService.js bunları buradan import ediyor;
 // kanonik tanım artık comparisonService.js'te.
@@ -30,7 +30,8 @@ export function computeUnusedDevices({ thRows = [], sccmRows = [], staleDays = D
     if (norm(s.hostname)) sccmByHost.set(norm(s.hostname), s);
   });
 
-  const obsRows = thRows.filter((r) => r.assignmentType === "OBS");
+  // Monitörlerin SCCM kaydı olmaz (ayrı Monitor Raporu/Atıl Monitör ekranı var) — SCCM'de yok diye "kullanılmıyor" sayılmasın
+  const obsRows = thRows.filter((r) => r.assignmentType === "OBS" && String(r.deviceType || "").toLowerCase() !== "monitor");
 
   return obsRows
     .map((th) => {

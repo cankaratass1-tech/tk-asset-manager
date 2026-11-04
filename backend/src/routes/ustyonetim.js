@@ -2,6 +2,7 @@
 // sütunundan) OKUNMUYOR — kritik "üst yönetime
 // hiçbir şekilde mail gitmemeli" kuralı, Excel veri kalitesine/satır satır doğruluğuna bağlı
 // olmasın diye burada admin tarafından elle yönetilen, sabit bir e-posta listesi olarak tutuluyor.
+const { demoDataEnabled } = require("../demoData");
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
@@ -18,6 +19,7 @@ function loadWithSeed() {
   const s = readSection(SECTION);
   if (s) return { emails: Array.isArray(s.emails) ? s.emails : [] };
   try {
+    if (!demoDataEnabled()) throw new Error("demo veri kapalı");
     const seed = JSON.parse(fs.readFileSync(SEED_FILE, "utf8"));
     const seeded = { emails: Array.isArray(seed.emails) ? seed.emails : [] };
     writeSection(SECTION, seeded);

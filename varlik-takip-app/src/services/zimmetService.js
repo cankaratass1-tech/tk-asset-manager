@@ -31,25 +31,34 @@ export function getZimmetRows(sccmRows, { company } = {}) {
   return sccmRows.filter((r) => r.company === company);
 }
 
+// Zimmet satırının TEK ve birbirini dışlayan kovası — dashboard, liste sayaçları ve segmentler hep bunu kullanır:
+//   obs        : Müdürlük (OBS) zimmeti — kişiye zimmetli değil, hatalı sayılmaz, ayrı sayılır
+//   ok         : Zimmet Doğru (kişi zimmeti)
+//   unverified : doğrulanamadı (SCCM'de/TH'de/Monitör Raporu'nda kayıt yok vb.) — KANIT DEĞİL, hatalı değil
+//   bad        : kesin uyuşmazlık (Zimmet Hatalı, Zimmetsiz Kullanım, Birden Fazla Zimmet, ... + Monitör Uyuşmazlığı)
+// Her satır tam olarak BİR kovaya girer: toplam = obs + ok + unverified + bad.
+export function zimmetBucket(r) {
+  if (r.assignmentType === "OBS") return "obs";
+  if (r.matched) return "ok";
+  if (isZimmetUnverified(r.statusTag)) return "unverified";
+  return "bad";
+}
+
 export function computeOverallZimmetStats(sccmRows) {
-  const rows = sccmRows || [];
-  let ok = 0, bad = 0, noRecord = 0, monitorIssueCount = 0;
+  // Zimmet sayımı kişi (User) zimmetleri üzerinden yapılır: depodaki (Warehouse) cihazlar toplama/hatalıya girmez — Ana Sayfa, sol panel ve liste aynı sayıyı verir
+  const rows = (sccmRows || []).filter((r) => r.assignmentType !== "Warehouse");
+  const out = { total: rows.length, ok: 0, bad: 0, noRecord: 0, obs: 0, monitorIssueCount: 0 };
   rows.forEach((r) => {
-    // "Müdürlük Zimmeti (OBS)" — comparisonService.js (TH+Monitor Raporu yüklüyse) matched:true
-    // döner ama statusTag "Zimmet Doğru" değildir; ok'a sayılmazsa istatistik yanlış "hatalı"
-    // görünür.
-    if (r.statusTag === "Zimmet Doğru" || r.statusTag === "Müdürlük Zimmeti (OBS)") ok++;
-    // Doğrulanamayan (kanıt olmayan) durumlar "hatalı" değil, ayrı bir "kayıt yok" kovasında —
-    // TH bazlı tasarımda bir cihaz SCCM'de/Monitor Raporu'nda henüz görünmüyor
-    // olabilir, bu "yanlış kullanılıyor" anlamına gelmez.
-    else if (isZimmetUnverified(r.statusTag)) noRecord++;
-    else bad++; // "Zimmet Hatalı" + "Zimmetsiz Kullanım" + "... + Monitör Uyuşmazlığı"
+    const b = zimmetBucket(r);
+    if (b === "obs") out.obs++;
+    else if (b === "ok") out.ok++;
+    else if (b === "unverified") out.noRecord++;
+    else out.bad++;
     // Kişinin kendi zimmeti doğru olsa bile bağlı monitöründe kesin bir uyuşmazlık varsa bu ayrı
-    // sayılır — dashboard'da "Zimmet Uyuşmazlığı" ile "Monitör Uyuşmazlığı" birbirine karışmasın
-    // diye.
-    if (r.monitorIssue) monitorIssueCount++;
+    // sayılır — dashboard'da "Zimmet Uyuşmazlığı" ile "Monitör Uyuşmazlığı" birbirine karışmasın diye.
+    if (r.monitorIssue) out.monitorIssueCount++;
   });
-  return { total: rows.length, ok, bad, noRecord, monitorIssueCount };
+  return out;
 }
 
 // Sadece KESİN uyuşmazlıkları döner — doğrulanamayan (isZimmetUnverified) kayıtlar hariç, aksi

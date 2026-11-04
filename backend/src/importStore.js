@@ -8,7 +8,8 @@ const path = require("path");
 const XLSX = require("xlsx");
 const { getDataDir } = require("./crypto");
 const { readSection } = require("./store");
-const { checkWorkbook, summarize } = require("./fileSchemas");
+const { checkWorkbook, checkHeaders, summarize, SCHEMAS } = require("./fileSchemas");
+const { needsStreaming, peekHeaders } = require("./bigXlsx");
 
 // kind -> dosya öneki (reports.js'teki loadLatestReport öneklerle birebir aynı olmalı)
 const KINDS = {
@@ -40,7 +41,7 @@ function timestamp(d = new Date()) {
 }
 
 // buffer: yüklenen dosyanın ham baytları; originalName: kullanıcının seçtiği ad (.csv ise xlsx'e çevrilir)
-function saveImport(kind, buffer, originalName = "") {
+async function saveImport(kind, buffer, originalName = "") {
   const prefix = KINDS[kind];
   if (!prefix) throw new Error("Bilinmeyen dosya türü");
   if (!buffer || buffer.length === 0) throw new Error("Dosya boş");
@@ -69,7 +70,20 @@ function saveImport(kind, buffer, originalName = "") {
   const fileName = `${prefix}_${timestamp()}.xlsx`;
   fs.writeFileSync(path.join(dir, fileName), data);
   // Sütun kontrolü bilgilendirme amaçlıdır: dosya yine de kaydedilir, eksikler kullanıcıya bildirilir (bkz. fileSchemas.js)
-  const check = checkWorkbook(kind, workbook);
+  let check;
+  const savedPath = path.join(dir, fileName);
+  if (!isCsv && needsStreaming(savedPath, SCHEMAS[kind]?.sheetIndex || 0)) {
+    // Çok büyük dosya: SheetJS sayfayı üretemez (bkz. bigXlsx.js); başlık satırı akışla okunup sütunlar kontrol edilir
+    const schema = SCHEMAS[kind];
+    const expected = Array.isArray(schema.headerRow) ? schema.headerRow[0] : schema.headerRow;
+    const { headers, headerRowIndex } = await peekHeaders(savedPath, { sheetIndex: schema.sheetIndex, headerRow: expected, requiredColumns: schema.required });
+    check = checkHeaders(kind, headers);
+    check.headerRow = headerRowIndex + 1;
+    check.dataRows = null;
+    check.bigFile = true;
+  } else {
+    check = checkWorkbook(kind, workbook);
+  }
   return { fileName, size: data.length, check, checkSummary: summarize(check) };
 }
 

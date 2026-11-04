@@ -23,7 +23,9 @@
 // Raporun amacı: ATIL monitörleri, BİLGİ DIŞI kullanılanları ve DEPODA görünüp KULLANILANLARI bulmaktır.
 import { isZimmetDepoda } from "./thDepotSccmService.js";
 
-export const RELEVANT_ASSIGNMENT_TYPES = new Set(["user", "obs"]);
+export const RELEVANT_ASSIGNMENT_TYPES = new Set(["user"]);
+// OBS (müdürlük) ve Site (saha) monitörleri bu raporda hiç gösterilmez (yanlış anlaşılmasın diye): hiçbir gruba/sayıya girmez.
+const HIDDEN_ASSIGNMENT_TYPES = new Set(["obs", "site"]);
 
 export const REASON_NOT_ATTACHED = "Monitör raporunda görünmüyor — kullanılmıyor";
 export const REASON_ACTIVE = "Aktif — raporda görünüyor ve kullanılıyor";
@@ -39,6 +41,23 @@ function buildRow(th, attachments, reason, { depot = false } = {}) {
   const usedBy = Array.from(new Set(attachments.map((a) => String(a.username ?? "").trim()).filter(Boolean)));
   const usedByKeys = usedBy.map(normKey);
   const ownerUserKey = normKey(th.ownerUsername);
+  // Yedek: TuruncuHat'ta kullanıcı adı yoksa ("Turuncuhat v2") zimmet sahibi ile monitörü kullanan, e-postanın @ öncesiyle karşılaştırılır
+  // (alan adı farkı — thy.com / thyspor.com — yok sayılır). Kullanıcı adı karşılaştırılabiliyorsa o esas alınır.
+  const mailLocal = (v) => normKey(v).split("@")[0];
+  const ownerMailKey = mailLocal(th.ownerMail);
+  const usedByMailKeys = attachments.map((a) => mailLocal(a.mail)).filter(Boolean);
+  // Sicil: Monitör Raporu'nda Username bazı hesaplarda sicil numarasıdır (yalnız rakam); zimmet sahibinin siciliyle karşılaştırılır (baştaki sıfırlar yok sayılır)
+  const sicilKey = (v) => { const s = String(v ?? "").trim(); return /^\d+$/.test(s) ? s.replace(/^0+/, "") : ""; };
+  const ownerSicilKey = sicilKey(th.ownerSicil);
+  const usedBySicilKeys = usedBy.map(sicilKey).filter(Boolean);
+  const byUsername = Boolean(ownerUserKey) && usedByKeys.length > 0;
+  const mailComparable = Boolean(ownerMailKey) && usedByMailKeys.length > 0;
+  const sicilComparable = Boolean(ownerSicilKey) && usedBySicilKeys.length > 0;
+  const sameByMail = mailComparable && usedByMailKeys.includes(ownerMailKey);
+  const sameBySicil = sicilComparable && usedBySicilKeys.includes(ownerSicilKey);
+  const differentPerson = byUsername
+    ? !usedByKeys.includes(ownerUserKey)
+    : (mailComparable || sicilComparable) && !sameByMail && !sameBySicil;
   return {
     rowKey: `atil-monitor|${th.serial}`,
     monitorSerial: th.serial,
@@ -61,7 +80,7 @@ function buildRow(th, attachments, reason, { depot = false } = {}) {
     usedByKeys,
     // zimmetli kişi dışında biri kullanıyor (kanıt: iki kullanıcı adı da var ve farklı); OBS'de aranmaz
     depot,
-    usedByOther: !depot && normKey(th.assignmentType) === "user" && Boolean(ownerUserKey) && usedByKeys.length > 0 && !usedByKeys.includes(ownerUserKey),
+    usedByOther: !depot && normKey(th.assignmentType) === "user" && differentPerson,
     reason,
   };
 }
@@ -76,7 +95,11 @@ export function computeAtilMonitorRows({ thRows = [], monitorRows = [] } = {}) {
     attachBySerial.get(k).push(m);
   });
 
-  const allMonitors = thRows.filter((r) => normKey(r.deviceType) === "monitor");
+  // TuruncuHat'ta "İşlemdeki Malzeme Emri" (ATO emri) olan monitörlerde işlem zaten yapılmıştır; hiçbir gruba (atıl / bilgi dışı / aktif / depo) alınmaz.
+  const hasMaterialOrder = (r) => { const v = String(r.materialOrder ?? "").trim(); return v !== "" && v !== "-"; };
+  const thMonitors = thRows.filter((r) => normKey(r.deviceType) === "monitor" && !HIDDEN_ASSIGNMENT_TYPES.has(normKey(r.assignmentType)));
+  const inProcess = thMonitors.filter(hasMaterialOrder);
+  const allMonitors = thMonitors.filter((r) => !hasMaterialOrder(r) && !HIDDEN_ASSIGNMENT_TYPES.has(normKey(r.assignmentType)));
   const inScope = allMonitors.filter((r) => RELEVANT_ASSIGNMENT_TYPES.has(normKey(r.assignmentType)));
 
   // atil: raporda yok; outside: bilgi dışı kullanım; active: sorunsuz; depotUsed: depoda görünüp kullanılan
@@ -117,6 +140,7 @@ export function computeAtilMonitorRows({ thRows = [], monitorRows = [] } = {}) {
 
   const stats = {
     thMonitorTotal: allMonitors.length,
+    materialOrderExcluded: inProcess.length, // "İşlemdeki Malzeme Emri" olduğu için kapsam dışı bırakılan monitör sayısı
     excludedScope: stages.excludedScope.length,
     inScope: stages.inScope.length,
     active: stages.active.length,

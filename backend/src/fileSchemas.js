@@ -14,8 +14,10 @@ const SCHEMAS = {
     prefix: "TH",
     sheetIndex: 0,
     headerRow: 0,
-    required: ["Seri No", "Sahibi", "Model", "Konum Kategorisi", "Owner Username"],
-    recommended: ["Cihaz Sahibinin LBS'i", "Sahibi Firma", "Asset", "Marka", "Varlık Barkodu", "Cihaz Sahibinin Maili", "Cihaz Sahibinin Sicili", "LBS Location Parent", ["Son Güncelleme Tarihi", "Son Güncelleme", "Güncelleme Tarihi", "Son Guncelleme Tarihi", "Last Update Date", "Last Updated", "LastUpdateDate", "Modified Date"]],
+    // İki biçim: eski TuruncuHat (Sahibi, Konum Kategorisi, Owner Username…) ve "Turuncuhat v2" (Cihaz Sahibi, Location identifier, Sicil No…).
+    // v2'de kullanıcı adı yoktur; eşleştirme sicil ile yapılır. Eşleme tablosu: backend/src/thAlias.js
+    required: ["Seri No", ["Sahibi", "Cihaz Sahibi"], "Model", ["Konum Kategorisi", "Location identifier"], ["Owner Username", "Cihaz Sahibinin Sicili", "Cihaz Sahibinin Sicil No"]],
+    recommended: [["Cihaz Sahibinin LBS'i", "LBS"], ["Sahibi Firma", "Cihaz Sahibi Firma"], ["Asset", "Varlık Adı"], "Marka", ["Varlık Barkodu", "Barkod"], ["Cihaz Sahibinin Maili", "Cihaz Sahibinin Mail Adresi"], ["Cihaz Sahibinin Sicili", "Cihaz Sahibinin Sicil No"], "LBS Location Parent", ["Son Güncelleme Tarihi", "Son Güncelleme", "Güncelleme Tarihi", "Son Guncelleme Tarihi", "Last Update Date", "Last Updated", "LastUpdateDate", "Modified Date"]],
   },
   sccm: {
     label: "SCCM Envanteri",
@@ -47,16 +49,20 @@ const SCHEMAS = {
     label: "Disk Alanı",
     prefix: "DiskAlani",
     sheetIndex: 0,
-    headerRow: 5,
-    required: [["Name", "Device ID"], "Free Space", "Size"],
-    recommended: ["Site Code", "Volume Name"],
+    // normalde 6. satır; farklı bir satırdaysa (üstteki rapor başlığı satırı sayısı değişebilir) ilk 13 satır denenir
+    headerRow: [5, 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12],
+    // iki biçim: "Free Space/Size" (low free disk space raporu) ya da "C Free Space MB/C Size MB" (SCCM envanter alt kümesi, "C Size Less Than")
+    required: [["Name", "Device ID", "Hostname"], ["Free Space", "C Free Space MB"], ["Size", "C Size MB"]],
+    // "C Size Less Than" biçiminde Site Code/Volume Name yoktur: sürücü zaten C, lokasyon LastLogonLokasyon/EnvanterLokasyon'dan alınır
+    recommended: [["Site Code", "LastLogonLokasyon", "EnvanterLokasyon"], ["Volume Name", "C Free Space MB"]],
   },
   lokasyon: {
     label: "Lokasyon Mail Listesi",
     prefix: "LokasyonMailListesi",
     sheetIndex: 0,
     headerRow: 0,
-    required: ["Açık Lokasyon Adı", "Lokasyon Kodu", "Mail Adresi", "IP_Address"],
+    // iki biçim: "Lokasyon Kodu/Açık Lokasyon Adı/Mail Adresi" ve "Caption/Lokasyon/Node_CP_ContactMail" (Lokasyonlar.xlsx)
+    required: [["Açık Lokasyon Adı", "Lokasyon"], ["Lokasyon Kodu", "Caption"], ["Mail Adresi", "Node_CP_ContactMail"], "IP_Address"],
     recommended: ["Node_CP_ContactMail2"],
   },
   bsod: {
@@ -83,7 +89,7 @@ const SCHEMAS = {
     requiredAny: {
       label: "Pil sağlığı (Battery Health / Health …) ya da Design Capacity + Full Charge Capacity",
       options: [
-        [["Battery Health", "BatteryHealth", "Health", "Health (%)", "Battery Health (%)", "SoH", "State of Health", "Sağlık", "Pil Sağlığı"]],
+        [["Battery Health", "BatteryHealth", "Health", "Health (%)", "Battery Health (%)", "SoH", "State of Health", "Sağlık", "Pil Sağlığı", "12 Month Avg Battery Health (%)"]],
         [["Design Capacity", "DesignCapacity", "Design Capacity (mWh)", "Tasarım Kapasitesi"], ["Full Charge Capacity", "FullChargeCapacity", "Full Charge Capacity (mWh)", "Tam Şarj Kapasitesi", "Current Capacity"]],
       ],
     },
@@ -167,7 +173,9 @@ function checkWorkbook(kind, workbook) {
   const sheet = workbook.Sheets[workbook.SheetNames[schema.sheetIndex]];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: true });
   // headerRow bir dizi ise adaylar denenir ve en az eksiği olan satır kullanılır
-  const candidates = Array.isArray(schema.headerRow) ? schema.headerRow : [schema.headerRow];
+  // beklenen satır(lar) önce, ardından ilk 20 satır denenir; en az eksiği olan satır kullanılır (eşitlikte beklenen satır kazanır)
+  const expected = Array.isArray(schema.headerRow) ? schema.headerRow : [schema.headerRow];
+  const candidates = [...expected, ...Array.from({ length: 20 }, (_, i) => i).filter((i) => !expected.includes(i))];
   let best = null;
   for (const hr of candidates) {
     const hs = (rows[hr] || []).filter((h) => String(h).trim() !== "");

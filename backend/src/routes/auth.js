@@ -5,7 +5,7 @@ const session = require("../session");
 const { authenticate, getAuthConfig, hashPassword } = require("../authProviders");
 const { requireAuth } = require("../authMiddleware");
 const { authLimiter, clientIp, blockedResponse } = require("../rateLimit");
-const { verifySetupCode } = require("../setupCode");
+const { verifySetupCode, setupCodeRequired } = require("../setupCode");
 
 const router = express.Router();
 
@@ -15,7 +15,7 @@ function logFailedAttempt(username, ip, scope = "giriş") {
 }
 
 router.get("/setup-status", (req, res) => {
-  res.json({ needsSetup: !users.hasMasterUser(), requiresSetupCode: true });
+  res.json({ needsSetup: !users.hasMasterUser(), requiresSetupCode: setupCodeRequired() });
 });
 
 // İlk kurulum: Master User oluşturma. Master zaten varsa tekrar oluşturmaya izin vermez.
@@ -30,7 +30,7 @@ router.post("/setup-master", async (req, res) => {
   if (!gate.allowed) return blockedResponse(res, gate.retryAfterSec);
 
   const { username, password, setupCode } = req.body || {};
-  if (typeof setupCode !== "string" || !verifySetupCode(setupCode)) {
+  if (setupCodeRequired() && (typeof setupCode !== "string" || !verifySetupCode(setupCode))) {
     authLimiter.fail(ctx);
     logFailedAttempt("(kurulum)", ip, "kurulum");
     return res.status(403).json({ ok: false, message: "Kurulum kodu hatalı. Kodu sunucu konsolundan ya da SETUP_CODE ortam değişkeninden alın." });

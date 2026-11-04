@@ -6,7 +6,7 @@ import AuthShell, { CardLogo } from "./AuthShell";
 
 // Kurumsal Login ekranı — gereksinim #6: Kurum logosu, Domain Name, Username, Password, Giriş Yap.
 // Çerçeve (marka paneli + logo) AuthShell'de; burada yalnız form kartı var.
-export default function LoginScreen({ onLoginSuccess }) {
+export default function LoginScreen({ onLoginSuccess, notice = "" }) {
   const pal = ITSM_PALETTE; // kurumsal: mavi vurgu, soğuk gri/beyaz (çerçeve AuthShell ile uyumlu)
   const styles = useMemo(() => buildStyles(pal), []);
 
@@ -48,6 +48,7 @@ export default function LoginScreen({ onLoginSuccess }) {
         <div style={{ marginBottom: 6, textAlign: "center" }}>
           <p style={{ ...styles.pageTitle, fontSize: 24, margin: "0 0 6px" }}>Giriş yap</p>
           <p style={{ ...styles.pageSub, margin: 0 }}>Devam etmek için kurumsal bilgilerinizle giriş yapın</p>
+          {notice && <p data-session-notice style={{ ...styles.pageSub, margin: "10px 0 0", color: pal.bad, fontWeight: 600 }}>{notice}</p>}
         </div>
 
         <form onSubmit={handleSubmit} style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 14 }}>

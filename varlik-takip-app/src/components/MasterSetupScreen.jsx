@@ -6,7 +6,7 @@ import AuthShell, { CardLogo } from "./AuthShell";
 
 // İlk çalıştırma ekranı — gereksinim #7: Master User oluşturma. Şifre plaintext hiçbir yerde
 // saklanmaz/loglanmaz; backend bcrypt ile hash'ler (bkz. backend/src/authProviders/local.js).
-export default function MasterSetupScreen({ onMasterCreated }) {
+export default function MasterSetupScreen({ onMasterCreated, requiresSetupCode = true }) {
   const pal = ITSM_PALETTE; // kurumsal: mavi vurgu, soğuk gri/beyaz (çerçeve AuthShell ile uyumlu)
   const styles = useMemo(() => buildStyles(pal), []);
 
@@ -20,7 +20,7 @@ export default function MasterSetupScreen({ onMasterCreated }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    if (!setupCode.trim()) return setError("Kurulum kodu zorunlu");
+    if (requiresSetupCode && !setupCode.trim()) return setError("Kurulum kodu zorunlu");
     if (!username.trim()) return setError("Kullanıcı adı zorunlu");
     if (password.length < 8) return setError("Şifre en az 8 karakter olmalı");
     if (password !== confirmPassword) return setError("Şifreler eşleşmiyor");
@@ -46,6 +46,7 @@ export default function MasterSetupScreen({ onMasterCreated }) {
         </p>
 
         <form onSubmit={handleSubmit} style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+          {requiresSetupCode && (
           <div style={styles.formField}>
             <label style={styles.formLabel}>Kurulum Kodu</label>
             <input type="text" autoFocus autoComplete="off" value={setupCode} onChange={(e) => setSetupCode(e.target.value)} style={{ ...styles.formInput, fontFamily: "var(--font-mono, monospace)" }} />
@@ -53,9 +54,10 @@ export default function MasterSetupScreen({ onMasterCreated }) {
               Kod, sunucu başlatılırken konsola yazılır (ya da SETUP_CODE ortam değişkeninden alınır).
             </p>
           </div>
+          )}
           <div style={styles.formField}>
             <label style={styles.formLabel}>Master User Kullanıcı Adı</label>
-            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} style={styles.formInput} />
+            <input type="text" autoFocus={!requiresSetupCode} data-setup-username value={username} onChange={(e) => setUsername(e.target.value)} style={styles.formInput} />
           </div>
           <div style={styles.formField}>
             <label style={styles.formLabel}>Şifre (en az 8 karakter)</label>
