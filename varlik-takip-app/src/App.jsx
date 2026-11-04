@@ -3010,6 +3010,23 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
 
   // Toplu yükleme: bırakılan her dosyanın türü otomatik tanınır (bkz. services/fileDetect.js) ve o türün mevcut
   // yükleyicisine verilir — tek tek seçmekle aynı kayıt/kalıcılık yolu. Aynı türden birden çok dosya varsa en yenisi alınır.
+  // Ayarlar > Veri Girişi > "Tüm verileri temizle": iki adımlı onay; başarılı olunca sayfa yenilenir (bellekteki tüm veri sıfırlanır)
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const [clearBusy, setClearBusy] = useState(false);
+  const handleClearAllData = async () => {
+    setClearBusy(true);
+    try {
+      const res = await backendClient.clearAllData();
+      if (res && res.ok === false) throw new Error(res.message || "Temizlenemedi");
+      showToast("✅ Yüklenen tüm veriler temizlendi — sayfa yenileniyor");
+      setTimeout(() => window.location.reload(), 900);
+    } catch (err) {
+      showToast(`❌ Veriler temizlenemedi: ${err.message || err}`);
+      setClearBusy(false);
+      setClearConfirm(false);
+    }
+  };
+
   const handleBulkFiles = async (files) => {
     setBulkBusy(true);
     const detected = [];
@@ -4385,6 +4402,23 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
                   fazla dosya varsa en yenisini alır. Aşağıdaki tek tek seçme alanları yedek olarak duruyor.
                 </p>
                 <BulkFileDrop pal={pal} busy={bulkBusy} results={bulkResults} onFiles={handleBulkFiles} onClear={() => setBulkResults([])} />
+              </div>
+
+              <div style={{ ...styles.panel, padding: "20px 24px" }} data-clear-data-panel>
+                <p style={styles.settingsSectionTitle}>Tüm Verileri Temizle</p>
+                <p style={styles.pageSub}>
+                  Yüklenmiş tüm rapor dosyalarını, geçmiş karşılaştırma kayıtlarını, Gönderim Geçmişi'ni, Yeni Kurulum kayıtlarını ve cihaz notlarını siler; uygulama baştan, boş başlar.
+                  Kullanıcılar, SMTP ve diğer ayarlar korunur. Ayarlar'da tanımlı dış bir klasöre (ör. SharePoint) dokunulmaz. Bu işlem geri alınamaz.
+                </p>
+                {!clearConfirm ? (
+                  <button style={styles.btnGhost} data-clear-data onClick={() => setClearConfirm(true)}>🗑 Tüm verileri temizle</button>
+                ) : (
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 600 }}>Emin misiniz? Yüklenen tüm veriler silinecek.</span>
+                    <button style={styles.btnPrimary} data-clear-data-confirm disabled={clearBusy} onClick={handleClearAllData}>{clearBusy ? "Temizleniyor…" : "Evet, temizle"}</button>
+                    <button style={styles.btnGhost} data-clear-data-cancel disabled={clearBusy} onClick={() => setClearConfirm(false)}>Vazgeç</button>
+                  </div>
+                )}
               </div>
 
               <div style={{ ...styles.panel, padding: "20px 24px" }}>

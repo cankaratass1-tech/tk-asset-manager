@@ -20,6 +20,7 @@ const anomalyScheduleRouter = require("./src/routes/anomalyschedule");
 const bantGenisligiUploadRouter = require("./src/routes/bantgenisligiupload");
 const batteryHealthUploadRouter = require("./src/routes/batteryhealthupload");
 const importFileRouter = require("./src/routes/importfile");
+const clearDataRouter = require("./src/routes/cleardata");
 const ustYonetimRouter = require("./src/routes/ustyonetim");
 const anomalyScheduler = require("./src/anomalyScheduler");
 const { attemptAdminLogin, requireSettingsAuth } = require("./src/auth");
@@ -97,6 +98,8 @@ function createApp() {
   app.use("/api/settings/battery-health-upload", requireMasterAuth, batteryHealthUploadRouter);
   // Elle seçilen rapor dosyalarının kalıcı saklanması (ham bayt gövde — JSON değil, bu yüzden express.raw)
   app.use("/api/settings/import-file", requireMasterAuth, express.raw({ type: "*/*", limit: "100mb" }), importFileRouter);
+  // Yüklenmiş rapor verilerini sıfırlar (kullanıcılar/SMTP/ayarlar korunur) — yalnızca Master
+  app.use("/api/settings/clear-data", requireMasterAuth, clearDataRouter);
   app.use("/api/settings/ust-yonetim", requireSettingsAuth, ustYonetimRouter);
 
   // Lokasyon-mail eşleşmeleri (mailGroups) SADECE OKUMA için — Mail Gönder her oturum açmış

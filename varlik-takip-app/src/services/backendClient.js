@@ -251,6 +251,8 @@ export const backendClient = {
 
   // Elle seçilen rapor dosyasını backend'e kalıcı kaydeder (uygulama yeniden açılınca rapor ekranları
   // veriyi buradan otomatik yükler). Ham bayt gönderilir (JSON değil); yalnızca Master User.
+  // Yüklenmiş tüm rapor verilerini temizler (kullanıcılar/SMTP/ayarlar korunur); yalnızca Master User
+  clearAllData: () => request("/settings/clear-data", { method: "POST" }),
   async importFile(kind, file) {
     const token = getSessionToken();
     const res = await fetch(`${BASE_URL}/settings/import-file?kind=${encodeURIComponent(kind)}&name=${encodeURIComponent(file.name)}`, {

@@ -215,4 +215,5 @@ const knownOtherTypeRow = (r) => {
   return (m !== "" && m !== "-") || isMacDevice(r); // Mac'ler de SCCM/İnaktif listelerinden seri no ile çıkarılır
 };
 
-module.exports = { knownOtherTypeRow, loadLatestReport, loadLatestReportAsync, findLatestFile, readRows, coreDeviceRow, coreSccmRow, coreInaktifRow };
+const clearReportCache = () => reportCache.clear();
+module.exports = { clearReportCache, knownOtherTypeRow, loadLatestReport, loadLatestReportAsync, findLatestFile, readRows, coreDeviceRow, coreSccmRow, coreInaktifRow };
