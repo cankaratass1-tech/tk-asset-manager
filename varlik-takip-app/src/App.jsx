@@ -58,7 +58,7 @@ import { useStickyTop } from "./hooks/useStickyTop";
 import { LIGHT_PALETTE, DARK_PALETTE, AERO_PALETTE, ITSM_PALETTE } from "./theme/palette";
 import { buildStyles } from "./theme/buildStyles";
 import Donut from "./components/Donut";
-import { backendClient, setSettingsAuth, clearSettingsAuth, getMailSuccessCount } from "./services/backendClient";
+import { backendClient, setSettingsAuth, clearSettingsAuth, getMailSuccessCount, setMailGate, mailRecentlyCancelled } from "./services/backendClient";
 import { ownerWithTitle } from "./services/ownerName";
 import TableView from "./components/recordList/TableView";
 import DenseGridView from "./components/recordList/DenseGridView";
@@ -900,8 +900,10 @@ export default function App({ user, onLogout } = {}) {
   // filtresizdir; filtre yalnızca ekranda gösterilen satırlara ve dashboard sayılarına uygulanır.
   const byCompany = (rows, co) => (co === "all" ? rows : rows.filter((r) => r.company === co));
 
-  const rawRows = isZimmet
-    ? byCompany(zimmetRows.filter((r) => r.assignmentType !== "Warehouse"), activeCompany) // Zimmet = kişi (User) zimmetleri; depodaki (Warehouse) cihazlar sayıya girmez
+  // PERFORMANS: rawRows her çizimde yeni dizi üretmesin (aşağıdaki tüm filtre/sayaç hesapları buna bağlı — kimlik değişince onbinlerce satır yeniden taranıyordu)
+  const zimmetUserRows = useMemo(() => zimmetRows.filter((r) => r.assignmentType !== "Warehouse"), [zimmetRows]); // Zimmet = kişi (User) zimmetleri; depodaki (Warehouse) cihazlar sayıya girmez
+  const rawRows = useMemo(() => (isZimmet
+    ? byCompany(zimmetUserRows, activeCompany)
     : isLokasyonIp
     ? byCompany(lokasyonIpRows, activeCompany)
     : isBsod
@@ -914,7 +916,9 @@ export default function App({ user, onLogout } = {}) {
     ? (activeCompany === "all" ? inaktifComparisonRows : inaktifComparisonRows.filter((r) => r.company === activeCompany))
     : usingRealDisk
     ? byCompany(realDiskAll, activeCompany) // şirket: hostname → SCCM eşleşmesinden (bkz. realDiskAll)
-    : getReportRows(activeDept, activeReport);
+    : getReportRows(activeDept, activeReport)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isZimmet, isLokasyonIp, isBsod, isBattery, isUnused, usingRealInaktif, usingRealDisk, zimmetUserRows, lokasyonIpRows, bsodRows, batteryRows, unusedDeviceRows, inaktifComparisonRows, realDiskAll, activeCompany, activeDept, activeReport]);
   const assignCategories = useMemo(() => (isZimmet ? Array.from(new Set(rawRows.map((r) => r.assignmentType).filter(Boolean))).map(assignmentLabel).sort((a, b) => a.localeCompare(b, "tr")) : []), [isZimmet, rawRows]);
   // Varsayılan (dokunulmamış) durumda yalnız User (Kişi) görünür; TH'de türü belirsiz (boş) satırlar ve "OBS" segmenti gizlenmez
   const assignDefault = assignFilter === null && segment !== "obs" && assignCategories.length > 1 && assignCategories.includes("User (Kişi)");
@@ -1019,15 +1023,27 @@ export default function App({ user, onLogout } = {}) {
     return filteredRows.slice(start, start + pageSize);
   }, [filteredRows, pageSize, safePage]);
 
-  const matchedCount = isZimmet ? rawRows.filter((r) => zimmetBucket(r) === "ok").length : rawRows.filter((r) => r.matched).length;
-  // Doğrulanamayan (isZimmetUnverified) kayıtlar "hatalı" değil — üstteki özet kartı da segment
-  // filtresiyle (bkz. filteredRows) tutarlı olsun diye onları saymıyor.
-  const unmatchedCount = isZimmet
-    ? rawRows.filter((r) => zimmetBucket(r) === "bad").length
-    : rawRows.length - matchedCount;
-  const unverifiedCount = isZimmet ? rawRows.filter((r) => zimmetBucket(r) === "unverified").length : 0;
-  const snoozedCount = isZimmet ? rawRows.filter((r) => rowMeta[deviceKeyOf(r)]?.snoozed).length : 0;
-  const notedCount = isZimmet ? rawRows.filter((r) => rowMeta[deviceKeyOf(r)]?.notes?.length > 0).length : 0;
+  // PERFORMANS: özet sayaçları tek geçişte ve yalnız veri/not durumu değişince hesaplanır (eskiden her çizimde 5 ayrı tarama = onbinlerce satırda donma).
+  // Doğrulanamayan (isZimmetUnverified) kayıtlar "hatalı" değil — üstteki özet kartı da segment filtresiyle (bkz. filteredRows) tutarlı olsun diye onları saymıyor.
+  const { matchedCount, unmatchedCount, unverifiedCount, snoozedCount, notedCount } = useMemo(() => {
+    let matched = 0, bad = 0, unverified = 0, snoozed = 0, noted = 0;
+    if (isZimmet) {
+      const hasMeta = rowMeta && Object.keys(rowMeta).length > 0;
+      rawRows.forEach((r) => {
+        const b = zimmetBucket(r);
+        if (b === "ok") matched++; else if (b === "bad") bad++; else if (b === "unverified") unverified++;
+        if (hasMeta) {
+          const m = rowMeta[deviceKeyOf(r)];
+          if (m?.snoozed) snoozed++;
+          if (m?.notes?.length > 0) noted++;
+        }
+      });
+    } else {
+      matched = rawRows.filter((r) => r.matched).length;
+      bad = rawRows.length - matched;
+    }
+    return { matchedCount: matched, unmatchedCount: bad, unverifiedCount: unverified, snoozedCount: snoozed, notedCount: noted };
+  }, [isZimmet, rawRows, rowMeta]);
   const detailRow = filteredRows.find((r) => rowKeyOf(r) === detailRowKey) || null;
 
   const historySenders = useMemo(
@@ -1125,6 +1141,7 @@ export default function App({ user, onLogout } = {}) {
   };
 
   const showToast = (msg) => {
+    if (mailRecentlyCancelled() && /^(❌|⚠️)/.test(String(msg))) msg = "Gönderim iptal edildi — mail gönderilmedi";
     setToast(msg);
     setTimeout(() => setToast(null), 2600);
   };
@@ -1480,6 +1497,7 @@ export default function App({ user, onLogout } = {}) {
   // bir cihaza hangi e-postanın ne zaman gittiği bulunabilsin. Detay başına en çok 200 cihaz saklanır (kayıt şişmesin).
   const devRef = (rows) => (rows || []).slice(0, 200).map((r) => ({ serial: String(r.serial || "").trim(), hostname: String(r.hostname || "").trim() })).filter((x) => x.serial || x.hostname);
   const recordMailHistory = (entry) => {
+    if (mailRecentlyCancelled() && !(Number(entry.recipients) > 0 && entry.status !== "Gönderilemedi")) return; // kullanıcı önizlemede iptal etti: 'Gönderilemedi' geçmiş kaydı yazılmaz
     const now = new Date();
     const reportType = entry.reportType || activeReport;
     // Gereksinim #13/#14: detay kayıtları recipientUser/recipientEmail/device/deviceModel/
@@ -2018,6 +2036,13 @@ IT Support`;
   // "Doğru Ofiste Kullanılıyor" satırları için gönderilecek bir şey yok.
   // Lokasyon/IP maili önizlemesi: gönderilecek HTML ile birebir aynı (buildLocationIpMail). Seçili uyuşmazlık kayıtlarından ilkini gösterir.
   const [mailPreviewData, setMailPreviewData] = useState(null);
+  // GÖNDERMEDEN ÖNCE ÖNİZLEME (tüm menüler): her mail gönderilmeden önce konu/alıcı/içerik gösterilir; kullanıcı Gönder / Tümünü gönder / İptal der
+  const [gateMail, setGateMail] = useState(null); // { item, resolve }
+  useEffect(() => {
+    setMailGate((item) => new Promise((resolve) => setGateMail({ item, resolve })));
+    return () => setMailGate(null);
+  }, []);
+  const answerGate = (decision) => { if (gateMail) { gateMail.resolve(decision); setGateMail(null); } };
   const previewLocationIpMail = () => {
     const r = resolveTargetRows().find((x) => !x.matched);
     if (!r) { showToast("Önizlenecek uyuşmazlık kaydı yok — listede (ya da seçimde) Hostname/IP uyuşmazlığı satırı bulunmuyor"); return; }
@@ -2606,11 +2631,22 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
     }
   };
 
+  // PERFORMANS: Aynı veri her ekran geçişinde yeniden indirilip yeniden işlenmesin (ör. 85 bin satırlık TuruncuHat → tüm hesaplar baştan = donma).
+  // Bir rapor, bu oturumda başarıyla yüklendiyse ve sonrasında yeni dosya yüklenmediyse (dataRevRef) sessiz yeniden yükleme atlanır.
+  // Yeni dosya yükleme (persistImport) ya da klasör değişikliği önbelleği geçersiz kılar; elle "Yükle" (silent:false) her zaman yeniden okur.
+  const dataRevRef = useRef(0);
+  const loadedRevRef = useRef({});
+  const revKey = () => `${dataRevRef.current}|${fileSourceConfig.folderPath || ""}`;
+  const alreadyLoaded = (name, silent) => silent && loadedRevRef.current[name] === revKey();
+  const markLoaded = (name) => { loadedRevRef.current[name] = revKey(); };
+
   const loadRealInaktifData = async ({ silent = false } = {}) => {
+    if (alreadyLoaded("inaktif", silent)) return;
     setLoadingRealInaktif(true);
     try {
       const { fileName, modifiedAt, rows } = await fetchInaktifRowsFromFile();
       setBackendReachable(true);
+      markLoaded("inaktif");
       setRealInaktifAll(rows);
       setRealInaktifMeta({ fileName, modifiedAt });
       if (!silent) showToast(`${fileName} içinden ${rows.length} kayıt yüklendi`);
@@ -2623,10 +2659,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   };
 
   const loadRealDiskData = async ({ silent = false } = {}) => {
+    if (alreadyLoaded("disk", silent)) return;
     setLoadingRealDisk(true);
     try {
       const { fileName, modifiedAt, rows } = await fetchDiskRowsFromFile();
       setBackendReachable(true);
+      markLoaded("disk");
       setRealDiskAll(rows);
       setRealDiskMeta({ fileName, modifiedAt });
       if (!silent) showToast(`${fileName} içinden ${rows.length} kayıt yüklendi`);
@@ -2639,10 +2677,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   };
 
   const loadRealSccmData = async ({ silent = false } = {}) => {
+    if (alreadyLoaded("sccm", silent)) return;
     setLoadingRealSccm(true);
     try {
       const { fileName, modifiedAt, rows } = await fetchSccmRowsFromFile();
       setBackendReachable(true);
+      markLoaded("sccm");
       setRealSccmAll(rows);
       setRealSccmMeta({ fileName, modifiedAt });
       if (!silent) showToast(`${fileName} içinden ${rows.length} kayıt yüklendi`);
@@ -2655,10 +2695,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   };
 
   const loadRealLokasyonMailData = async ({ silent = false } = {}) => {
+    if (alreadyLoaded("lokasyon", silent)) return;
     setLoadingRealLokasyonMail(true);
     try {
       const { fileName, modifiedAt, rows } = await fetchLokasyonMailRowsFromFile();
       setBackendReachable(true);
+      markLoaded("lokasyon");
       setRealLokasyonMailAll(rows);
       setRealLokasyonMailMeta({ fileName, modifiedAt });
       if (!silent) showToast(`${fileName} içinden ${rows.length} lokasyon kaydı yüklendi`);
@@ -2671,10 +2713,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   };
 
   const loadRealThData = async ({ silent = false } = {}) => {
+    if (alreadyLoaded("th", silent)) return;
     setLoadingRealTh(true);
     try {
       const { fileName, modifiedAt, rows, excludedSerials } = await fetchThRowsFromFile();
       setBackendReachable(true);
+      markLoaded("th");
       setThExcludedSerials(excludedSerials || []);
       setRealThAll(rows);
       setRealThMeta({ fileName, modifiedAt });
@@ -2688,10 +2732,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   };
 
   const loadRealMonitorData = async ({ silent = false } = {}) => {
+    if (alreadyLoaded("monitor", silent)) return;
     setLoadingRealMonitor(true);
     try {
       const { fileName, modifiedAt, rows } = await fetchMonitorRowsFromFile();
       setBackendReachable(true);
+      markLoaded("monitor");
       setRealMonitorAll(rows);
       setRealMonitorMeta({ fileName, modifiedAt });
       if (!silent) showToast(`${fileName} içinden ${rows.length} kayıt yüklendi`);
@@ -2706,9 +2752,11 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   //. Klasör senkronu yoksa
   // backend hata döner, sessizce yutulur; manuel dosya seçimi (handleManualBsodFile) yedek kalır.
   const loadRealBsodData = async ({ silent = false } = {}) => {
+    if (alreadyLoaded("bsod", silent)) return;
     try {
       const { fileName, modifiedAt, rows } = await fetchBsodRowsFromFile();
       setBackendReachable(true);
+      markLoaded("bsod");
       setRealBsodAll(rows);
       setRealBsodMeta({ fileName, modifiedAt });
       if (!silent) showToast(`${fileName} içinden ${rows.length} BSOD kaydı yüklendi`);
@@ -2825,10 +2873,12 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
   // Elle seçilen dosyayı backend'e de kaydet: uygulama kapanıp açılsa ya da sayfa yenilense bile rapor
   // ekranları veriyi otomatik geri yükler (bkz. backend/src/importStore.js). Başarısız olursa (ör. yetki)
   // bu oturumdaki veri yine de kullanılır, kullanıcıya uyarı gösterilir.
-  const persistImport = (kind, file) =>
-    backendClient
+  const persistImport = (kind, file) => {
+    dataRevRef.current += 1; // yeni dosya: önbellek geçersiz
+    return backendClient
       .importFile(kind, file)
       .then((res) => {
+        dataRevRef.current += 1; // yükleme tamamlandı: yeniden oku
         // Sütun kontrolü: eksik/benzer-ama-tanınmayan başlık varsa kullanıcıya hemen bildir (sessizce boş rapor olmasın)
         const c = res?.check;
         if (c && (!c.ok || c.missingRecommended.length > 0 || c.nearMisses.length > 0)) showToast(`${c.ok ? "⚠️" : "❌"} ${res.checkSummary}`);
@@ -2838,6 +2888,7 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
         showToast(`Dosya bu oturumda yüklendi ama kalıcı kaydedilemedi: ${err.message}`);
         return false;
       });
+  };
 
   // Bu boyutun üstündeki dosyalar tarayıcıda açılmaz (SheetJS, açılmış sayfa XML'i ~512 MB'ı aşınca sayfayı hiç üretemez → boş rapor);
   // sunucuya kaydedilir, sunucu akışla okur ve rapor oradan yüklenir (bkz. backend/src/bigXlsx.js)
@@ -5784,6 +5835,20 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
       <RecordPopup row={historyPopupRow} isZimmet={isZimmet} styles={styles} pal={pal} mailHistory={mailHistory} onClose={() => setHistoryPopupRow(null)} />
 
       {toast && <div style={styles.toast}>{toast}</div>}
+      {gateMail && (
+        <MailPreviewModal
+          preview={gateMail.item}
+          onClose={() => answerGate("cancel")}
+          styles={styles}
+          actions={(
+            <>
+              <button style={styles.btnPrimary} data-gate-send onClick={() => answerGate("send")}>Gönder</button>
+              <button style={styles.btnGhost} data-gate-all onClick={() => answerGate("all")}>Bu işlemdeki tümünü gönder</button>
+              <button style={styles.btnGhost} data-gate-cancel onClick={() => answerGate("cancel")}>İptal</button>
+            </>
+          )}
+        />
+      )}
     </div>
   );
 }

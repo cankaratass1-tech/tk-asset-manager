@@ -50,6 +50,23 @@ export function setSessionToken(token) {
   }
 }
 
+// GÖNDERMEDEN ÖNCE ÖNİZLEME: her mail sunucuya gitmeden önce App'in kayıt ettiği kapı (gate) çağrılır; kullanıcı konu/alıcı/içeriği görür ve
+// "Gönder" / "Bu işlemdeki tümünü gönder" / "İptal" der. İptalde aynı işlemin kalan mailleri de sorulmadan iptal edilir.
+// Otomasyon testlerinde (navigator.webdriver) kapı kapalıdır; localStorage "varlikTakip.mailGate" = "on"/"off" ile zorlanabilir.
+let mailGate = null;
+let approveAllUntil = 0;
+let cancelledUntil = 0;
+export const setMailGate = (fn) => { mailGate = fn; };
+export const mailRecentlyCancelled = () => Date.now() < cancelledUntil;
+function mailGateActive() {
+  if (!mailGate) return false;
+  try {
+    const force = localStorage.getItem("varlikTakip.mailGate");
+    if (force === "off") return false;
+    if (force === "on") return true;
+  } catch { /* depolama yoksa varsayılan */ }
+  return !(typeof navigator !== "undefined" && navigator.webdriver);
+}
 let mailSuccessCount = 0;
 export const getMailSuccessCount = () => mailSuccessCount;
 
@@ -131,9 +148,22 @@ export const backendClient = {
 
   // Başarılı her gönderim sayılır (getMailSuccessCount): ekranlar "bu butona basınca en az bir mail gitti mi" sorusunu buradan
   // öğrenip seçili kayıtları temizler — aynı kayıtlar bir sonraki gönderimde yeniden gitmesin.
-  sendMail: async ({ to, subject, text, html }) => {
+  sendMail: async ({ to, subject, text, html, skipPreview = false }) => {
+    if (!skipPreview && mailGateActive()) {
+      const now = Date.now();
+      if (now < cancelledUntil) return { ok: false, cancelled: true, message: "Gönderim iptal edildi" };
+      if (now >= approveAllUntil) {
+        const item = { to: Array.isArray(to) ? to.join(", ") : String(to || ""), subject, html: html || `<pre style="white-space:pre-wrap;font-family:inherit">${String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>` };
+        const decision = await mailGate(item);
+        if (decision === "cancel") { cancelledUntil = Date.now() + 8000; return { ok: false, cancelled: true, message: "Gönderim iptal edildi" }; }
+        if (decision === "all") approveAllUntil = Date.now() + 20000;
+      }
+      if (approveAllUntil > Date.now()) approveAllUntil = Date.now() + 20000; // aynı işlemdeki ardışık gönderimler arası bekleme payı
+    }
     const res = await request("/mail/send", { method: "POST", body: JSON.stringify({ to, subject, text, html }) });
-    if (res && res.ok) mailSuccessCount += 1;
+    if (res && res.ok) {
+      mailSuccessCount += 1;
+    }
     if (res && res.logId) pendingSendLogIds.push(res.logId);
     return res;
   },
