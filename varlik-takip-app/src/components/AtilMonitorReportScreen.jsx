@@ -29,6 +29,27 @@ const buildMailHtml = (items, username) =>
     footer: MAIL_FOOTER,
   });
 
+// "Depoda ama kullanılan" monitörler: TuruncuHat'ta Zimmet Depoda görünüyor ama bir kişi kullanıyor → mail, kullanan kişiye gider (zimmeti kendi adına alsın).
+const DEPOT_MAIL_SUBJECT = "Zimmet İşlemi Gerekli — Kullandığınız Monitör(ler) Depoda Görünüyor";
+const buildDepotMailText = (items) =>
+  `Aşağıdaki monitör(ler) TuruncuHat'ta zimmet deposunda görünüyor, ancak siz kullanıyorsunuz:\n\n${items
+    .map((r) => `- ${r.monitorSerial} (${r.model || "—"})`)
+    .join("\n")}\n\nTuruncuhat: turuncuhat.mhy.com.tr → Oluştur → Kullanıcı Vakası → ilgili zimmet servisi.`;
+const buildDepotMailHtml = (items, username) =>
+  mailShell({
+    eyebrow: "DEPODA GÖRÜNEN MONİTÖR KULLANIMI",
+    title: "ZİMMET İŞLEMİ GEREKLİ",
+    greeting: "Merhabalar,",
+    intro: "Sistem kayıtlarımıza göre, aşağıda listelenen monitör(ler) TuruncuHat'ta <strong>zimmet deposunda</strong> görünüyor. Ancak son kullanım kayıtlarına göre bu monitör(leri) <strong>siz</strong> kullanıyorsunuz. Zimmet hareketlerinin doğru ve güncel yönetilebilmesi için, monitör(lerin) sizin adınıza zimmetlenmesi gerekmektedir.",
+    bodyHtml: dataTable(
+      ["Seri No / Barkod", "Marka / Model", "Varlık Adı", "Kayıtlı Durum", "Hostname", "Last Logon"],
+      items.map((r) => [[r.monitorSerial, r.barkod], [r.marka, r.model], r.asset, "Zimmet Depoda", r.hostnames, username])
+    ),
+    action: stepsBox("İşleminiz için lütfen aşağıdaki adımları izleyerek TuruncuHat üzerinden bir kayıt oluşturunuz:"),
+    notes: [REC_NOTE],
+    footer: MAIL_FOOTER,
+  });
+
 const PAGE_SIZE = 50;
 const norm = (v) => String(v ?? "").trim().toLowerCase();
 
@@ -287,8 +308,11 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
 
   // Mail: monitörü fiilen kullanan (zimmetli olmayan) kişiye. Seçim varsa yalnızca seçililer, yoksa tüm
   // "bilgi dışı kullanım" satırları (o durumda önce onay sorulur). Atıl/aktif monitörlere mail gitmez.
-  const mailTargets = selectedKeys.size > 0 ? stages.inScope.filter((r) => selectedKeys.has(r.rowKey)) : stages.outside;
-  const mailPlan = useMemo(() => buildOtherUserMailPlan(mailTargets, thRows), [mailTargets, thRows]);
+  // "Depoda ama kullanılan" aşamasındaysak mail o gruba gider (monitörü kullanan kişiye); diğer aşamalarda "bilgi dışı kullanım" için.
+  const depotMail = stage === "depotUsed";
+  const mailPool = depotMail ? stages.depotUsed : stages.outside;
+  const mailTargets = selectedKeys.size > 0 ? (depotMail ? stages.depotUsed : stages.inScope).filter((r) => selectedKeys.has(r.rowKey)) : mailPool;
+  const mailPlan = useMemo(() => buildOtherUserMailPlan(mailTargets, thRows, { depot: depotMail }), [mailTargets, thRows, depotMail]);
   const onMailClick = () => {
     if (selectedKeys.size > 0) sendMails();
     else setConfirmMailOpen(true);
@@ -297,7 +321,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
     setConfirmMailOpen(false);
     const { recipients, noMail } = mailPlan;
     if (recipients.length === 0 && noMail.length === 0) {
-      showToast?.("Seçili kayıtlarda bilgi dışı kullanım yok — e-posta gönderilecek kayıt bulunamadı (atıl/aktif monitörlere e-posta gitmez)");
+      showToast?.(depotMail ? "Seçili kayıtlarda depoda olup kullanılan monitör yok — e-posta gönderilecek kayıt bulunamadı" : "Seçili kayıtlarda bilgi dışı kullanım yok — e-posta gönderilecek kayıt bulunamadı (atıl/aktif monitörlere e-posta gitmez)");
       return;
     }
     setMailBusy(true);
@@ -305,7 +329,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
     const details = noMail.map((n) => ({ location: n.username, to: null, count: n.items.length, ok: false, message: "TuruncuHat'ta bu kullanıcı için e-posta adresi bulunamadı" }));
     for (const r of recipients) {
       try {
-        const res = await backendClient.sendMail({ to: r.mail, subject: MAIL_SUBJECT, text: buildMailText(r.items, r.username), html: buildMailHtml(r.items, r.username) });
+        const res = await backendClient.sendMail({ to: r.mail, subject: depotMail ? DEPOT_MAIL_SUBJECT : MAIL_SUBJECT, text: depotMail ? buildDepotMailText(r.items) : buildMailText(r.items, r.username), html: depotMail ? buildDepotMailHtml(r.items, r.username) : buildMailHtml(r.items, r.username) });
         if (res.ok) {
           sent += r.items.length;
           details.push({ location: r.username, to: r.mail, count: r.items.length, ok: true, message: "Gönderildi" });
@@ -325,7 +349,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
       id: Date.now(),
       date: new Date().toLocaleString("tr-TR"),
       dept: deptLabel || "Tüm Şirketler",
-      report: "Atıl Monitörler — Bilgi Dışı Kullanım",
+      report: depotMail ? "Atıl Monitörler — Depoda Ama Kullanılan" : "Atıl Monitörler — Bilgi Dışı Kullanım",
       recipients: sent,
       status: failed > 0 || skipped > 0 ? (sent > 0 ? "Kısmen Başarısız" : "Gönderilemedi") : "Başarılı",
       details,
@@ -502,10 +526,11 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
                 type="button"
                 style={styles.btnPrimary}
                 onClick={onMailClick}
-                disabled={mailBusy || stages.outside.length === 0}
-                title="Monitörü kullanan (zimmetli olmayan) kişiye zimmet transferi e-postası gönderir. Seçim yoksa tüm bilgi dışı kullanımlara (onayla)"
+                disabled={mailBusy || mailPool.length === 0}
+                data-atil-mail
+                title={depotMail ? "Depoda görünüp kullanılan monitörün kullanıcısına zimmet işlemi e-postası gönderir. Seçim yoksa listedeki tümüne (onayla)" : "Monitörü kullanan (zimmetli olmayan) kişiye zimmet transferi e-postası gönderir. Seçim yoksa tüm bilgi dışı kullanımlara (onayla)"}
               >
-                {mailBusy ? "Gönderiliyor…" : `Bilgi Dışı Kullanıma E-posta Gönder${selectedKeys.size > 0 ? ` (${selectedKeys.size} seçili)` : ""}`}
+                {mailBusy ? "Gönderiliyor…" : `${depotMail ? "Depoda Ama Kullanılana" : "Bilgi Dışı Kullanıma"} E-posta Gönder${selectedKeys.size > 0 ? ` (${selectedKeys.size} seçili)` : ""}`}
               </button>
             </div>
           </div>
@@ -638,7 +663,7 @@ export default function AtilMonitorReportScreen({ styles, pal, thRows, monitorRo
               <span style={styles.modalClose} onClick={() => setConfirmMailOpen(false)}>✕</span>
             </div>
             <p style={styles.modalSub}>
-              Listede seçim yapılmadı — tüm bilgi dışı kullanımlar için e-posta gönderilecek: {stages.outside.length} monitör, {mailPlan.recipients.length} kullanıcı
+              Listede seçim yapılmadı — tüm {depotMail ? "depoda olup kullanılan monitörler" : "bilgi dışı kullanımlar"} için e-posta gönderilecek: {mailPool.length} monitör, {mailPlan.recipients.length} kullanıcı
               {mailPlan.noMail.length > 0 ? ` (${mailPlan.noMail.length} kullanıcının e-posta adresi bulunamadığı için atlanacak)` : ""}.
             </p>
             <div style={styles.formActions}>

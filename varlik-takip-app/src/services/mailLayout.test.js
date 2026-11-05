@@ -8,7 +8,7 @@ const bant = buildBantMail({ officeCode: "ABV1-SD1", officeName: "ABIDJAN SATIS 
 const loc = buildLocationIpMail({ owner: "ABIDJAN SATIS OFISI", hostname: "ABJ1B99", serial: "PF6Q9X80", deviceModel: "ThinkPad T14", location: "172.28.250" });
 
 test("Bant ve Lokasyon/IP mailleri aynı çerçeveyi (başlık bandı, çerçeveli gövde, alt bilgi) kullanır", () => {
-  for (const frag of ["background:#243a5e;color:#fff;padding:14px 18px;border-radius:6px 6px 0 0;", "border:1px solid #d0d7de;border-top:none;padding:16px 18px;border-radius:0 0 6px 6px;", "max-width:760px", "font-size:12px;color:#8a8886;"]) {
+  for (const frag of ['bgcolor="#243a5e"', "padding:16px 18px;border:1px solid #d0d7de;border-top:none;", "max-width:760px", "font-size:12px;color:#8a8886;"]) {
     assert.ok(bant.html.includes(frag), `bant: ${frag}`);
     assert.ok(loc.html.includes(frag), `lokasyon/ip: ${frag}`);
   }
@@ -39,7 +39,7 @@ import { dataTable } from "./mailLayout.js";
 import { buildUnusedDeviceMailHtml } from "./unusedDeviceMailService.js";
 import { buildBsodMailHtml } from "./bsodKnowledgeService.js";
 
-const FRAME = ["background:#243a5e;color:#fff;padding:14px 18px;border-radius:6px 6px 0 0;", "max-width:760px"];
+const FRAME = ['bgcolor="#243a5e"', "padding:16px 18px;border:1px solid #d0d7de;border-top:none;", "max-width:760px"]; // başlık bandı bgcolor ile (Outlook div arka planını yok sayar)
 
 test("dataTable: hücre kaçırılır, boş hücre — olur, [ana, alt] iki satırlı gösterilir", () => {
   const h = dataTable(["A", "B"], [[["<x>", "alt"], ""]]);

@@ -77,6 +77,7 @@ function buildRow(th, attachments, reason, { depot = false } = {}) {
     company: th.company || "",
     location: th.location || "—",
     usedBy: usedBy.length ? usedBy.join(", ") : "—",
+    usedByMails: Object.fromEntries(attachments.map((a) => [normKey(a.username), String(a.mail ?? "").trim()]).filter(([k, m]) => k && m)),
     usedByKeys,
     // zimmetli kişi dışında biri kullanıyor (kanıt: iki kullanıcı adı da var ve farklı); OBS'de aranmaz
     depot,
@@ -157,7 +158,8 @@ export function computeAtilMonitorRows({ thRows = [], monitorRows = [] } = {}) {
 // Maili") bulunur. Yalnızca bilgi dışı kullanım satırları dikkate alınır; zimmetli kişinin kendisi
 // kullanan listesinden çıkarılır. Aynı kişi birden çok monitör kullanıyorsa tek mailde toplanır.
 // Dönen: { recipients: [{ username, mail, items: [row] }], noMail: [{ username, items }] }
-export function buildOtherUserMailPlan(rows = [], thRows = []) {
+// depot=true: "Depoda ama kullanılan" monitörler — mail yine monitörü fiilen kullanan kişiye gider (zimmeti kendi adına alması için)
+export function buildOtherUserMailPlan(rows = [], thRows = [], { depot = false } = {}) {
   const mailByUser = new Map();
   thRows.forEach((t) => {
     const k = normKey(t.ownerUsername);
@@ -167,7 +169,7 @@ export function buildOtherUserMailPlan(rows = [], thRows = []) {
 
   const byUser = new Map(); // normKey(username) -> { username, items }
   rows
-    .filter((r) => r.usedByOther)
+    .filter((r) => (depot ? r.depot && r.usedBy !== "—" : r.usedByOther))
     .forEach((r) => {
       const ownerKey = normKey(r.ownerUsername);
       r.usedBy
@@ -184,7 +186,7 @@ export function buildOtherUserMailPlan(rows = [], thRows = []) {
   const recipients = [];
   const noMail = [];
   byUser.forEach((entry, k) => {
-    const mail = mailByUser.get(k);
+    const mail = mailByUser.get(k) || entry.items.map((r) => r.usedByMails?.[k]).find(Boolean);
     if (mail) recipients.push({ ...entry, mail });
     else noMail.push(entry);
   });

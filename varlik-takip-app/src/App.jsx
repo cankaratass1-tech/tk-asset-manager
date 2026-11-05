@@ -2036,7 +2036,7 @@ IT Support`;
   // "Doğru Ofiste Kullanılıyor" satırları için gönderilecek bir şey yok.
   // Lokasyon/IP maili önizlemesi: gönderilecek HTML ile birebir aynı (buildLocationIpMail). Seçili uyuşmazlık kayıtlarından ilkini gösterir.
   const [mailPreviewData, setMailPreviewData] = useState(null);
-  // GÖNDERMEDEN ÖNCE ÖNİZLEME (tüm menüler): her mail gönderilmeden önce konu/alıcı/içerik gösterilir; kullanıcı Gönder / Tümünü gönder / İptal der
+  // GÖNDERMEDEN ÖNCE ÖNİZLEME (tüm menüler): her mail gönderilmeden önce konu/alıcı/içerik gösterilir; kullanıcı Gönder / İptal der
   const [gateMail, setGateMail] = useState(null); // { item, resolve }
   useEffect(() => {
     setMailGate((item) => new Promise((resolve) => setGateMail({ item, resolve })));
@@ -5877,7 +5877,6 @@ ${c.ok ? "⚠️" : "❌"} ${up.checkSummary}` : "";
           actions={(
             <>
               <button style={styles.btnPrimary} data-gate-send onClick={() => answerGate("send")}>Gönder</button>
-              <button style={styles.btnGhost} data-gate-all onClick={() => answerGate("all")}>Bu işlemdeki tümünü gönder</button>
               <button style={styles.btnGhost} data-gate-cancel onClick={() => answerGate("cancel")}>İptal</button>
             </>
           )}

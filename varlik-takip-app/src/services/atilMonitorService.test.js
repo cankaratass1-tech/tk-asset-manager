@@ -231,3 +231,22 @@ test("İşlemdeki Malzeme Emri (ATO) olan monitörler hiçbir gruba alınmaz; bo
   assert.equal(r.stages.all.some((x) => ["A1", "A2", "A3"].includes(x.monitorSerial)), false);
   assert.equal(r.stats.atil + r.stats.outside + r.stats.active, r.stats.inScope);
 });
+
+test("Depoda ama kullanılan monitör: mail, monitörü kullanan kişiye gider (TuruncuHat'ta adresi varsa oradan, yoksa Monitör Raporu'ndaki e-postadan)", () => {
+  const thRows = [
+    depotMon("DM1"), depotMon("DM2"), depotMon("DM3"),
+    { serial: "PC9", deviceType: "NOTEBOOK", assignmentType: "User", owner: "Kişi Bir", ownerUsername: "kisi.bir", ownerMail: "kisi.bir@x.com" },
+  ];
+  const res = computeAtilMonitorRows({
+    thRows,
+    monitorRows: [att("DM1", { username: "kisi.bir" }), att("DM2", { username: "kisi.iki", mail: "iki@x.com" }), att("DM3", { username: "kisi.uc" })],
+  });
+  assert.deepEqual(serials(res.stages.depotUsed), ["DM1", "DM2", "DM3"]);
+  const plan = buildOtherUserMailPlan(res.stages.depotUsed, thRows, { depot: true });
+  const byUser = Object.fromEntries(plan.recipients.map((r) => [r.username, r.mail]));
+  assert.equal(byUser["kisi.bir"], "kisi.bir@x.com", "TuruncuHat'taki adres");
+  assert.equal(byUser["kisi.iki"], "iki@x.com", "Monitör Raporu'ndaki yedek adres");
+  assert.deepEqual(plan.noMail.map((n) => n.username), ["kisi.uc"], "adresi hiç bulunamayan kullanıcı atlanır");
+  // depo modu kapalıyken (bilgi dışı kullanım) depo monitörleri plana girmez
+  assert.equal(buildOtherUserMailPlan(res.stages.depotUsed, thRows).recipients.length, 0);
+});

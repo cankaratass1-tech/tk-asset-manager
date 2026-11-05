@@ -169,6 +169,19 @@ ${body}`);
     check("Atıl Monitörler: kayıtlı sahibi unvanıyla yazılmış", /\(.*Takimi\)/.test(t));
   }
 
+  // "Depoda ama kullanılan": mail, monitörü kullanan kişiye gider (demo veride böyle bir monitör yoksa atlanır)
+  await page.locator("[data-atil-stage=depotUsed]").click();
+  await page.waitForTimeout(800);
+  if ((await page.locator("tbody tr input[type=checkbox]").count()) > 0) {
+    check("Atıl Monitörler (Depoda ama kullanılan): düğme bu gruba göre adlanıyor", (await page.getByRole("button", { name: /Depoda Ama Kullanılana E-posta Gönder/ }).count()) === 1);
+    await selectRows(1);
+    r = await sendAndCollect(() => page.getByRole("button", { name: /Depoda Ama Kullanılana E-posta Gönder/ }).first().click());
+    check("Atıl Monitörler (Depoda ama kullanılan): kullanan kişiye e-posta gidiyor", r.mails.length >= 1, r.toast);
+    if (r.mails[0]) check("Atıl Monitörler (Depoda ama kullanılan): konu ve metin depo uyarısı", /Depoda Görünüyor/.test(r.mails[0].subject) && /zimmet deposunda/.test(stripHtml(r.mails[0].html)));
+  } else {
+    console.log("  (demo veride depoda olup kullanılan monitör yok — atlandı)");
+  }
+
   // ---------- Diğer raporlar: ilk 2 kayda mail ----------
   const OTHERS = ["İnaktif Cihazlar", "Disk Alanı", "Kullanılmayan Cihazlar", "Lokasyon Hostname ve IP Uyuşmazlığı", "BSOD", "Battery Health"];
   let previewText = "", previewSubject = "";
@@ -245,7 +258,7 @@ ${body}`);
       check("Yeni Kurulum (TR): tablo başlıkları", ["Seri Numarası", "Barkod", "Model", "Marka", "Varlık Kataloğu", "Varlık Transfer Emri"].every((h) => t.includes(h)));
       const ato = (firstText.match(/ATO-[\w-]+/) || [])[0];
       check("Yeni Kurulum (TR): kaydın ATO numarası tabloda (Varlık Transfer Emri)", !!ato && t.includes(ato), ato);
-      check("Yeni Kurulum (TR): tek cihaz (bilgi alanında tek 'Seri Numarası') ve Ofis Bant düzeni (lacivert başlık bandı)", (m.html.match(/Seri Numarası/g) || []).length === 1 && m.html.includes("background:#243a5e") && t.includes("YENİ KURULUM"));
+      check("Yeni Kurulum (TR): tek cihaz (bilgi alanında tek 'Seri Numarası') ve Ofis Bant düzeni (lacivert başlık bandı)", (m.html.match(/Seri Numarası/g) || []).length === 1 && m.html.includes('bgcolor="#243a5e"') && t.includes("YENİ KURULUM"));
     }
     const sentBadge = await page.locator("tr", { hasText: /E-posta: gönderildi/ }).count();
     check("Yeni Kurulum: gönderilen kaydın rozeti E-posta gönderildi oldu", sentBadge >= 1);

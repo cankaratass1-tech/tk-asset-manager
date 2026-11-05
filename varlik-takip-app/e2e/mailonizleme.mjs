@@ -30,7 +30,7 @@ try {
   await page.waitForSelector("[data-mail-preview]", { timeout: 8000 });
   const txt = await page.locator("[data-mail-preview]").innerText();
   check("Gönder'e basınca önizleme penceresi açılıyor (konu + alıcı + içerik)", /Konu:/.test(txt) && /Alıcı:/.test(txt) && txt.length > 200);
-  check("Önizlemede Gönder / Tümünü gönder / İptal düğmeleri var", (await page.locator("[data-gate-send]").count()) === 1 && (await page.locator("[data-gate-all]").count()) === 1 && (await page.locator("[data-gate-cancel]").count()) === 1);
+  check("Önizlemede yalnız Gönder / İptal düğmeleri var (Tümünü gönder yok)", (await page.locator("[data-gate-send]").count()) === 1 && (await page.locator("[data-gate-all]").count()) === 0 && (await page.locator("[data-gate-cancel]").count()) === 1);
   await wait(1500);
   check("Onay verilmeden mail sunucuya gitmedi", sink.messages.length === 0, `${sink.messages.length} mail`);
 
